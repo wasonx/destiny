@@ -1,0 +1,43 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&family=Literata:opsz,wght@7..72,600;7..72,700&family=Work+Sans:wght@400&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-vital-vermillion: #C84B31;
+  --color-serene-teal: #4A7C77;
+  --color-wisdom-gold: #B89150;
+  --color-ink-blue: #1A2F4B;
+  --color-surface: #fbf9fb;
+  --color-paper-white: #FDFCF8;
+  --color-report-bg: #F9FAFB;
+  --color-shadow-gray: #E5E7EB;
+
+  --font-serif: "Literata", serif;
+  --font-sans: "Work Sans", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --spacing-gutter: 24px;
+  --spacing-margin-desktop: 64px;
+  --spacing-report-width-max: 800px;
+  --spacing-margin-mobile: 20px;
+  --spacing-section-gap: 48px;
+}
+
+@layer base {
+  body {
+    @apply bg-surface text-ink-blue antialiased font-sans;
+  }
+}
+
+.text-gradient {
+  background: linear-gradient(to right, var(--color-ink-blue), var(--color-wisdom-gold));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
