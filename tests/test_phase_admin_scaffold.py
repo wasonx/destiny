@@ -69,6 +69,21 @@ class AdminScaffoldTests(unittest.TestCase):
         ]:
             self.assertIn(endpoint, combined)
 
+    def test_knowledge_admin_pages_expose_publish_workflow(self):
+        knowledge = (ROOT / "src" / "admin" / "pages" / "KnowledgePage.tsx").read_text(encoding="utf-8")
+        rules = (ROOT / "src" / "admin" / "pages" / "RulesPage.tsx").read_text(encoding="utf-8")
+        templates = (ROOT / "src" / "admin" / "pages" / "TemplatesPage.tsx").read_text(encoding="utf-8")
+
+        self.assertIn("发布", knowledge)
+        self.assertIn("停用", knowledge)
+        self.assertIn("版本", knowledge)
+        self.assertIn("发布", rules)
+        self.assertIn("停用", rules)
+        self.assertIn("关联知识", rules)
+        self.assertIn("发布", templates)
+        self.assertIn("停用", templates)
+        self.assertIn("免责声明", templates)
+
 
 if __name__ == "__main__":
     unittest.main()
