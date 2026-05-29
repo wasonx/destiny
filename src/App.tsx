@@ -10,12 +10,16 @@ import InputForm from './components/InputForm';
 import Report from './components/Report';
 import Relationship from './components/Relationship';
 import Questions from './components/Questions';
+import Anju from './components/Anju';
+import { generateInsight, InsightReport } from './lib/insights';
 
 type ViewType = 'home' | 'input' | 'report' | 'relationship' | 'questions' | 'anju';
 
 export default function App() {
   const [view, setView] = useState<ViewType>('home');
   const [reportsView, setReportsView] = useState(false);
+  const [currentReport, setCurrentReport] = useState<InsightReport | null>(null);
+  const [reportLoading, setReportLoading] = useState(false);
 
   const handleNavigate = (newView: string) => {
     setView(newView as ViewType);
@@ -33,33 +37,32 @@ export default function App() {
 
   const renderContent = () => {
     if (reportsView) {
-      return <Report />;
+      return <Report report={currentReport} />;
     }
 
     switch (view) {
       case 'home':
         return <Home onNavigate={handleNavigate} />;
       case 'input':
-        return <InputForm onSubmit={() => setView('report')} />;
+        return (
+          <InputForm
+            onSubmit={async (payload) => {
+              setReportLoading(true);
+              setView('report');
+              const report = await generateInsight({ kind: 'life', payload: { ...payload } });
+              setCurrentReport(report);
+              setReportLoading(false);
+            }}
+          />
+        );
       case 'report':
-        return <Report />;
+        return <Report report={currentReport} loading={reportLoading} />;
       case 'relationship':
         return <Relationship />;
       case 'questions':
         return <Questions />;
       case 'anju':
-        return (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <h2 className="font-serif text-2xl text-ink-blue mb-4">安居 · 环境分析</h2>
-            <p className="text-on-surface-variant max-w-sm">正在开发中，敬请期待...</p>
-            <button 
-              onClick={() => setView('home')}
-              className="mt-8 text-serene-teal font-medium flex items-center gap-2"
-            >
-              返回首页
-            </button>
-          </div>
-        );
+        return <Anju />;
       default:
         return <Home onNavigate={handleNavigate} />;
     }
@@ -87,6 +90,7 @@ export default function App() {
         if (reportsView) setReportsView(false);
         else setView('home');
       }}
+      hideBottomNav={view !== 'home' || reportsView}
     >
       {renderContent()}
     </Layout>

@@ -9,6 +9,7 @@ interface LayoutProps {
   title?: string;
   showBack?: boolean;
   onBack?: () => void;
+  hideBottomNav?: boolean;
 }
 
 export default function Layout({ 
@@ -17,7 +18,8 @@ export default function Layout({
   onTabChange, 
   title = "元启东方",
   showBack = false,
-  onBack
+  onBack,
+  hideBottomNav = false
 }: LayoutProps) {
   return (
     <div className="min-h-screen flex flex-col relative selection:bg-wisdom-gold/30 selection:text-ink-blue">
@@ -52,12 +54,12 @@ export default function Layout({
       </header>
 
       {/* Main Content */}
-      <main className="flex-grow relative z-10 pt-20 pb-24 md:pb-8 w-full max-w-report-width-max mx-auto px-margin-mobile md:px-margin-desktop">
+      <main className={`flex-grow relative z-10 pt-20 ${hideBottomNav ? 'pb-8' : 'pb-24 md:pb-8'} w-full max-w-report-width-max mx-auto px-margin-mobile md:px-margin-desktop`}>
         {children}
       </main>
 
       {/* Bottom Nav */}
-      <nav className="md:hidden fixed bottom-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-t border-shadow-gray flex justify-around items-center h-20 px-4 pb-safe">
+      {!hideBottomNav && <nav className="md:hidden fixed bottom-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-t border-shadow-gray flex justify-around items-center h-20 px-4 pb-safe">
         <button 
           onClick={() => onTabChange('home')}
           className={`flex flex-col items-center justify-center px-4 py-1 transition-all duration-200 ${activeTab === 'home' || activeTab === 'input' ? 'text-ink-blue bg-wisdom-gold/10 rounded-lg' : 'text-on-surface-variant'}`}
@@ -81,7 +83,7 @@ export default function Layout({
           <User className="w-6 h-6" />
           <span className="text-[10px] font-mono mt-1 uppercase tracking-tighter">我</span>
         </button>
-      </nav>
+      </nav>}
     </div>
   );
 }

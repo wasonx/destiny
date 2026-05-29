@@ -1,73 +1,113 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Calendar, Clock, MapPin, Lock, ArrowRight } from 'lucide-react';
+import { ArrowRight, Calendar, Clock, Lock, MapPin } from 'lucide-react';
+
+interface LifeFormData {
+  birthdate: string;
+  birthtime: string;
+  birthplace: string;
+  gender: string;
+  concern: string;
+}
 
 interface InputFormProps {
-  onSubmit: (data: any) => void;
+  onSubmit: (data: LifeFormData) => void;
 }
+
+const concerns = ['整体', '感情', '事业', '财富', '学业', '家庭', '身心'];
 
 export default function InputForm({ onSubmit }: InputFormProps) {
   const [gender, setGender] = useState('male');
+  const [concern, setConcern] = useState('整体');
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       className="flex flex-col h-full bg-paper-white"
     >
       <div className="mb-10 text-center">
         <p className="text-on-surface-variant text-base md:text-lg tracking-wide leading-relaxed">
-          输入您的出生信息，<br/>开启 AI 东方人生全景探索。
+          输入您的出生信息，<br />开启 AI 东方人生全景探索。
         </p>
-        <div className="w-12 h-[2px] bg-wisdom-gold mx-auto mt-6 rounded-full opacity-60"></div>
+        <div className="w-12 h-[2px] bg-wisdom-gold mx-auto mt-6 rounded-full opacity-60" />
       </div>
 
-      <form className="space-y-8 flex-grow" onSubmit={(e) => { e.preventDefault(); onSubmit({}); }}>
-        {/* Date */}
+      <form
+        className="space-y-8 flex-grow"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const form = new FormData(e.currentTarget);
+          onSubmit({
+            birthdate: String(form.get('birthdate') || ''),
+            birthtime: String(form.get('birthtime') || ''),
+            birthplace: String(form.get('birthplace') || ''),
+            gender,
+            concern,
+          });
+        }}
+      >
         <div className="group">
           <label className="block font-mono text-[10px] text-on-surface-variant mb-2 ml-1 uppercase tracking-wider" htmlFor="birthdate">出生日期</label>
           <div className="relative">
-            <input 
+            <input
               type="date"
               id="birthdate"
+              name="birthdate"
               required
-              className="w-full bg-transparent border-0 border-b border-shadow-gray text-ink-blue font-serif text-lg py-3 px-1 focus:ring-0 focus:border-ink-blue transition-colors cursor-pointer appearance-none" 
+              className="w-full bg-transparent border-0 border-b border-shadow-gray text-ink-blue font-serif text-lg py-3 px-1 focus:ring-0 focus:border-ink-blue transition-colors cursor-pointer appearance-none"
             />
             <Calendar className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 text-shadow-gray group-focus-within:text-ink-blue transition-colors pointer-events-none" />
           </div>
         </div>
 
-        {/* Time */}
         <div className="group">
           <div className="flex justify-between items-baseline mb-2 ml-1">
             <label className="block font-mono text-[10px] text-on-surface-variant uppercase tracking-wider" htmlFor="birthtime">出生时间</label>
             <span className="text-[10px] text-outline opacity-70">如不确定可选择大致时段</span>
           </div>
           <div className="relative">
-            <input 
-              type="time" 
+            <input
+              type="time"
               id="birthtime"
-              className="w-full bg-transparent border-0 border-b border-shadow-gray text-ink-blue font-serif text-lg py-3 px-1 focus:ring-0 focus:border-ink-blue transition-colors cursor-pointer appearance-none" 
+              name="birthtime"
+              className="w-full bg-transparent border-0 border-b border-shadow-gray text-ink-blue font-serif text-lg py-3 px-1 focus:ring-0 focus:border-ink-blue transition-colors cursor-pointer appearance-none"
             />
             <Clock className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 text-shadow-gray group-focus-within:text-ink-blue transition-colors pointer-events-none" />
           </div>
         </div>
 
-        {/* Place */}
         <div className="group">
           <label className="block font-mono text-[10px] text-on-surface-variant mb-2 ml-1 uppercase tracking-wider" htmlFor="birthplace">出生地点</label>
           <div className="relative">
-            <input 
-              type="text" 
+            <input
+              type="text"
               id="birthplace"
+              name="birthplace"
               placeholder="城市/地区"
-              className="w-full bg-transparent border-0 border-b border-shadow-gray text-ink-blue font-serif text-lg py-3 px-1 focus:ring-0 focus:border-ink-blue transition-colors placeholder-shadow-gray/50" 
+              required
+              className="w-full bg-transparent border-0 border-b border-shadow-gray text-ink-blue font-serif text-lg py-3 px-1 focus:ring-0 focus:border-ink-blue transition-colors placeholder-shadow-gray/50"
             />
             <MapPin className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 text-shadow-gray group-focus-within:text-ink-blue transition-colors pointer-events-none" />
           </div>
         </div>
 
-        {/* Gender */}
+        <div className="pt-2">
+          <label className="block font-mono text-[10px] text-on-surface-variant mb-4 ml-1 uppercase tracking-wider">当前关注方向</label>
+          <div className="flex flex-wrap gap-2">
+            {concerns.map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setConcern(item)}
+                className={`px-4 py-2 rounded-full border text-sm transition-colors ${concern === item ? 'border-serene-teal bg-serene-teal text-white' : 'border-shadow-gray text-ink-blue hover:bg-surface'}`}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="pt-4">
           <label className="block font-mono text-[10px] text-on-surface-variant mb-4 ml-1 uppercase tracking-wider">性别</label>
           <div className="flex gap-4">
@@ -90,17 +130,15 @@ export default function InputForm({ onSubmit }: InputFormProps) {
           </div>
         </div>
 
-        {/* Privacy Note */}
         <div className="mt-12 flex items-start gap-2 justify-center opacity-50">
           <Lock className="w-4 h-4 text-on-surface-variant mt-0.5" />
           <p className="text-xs text-on-surface-variant text-center">
-            您的隐私信息仅用于生成报告，不作他用。
+            您的隐私信息仅用于生成报告，可随时删除。
           </p>
         </div>
 
-        {/* Action button (Absolute/Fixed at bottom in mobile, here we'll place it at bottom of form) */}
-        <div className="pt-12 pb-8">
-          <button 
+        <div className="pt-12 pb-32 md:pb-8">
+          <button
             type="submit"
             className="w-full bg-ink-blue text-white py-4 px-6 rounded-xl font-serif text-xl flex justify-center items-center gap-2 hover:bg-primary-container active:scale-[0.98] transition-all shadow-md"
           >

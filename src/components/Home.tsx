@@ -21,7 +21,7 @@ export default function Home({ onNavigate }: HomeProps) {
       id: 'heyuan',
       title: '合缘',
       subtitle: '关系结构',
-      description: '并蒂莲开，缘分天定。分析双人磁场契合度，提供相处之道与化解之法。',
+      description: '分析两个人的吸引点、冲突点与相处节奏，帮助关系回到更清晰的沟通。',
       icon: <Users className="w-6 h-6 text-vital-vermillion" />,
       color: 'bg-vital-vermillion',
       view: 'relationship'
@@ -30,7 +30,7 @@ export default function Home({ onNavigate }: HomeProps) {
       id: 'wenshi',
       title: '问时',
       subtitle: '即时解答',
-      description: '顺应天时，趋吉避凶。针对具体事件提供时机选择与行动建议。',
+      description: '围绕一个当下困惑生成即时分析，提醒你先观察、再行动，不鼓励频繁重复提问。',
       icon: <Hourglass className="w-6 h-6 text-wisdom-gold" />,
       color: 'bg-wisdom-gold',
       view: 'questions'
@@ -39,7 +39,7 @@ export default function Home({ onNavigate }: HomeProps) {
       id: 'anju',
       title: '安居',
       subtitle: '环境分析',
-      description: '理气相合，藏风聚气。结合环境方位，提供空间布置与环境优化建议。',
+      description: '结合户型、朝向和环境照片，提供居家或办公空间的低成本调整建议。',
       icon: <HomeIcon className="w-6 h-6 text-serene-teal" />,
       color: 'bg-serene-teal',
       view: 'anju'
