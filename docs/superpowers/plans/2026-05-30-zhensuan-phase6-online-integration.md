@@ -4,7 +4,7 @@
 
 **目标：** 把 H5、小程序、后台发布、报告生成、权益扣减、商城订单、服务器运行和日志备份串成一条可验证的线上闭环。
 
-**架构：** H5 和微信小程序共用同一套客户 API；后台负责知识、规则、模板和商业配置；服务器通过环境文件、迁移脚本、健康检查、日志和备份保证可运维。Neo4j、PostgreSQL、MedusaJS 均不直接暴露公网。
+**架构：** H5 和微信小程序共用同一套客户 API，但前端不做代码转换。H5 使用 React/Vite；微信小程序坚持原生微信小程序开发，使用 WXML、WXSS、JS 和微信原生 API。后台负责知识、规则、模板和商业配置；服务器通过环境文件、迁移脚本、健康检查、日志和备份保证可运维。Neo4j、PostgreSQL、MedusaJS 均不直接暴露公网。
 
 **技术栈：** Node.js ESM、Express、PostgreSQL、Neo4j、MedusaJS、Vite、React、TypeScript、微信小程序、Nginx、systemd、`node:test`、Python unittest。
 
@@ -15,7 +15,7 @@
 本阶段要完成：
 
 - H5 客户登录和权益状态接入。
-- 小程序客户登录和报告生成接入。
+- 原生微信小程序客户登录和报告生成接入。
 - 后台发布流程联调。
 - 报告生成和权益扣减端到端验证。
 - 线上运行手册。
@@ -23,6 +23,14 @@
 - 服务器部署、回滚和备份检查。
 
 本阶段不新增新的业务模块，只做前面阶段的联调、补口和上线闭环。
+
+## 小程序端原则
+
+- 小程序端只维护原生微信小程序代码，文件位于 `miniprogram/`。
+- 页面使用 `wxml`，样式使用 `wxss`，逻辑使用小程序 `js` 和微信原生 API。
+- 请求使用 `wx.request`，本地存储使用 `wx.getStorageSync` / `wx.setStorageSync`，登录使用 `wx.login`。
+- 不引入 H5 转换产物，不把 React 页面直接转换成小程序页面。
+- 可复用的只限纯 JS 工具函数、接口协议和 JSON 数据结构。
 
 ## 文件结构
 
@@ -182,7 +190,7 @@ git commit -m "feat: integrate h5 customer auth"
 
 ---
 
-## 任务 3：微信小程序客户登录接入
+## 任务 3：原生微信小程序客户登录接入
 
 **文件：**
 - 修改：`miniprogram/utils/api.js`
@@ -191,7 +199,20 @@ git commit -m "feat: integrate h5 customer auth"
 - 修改：`miniprogram/pages/report/index.js`
 - 新建测试：`tests/test_phase6_online_integration_scaffold.py`
 
-- [ ] **步骤 1：小程序 auth 工具**
+- [ ] **步骤 1：确认原生小程序边界**
+
+本任务所有代码都必须写在 `miniprogram/` 下的原生小程序文件中：
+
+```text
+wxml
+wxss
+js
+json
+```
+
+不得引入 H5 转小程序产物，也不得用 WebView 承载 H5 页面来替代原生页面。
+
+- [ ] **步骤 2：小程序 auth 工具**
 
 `miniprogram/utils/auth.js` 提供：
 
@@ -207,7 +228,7 @@ token 存储 key：
 customer_token
 ```
 
-- [ ] **步骤 2：微信 code 登录**
+- [ ] **步骤 3：微信 code 登录**
 
 `loginWithWechatCode` 调用：
 
@@ -217,7 +238,7 @@ POST https://www.goye.cc/destiny-api/customer/login/wechat
 
 成功后保存返回的客户 token。
 
-- [ ] **步骤 3：API 请求带 token**
+- [ ] **步骤 4：API 请求带 token**
 
 修改 `miniprogram/utils/api.js`，所有报告请求加入：
 
@@ -225,11 +246,11 @@ POST https://www.goye.cc/destiny-api/customer/login/wechat
 Authorization: auth.getToken() ? `Bearer ${auth.getToken()}` : ''
 ```
 
-- [ ] **步骤 4：首页自动登录**
+- [ ] **步骤 5：首页自动登录**
 
 `miniprogram/pages/home/index.js` 在没有 token 时调用 `loginWithWechatCode()`。
 
-- [ ] **步骤 5：测试并提交**
+- [ ] **步骤 6：测试并提交**
 
 ```powershell
 python -m unittest tests.test_phase6_online_integration_scaffold tests.test_miniprogram_scaffold
@@ -398,6 +419,7 @@ git commit -m "docs: record online verification"
 ## 验收标准
 
 - H5 和小程序使用同一套客户 token 模型。
+- 小程序端保持原生微信小程序实现，不依赖 H5 转换。
 - 客户报告生成会扣减权益次数。
 - 后台可以查看运行健康状态和最近错误。
 - 运行手册包含环境、迁移、重启、健康检查、回滚和备份。
