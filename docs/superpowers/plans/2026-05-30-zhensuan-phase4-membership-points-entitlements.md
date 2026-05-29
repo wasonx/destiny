@@ -1,146 +1,120 @@
-# Zhensuan Phase 4 Membership Points And Entitlements Implementation Plan
+﻿# 甄算 阶段 4：会员、积分与权益实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **给执行代理看的要求：** 按任务逐项执行。执行时优先使用 `superpowers:subagent-driven-development`，也可以使用 `superpowers:executing-plans`。每个任务完成后都要测试、提交，再进入下一项。
 
-**Goal:** Build the customer value accounting layer: report quota, paid membership, growth level, points balance, entitlement ledger, and quota deduction during report generation.
+**目标：** 建立客户价值账户体系：报告次数、付费会员、成长等级、积分余额、权益流水，以及报告生成时的次数校验和扣减。
 
-**Architecture:** PostgreSQL owns all balances and immutable ledger records. Services mutate balances only through ledger-producing functions, so every quota grant, quota spend, point grant, and membership change is auditable. Report generation checks entitlement before model work and records usage after successful report creation.
+**架构：** PostgreSQL 负责所有余额和不可变流水。任何权益、积分、会员状态变化都必须通过服务函数写入流水，不能直接改余额。报告生成前检查权益，报告成功后扣减次数。
 
-**Tech Stack:** Node.js ESM, Express, PostgreSQL, Vite, React, TypeScript, native `node:test`, Python unittest.
-
----
-
-## Scope
-
-This phase implements:
-
-- Membership plan and membership status tables.
-- Entitlement account and ledger.
-- Points account and ledger.
-- Growth level calculation.
-- Admin pages for membership, points, and entitlement adjustments.
-- Customer APIs for viewing membership, quota, and points.
-- Report generation quota check and quota deduction.
-
-This phase does not implement product purchase, order payment, payment callbacks, or coupon marketing.
-
-## File Structure
-
-- Create: `server/db/migrations/004_phase4_membership_entitlements.sql`
-- Create: `server/entitlements/ledger-service.mjs`
-- Create: `server/entitlements/membership-service.mjs`
-- Create: `server/entitlements/growth-service.mjs`
-- Create: `server/routes/entitlement-routes.mjs`
-- Modify: `server/reports/report-service.mjs`
-- Modify: `server/app.mjs`
-- Create: `server/tests/entitlements.test.mjs`
-- Create: `src/admin/pages/MembershipPage.tsx`
-- Create: `src/admin/pages/EntitlementsPage.tsx`
-- Create: `src/admin/pages/PointsPage.tsx`
-- Modify: `src/admin/AdminApp.tsx`
-- Modify: `src/admin/components/AdminLayout.tsx`
-- Create: `tests/test_phase4_entitlements_scaffold.py`
+**技术栈：** Node.js ESM、Express、PostgreSQL、Vite、React、TypeScript、`node:test`、Python unittest。
 
 ---
 
-### Task 1: Add Membership And Ledger Schema
+## 范围
 
-**Files:**
-- Create: `server/db/migrations/004_phase4_membership_entitlements.sql`
-- Test: `server/tests/entitlements.test.mjs`
+本阶段要完成：
 
-- [ ] **Step 1: Write migration test**
+- 会员套餐表。
+- 客户会员状态表。
+- 报告次数账户和流水。
+- 积分账户和流水。
+- 成长等级计算。
+- 后台手动发放报告次数、积分、会员。
+- 客户查看会员、次数、积分和成长等级。
+- 报告生成时校验并扣减次数。
 
-Create `server/tests/entitlements.test.mjs`:
+本阶段不做：
 
-```js
-import assert from 'node:assert/strict';
-import fs from 'node:fs/promises';
-import test from 'node:test';
+- 商品购买。
+- 支付订单。
+- 微信支付回调。
+- 优惠券和营销活动。
 
-test('phase 4 migration defines entitlement and membership tables', async () => {
-  const sql = await fs.readFile(new URL('../db/migrations/004_phase4_membership_entitlements.sql', import.meta.url), 'utf8');
-  for (const phrase of [
-    'create table if not exists app.membership_plans',
-    'create table if not exists app.customer_memberships',
-    'create table if not exists app.entitlement_accounts',
-    'create table if not exists app.entitlement_ledger',
-    'create table if not exists app.points_accounts',
-    'create table if not exists app.points_ledger',
-  ]) {
-    assert.match(sql, new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  }
-});
+## 文件结构
+
+- 新建：`server/db/migrations/004_phase4_membership_entitlements.sql`
+- 新建：`server/entitlements/ledger-service.mjs`
+- 新建：`server/entitlements/membership-service.mjs`
+- 新建：`server/entitlements/growth-service.mjs`
+- 新建：`server/routes/entitlement-routes.mjs`
+- 修改：`server/reports/report-service.mjs`
+- 修改：`server/app.mjs`
+- 新建测试：`server/tests/entitlements.test.mjs`
+- 新建：`src/admin/pages/MembershipPage.tsx`
+- 新建：`src/admin/pages/EntitlementsPage.tsx`
+- 新建：`src/admin/pages/PointsPage.tsx`
+- 修改：`src/admin/AdminApp.tsx`
+- 修改：`src/admin/components/AdminLayout.tsx`
+- 新建测试：`tests/test_phase4_entitlements_scaffold.py`
+
+---
+
+## 任务 1：会员和权益数据库表
+
+**文件：**
+- 新建：`server/db/migrations/004_phase4_membership_entitlements.sql`
+- 新建测试：`server/tests/entitlements.test.mjs`
+
+- [ ] **步骤 1：迁移测试**
+
+检查 SQL 中存在：
+
+```text
+app.membership_plans
+app.customer_memberships
+app.entitlement_accounts
+app.entitlement_ledger
+app.points_accounts
+app.points_ledger
 ```
 
-- [ ] **Step 2: Create migration**
+- [ ] **步骤 2：会员表**
 
-Create `server/db/migrations/004_phase4_membership_entitlements.sql`:
+`membership_plans` 字段：
 
-```sql
-create table if not exists app.membership_plans (
-  id uuid primary key default gen_random_uuid(),
-  code text not null unique,
-  name text not null,
-  duration_days integer not null,
-  monthly_report_quota integer not null default 0,
-  benefits jsonb not null default '{}'::jsonb,
-  status text not null default 'active' check (status in ('active', 'disabled')),
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
+- `code`
+- `name`
+- `duration_days`
+- `monthly_report_quota`
+- `benefits`
+- `status`
 
-create table if not exists app.customer_memberships (
-  id uuid primary key default gen_random_uuid(),
-  customer_id uuid not null references app.users(id) on delete cascade,
-  plan_code text not null,
-  starts_at timestamptz not null,
-  expires_at timestamptz not null,
-  status text not null default 'active' check (status in ('active', 'expired', 'cancelled')),
-  source text not null default 'manual',
-  created_at timestamptz not null default now()
-);
+`customer_memberships` 字段：
 
-create table if not exists app.entitlement_accounts (
-  customer_id uuid primary key references app.users(id) on delete cascade,
-  report_quota_balance integer not null default 0,
-  updated_at timestamptz not null default now()
-);
+- `customer_id`
+- `plan_code`
+- `starts_at`
+- `expires_at`
+- `status`
+- `source`
 
-create table if not exists app.entitlement_ledger (
-  id uuid primary key default gen_random_uuid(),
-  customer_id uuid not null references app.users(id) on delete cascade,
-  change_amount integer not null,
-  balance_after integer not null,
-  reason text not null,
-  reference_type text not null default '',
-  reference_id text not null default '',
-  created_by uuid references app.users(id) on delete set null,
-  created_at timestamptz not null default now()
-);
+- [ ] **步骤 3：权益账户和流水**
 
-create table if not exists app.points_accounts (
-  customer_id uuid primary key references app.users(id) on delete cascade,
-  points_balance integer not null default 0,
-  lifetime_points integer not null default 0,
-  growth_level text not null default '启蒙',
-  updated_at timestamptz not null default now()
-);
+`entitlement_accounts` 保存：
 
-create table if not exists app.points_ledger (
-  id uuid primary key default gen_random_uuid(),
-  customer_id uuid not null references app.users(id) on delete cascade,
-  change_amount integer not null,
-  balance_after integer not null,
-  reason text not null,
-  reference_type text not null default '',
-  reference_id text not null default '',
-  created_by uuid references app.users(id) on delete set null,
-  created_at timestamptz not null default now()
-);
-```
+- `customer_id`
+- `report_quota_balance`
+- `updated_at`
 
-- [ ] **Step 3: Run tests and commit**
+`entitlement_ledger` 保存：
+
+- 变化数量。
+- 变化后余额。
+- 原因。
+- 关联对象类型和 ID。
+- 操作人。
+
+- [ ] **步骤 4：积分账户和流水**
+
+`points_accounts` 保存：
+
+- 当前积分。
+- 累计积分。
+- 成长等级。
+
+`points_ledger` 保存每一次积分变化。
+
+- [ ] **步骤 5：测试并提交**
 
 ```powershell
 npm run test:server
@@ -148,125 +122,58 @@ git add server/db/migrations/004_phase4_membership_entitlements.sql server/tests
 git commit -m "feat: add membership entitlement schema"
 ```
 
-Expected: PASS before commit.
-
 ---
 
-### Task 2: Implement Ledger Services
+## 任务 2：权益和积分服务
 
-**Files:**
-- Create: `server/entitlements/ledger-service.mjs`
-- Create: `server/entitlements/growth-service.mjs`
-- Test: `server/tests/entitlements.test.mjs`
+**文件：**
+- 新建：`server/entitlements/ledger-service.mjs`
+- 新建：`server/entitlements/growth-service.mjs`
+- 修改测试：`server/tests/entitlements.test.mjs`
 
-- [ ] **Step 1: Add service tests**
+- [ ] **步骤 1：成长等级规则**
 
-Append:
+第一版：
 
-```js
-import { calculateGrowthLevel } from '../entitlements/growth-service.mjs';
-
-test('growth level is calculated from lifetime points', () => {
-  assert.equal(calculateGrowthLevel(0), '启蒙');
-  assert.equal(calculateGrowthLevel(100), '入门');
-  assert.equal(calculateGrowthLevel(500), '明理');
-  assert.equal(calculateGrowthLevel(2000), '通达');
-  assert.equal(calculateGrowthLevel(8000), '参玄');
-});
+```text
+0      -> 启蒙
+100    -> 入门
+500    -> 明理
+2000   -> 通达
+8000   -> 参玄
 ```
 
-- [ ] **Step 2: Implement growth service**
+- [ ] **步骤 2：报告次数服务**
 
-Create `server/entitlements/growth-service.mjs`:
-
-```js
-export function calculateGrowthLevel(lifetimePoints) {
-  if (lifetimePoints >= 8000) return '参玄';
-  if (lifetimePoints >= 2000) return '通达';
-  if (lifetimePoints >= 500) return '明理';
-  if (lifetimePoints >= 100) return '入门';
-  return '启蒙';
-}
-```
-
-- [ ] **Step 3: Implement ledger service**
-
-Create `server/entitlements/ledger-service.mjs`:
+实现：
 
 ```js
-import { calculateGrowthLevel } from './growth-service.mjs';
-
-export async function grantReportQuota(client, { customerId, amount, reason, referenceType = '', referenceId = '', actorUserId = null }) {
-  await client.query(
-    `insert into app.entitlement_accounts(customer_id, report_quota_balance)
-     values ($1, 0)
-     on conflict (customer_id) do nothing`,
-    [customerId],
-  );
-  const account = await client.query(
-    `update app.entitlement_accounts
-     set report_quota_balance = report_quota_balance + $2, updated_at = now()
-     where customer_id = $1
-     returning report_quota_balance`,
-    [customerId, amount],
-  );
-  const balance = account.rows[0].report_quota_balance;
-  await client.query(
-    `insert into app.entitlement_ledger(customer_id, change_amount, balance_after, reason, reference_type, reference_id, created_by)
-     values ($1, $2, $3, $4, $5, $6, $7)`,
-    [customerId, amount, balance, reason, referenceType, referenceId, actorUserId],
-  );
-  return balance;
-}
-
-export async function spendReportQuota(client, { customerId, amount = 1, reason, referenceType = '', referenceId = '' }) {
-  const account = await client.query(
-    `update app.entitlement_accounts
-     set report_quota_balance = report_quota_balance - $2, updated_at = now()
-     where customer_id = $1 and report_quota_balance >= $2
-     returning report_quota_balance`,
-    [customerId, amount],
-  );
-  if (!account.rowCount) throw new Error('INSUFFICIENT_REPORT_QUOTA');
-  const balance = account.rows[0].report_quota_balance;
-  await client.query(
-    `insert into app.entitlement_ledger(customer_id, change_amount, balance_after, reason, reference_type, reference_id)
-     values ($1, $2, $3, $4, $5, $6)`,
-    [customerId, -amount, balance, reason, referenceType, referenceId],
-  );
-  return balance;
-}
-
-export async function grantPoints(client, { customerId, amount, reason, referenceType = '', referenceId = '', actorUserId = null }) {
-  await client.query(
-    `insert into app.points_accounts(customer_id, points_balance, lifetime_points)
-     values ($1, 0, 0)
-     on conflict (customer_id) do nothing`,
-    [customerId],
-  );
-  const account = await client.query(
-    `update app.points_accounts
-     set points_balance = points_balance + $2,
-         lifetime_points = lifetime_points + greatest($2, 0),
-         growth_level = $3,
-         updated_at = now()
-     where customer_id = $1
-     returning points_balance, lifetime_points`,
-    [customerId, amount, calculateGrowthLevel(amount)],
-  );
-  const row = account.rows[0];
-  const level = calculateGrowthLevel(row.lifetime_points);
-  await client.query('update app.points_accounts set growth_level = $2 where customer_id = $1', [customerId, level]);
-  await client.query(
-    `insert into app.points_ledger(customer_id, change_amount, balance_after, reason, reference_type, reference_id, created_by)
-     values ($1, $2, $3, $4, $5, $6, $7)`,
-    [customerId, amount, row.points_balance, reason, referenceType, referenceId, actorUserId],
-  );
-  return { balance: row.points_balance, growthLevel: level };
-}
+grantReportQuota(client, { customerId, amount, reason, referenceType, referenceId, actorUserId })
+spendReportQuota(client, { customerId, amount, reason, referenceType, referenceId })
 ```
 
-- [ ] **Step 4: Run tests and commit**
+要求：
+
+- 发放和扣减都写流水。
+- 扣减时余额不足抛出 `INSUFFICIENT_REPORT_QUOTA`。
+- 余额和流水必须在同一个事务里完成。
+
+- [ ] **步骤 3：积分服务**
+
+实现：
+
+```js
+grantPoints(client, { customerId, amount, reason, referenceType, referenceId, actorUserId })
+```
+
+要求：
+
+- 写积分流水。
+- 更新当前积分。
+- 更新累计积分。
+- 根据累计积分更新成长等级。
+
+- [ ] **步骤 4：测试并提交**
 
 ```powershell
 npm run test:server
@@ -274,67 +181,54 @@ git add server/entitlements server/tests/entitlements.test.mjs
 git commit -m "feat: add entitlement ledger services"
 ```
 
-Expected: PASS before commit.
-
 ---
 
-### Task 3: Add Entitlement APIs
+## 任务 3：权益接口
 
-**Files:**
-- Create: `server/routes/entitlement-routes.mjs`
-- Create: `server/entitlements/membership-service.mjs`
-- Modify: `server/app.mjs`
+**文件：**
+- 新建：`server/routes/entitlement-routes.mjs`
+- 新建：`server/entitlements/membership-service.mjs`
+- 修改：`server/app.mjs`
 
-- [ ] **Step 1: Implement membership service**
+- [ ] **步骤 1：客户价值状态服务**
 
-Create `server/entitlements/membership-service.mjs`:
+`getCustomerValueState(pool, customerId)` 返回：
 
-```js
-export async function getCustomerValueState(pool, customerId) {
-  const [membership, entitlement, points] = await Promise.all([
-    pool.query(
-      `select plan_code, starts_at, expires_at, status
-       from app.customer_memberships
-       where customer_id = $1 and status = 'active' and expires_at > now()
-       order by expires_at desc
-       limit 1`,
-      [customerId],
-    ),
-    pool.query('select report_quota_balance from app.entitlement_accounts where customer_id = $1', [customerId]),
-    pool.query('select points_balance, lifetime_points, growth_level from app.points_accounts where customer_id = $1', [customerId]),
-  ]);
-
-  return {
-    membership: membership.rows[0] || null,
-    reportQuotaBalance: entitlement.rows[0]?.report_quota_balance || 0,
-    points: points.rows[0] || { points_balance: 0, lifetime_points: 0, growth_level: '启蒙' },
-  };
+```json
+{
+  "membership": null,
+  "reportQuotaBalance": 0,
+  "points": {
+    "points_balance": 0,
+    "lifetime_points": 0,
+    "growth_level": "启蒙"
+  }
 }
 ```
 
-- [ ] **Step 2: Create route module**
-
-Create endpoints:
+- [ ] **步骤 2：客户接口**
 
 ```text
-GET  /destiny-api/customer/value-state
+GET /destiny-api/customer/value-state
+```
+
+必须要求客户 session。
+
+- [ ] **步骤 3：后台接口**
+
+```text
 GET  /destiny-api/admin/customers/:customerId/value-state
 POST /destiny-api/admin/customers/:customerId/grant-quota
 POST /destiny-api/admin/customers/:customerId/grant-points
 POST /destiny-api/admin/customers/:customerId/grant-membership
 ```
 
-Constraints:
+要求：
 
-- Customer route requires customer session.
-- Admin routes require admin session.
-- Manual grants write ledger rows and audit logs.
+- 需要后台 admin 权限。
+- 手动发放必须写流水和审计日志。
 
-- [ ] **Step 3: Mount routes**
-
-Modify `server/app.mjs` to mount entitlement routes when the PostgreSQL pool exists.
-
-- [ ] **Step 4: Run checks and commit**
+- [ ] **步骤 4：测试并提交**
 
 ```powershell
 npm run test:server
@@ -342,31 +236,24 @@ git add server/routes/entitlement-routes.mjs server/entitlements/membership-serv
 git commit -m "feat: add entitlement api"
 ```
 
-Expected: PASS before commit.
-
 ---
 
-### Task 4: Deduct Report Quota During Generation
+## 任务 4：报告生成扣减次数
 
-**Files:**
-- Modify: `server/reports/report-service.mjs`
-- Modify: `server/routes/report-routes.mjs`
-- Test: `server/tests/entitlements.test.mjs`
+**文件：**
+- 修改：`server/reports/report-service.mjs`
+- 修改：`server/routes/report-routes.mjs`
+- 修改测试：`server/tests/entitlements.test.mjs`
 
-- [ ] **Step 1: Add behavior rule**
+- [ ] **步骤 1：生成前校验**
 
-Report generation with a customer session must:
+带客户 session 的报告生成必须先检查：
 
-1. Check `report_quota_balance >= 1`.
-2. Generate and safety-review report.
-3. Save report run.
-4. Deduct one report quota with `reference_type = 'report_run'`.
+```text
+report_quota_balance >= 1
+```
 
-If model generation fails and fallback report is returned, quota is deducted only when the report is successfully returned to the customer.
-
-- [ ] **Step 2: Add insufficient quota response**
-
-When quota is insufficient, return:
+不足时返回：
 
 ```json
 {
@@ -375,9 +262,21 @@ When quota is insufficient, return:
 }
 ```
 
-HTTP status: `402`.
+HTTP 状态码：`402`。
 
-- [ ] **Step 3: Run checks and commit**
+- [ ] **步骤 2：生成后扣减**
+
+报告成功返回给客户后扣减 1 次，流水：
+
+```text
+reference_type = report_run
+reference_id = report_run.id
+reason = report_generated
+```
+
+如果模型失败但 fallback 报告成功返回，也算成功生成，需要扣减。
+
+- [ ] **步骤 3：测试并提交**
 
 ```powershell
 npm run test:server
@@ -385,54 +284,55 @@ git add server/reports/report-service.mjs server/routes/report-routes.mjs server
 git commit -m "feat: enforce report quota"
 ```
 
-Expected: PASS before commit.
-
 ---
 
-### Task 5: Add Admin Value Accounting UI
+## 任务 5：后台会员和权益页面
 
-**Files:**
-- Create: `src/admin/pages/MembershipPage.tsx`
-- Create: `src/admin/pages/EntitlementsPage.tsx`
-- Create: `src/admin/pages/PointsPage.tsx`
-- Modify: `src/admin/AdminApp.tsx`
-- Modify: `src/admin/components/AdminLayout.tsx`
-- Test: `tests/test_phase4_entitlements_scaffold.py`
+**文件：**
+- 新建：`src/admin/pages/MembershipPage.tsx`
+- 新建：`src/admin/pages/EntitlementsPage.tsx`
+- 新建：`src/admin/pages/PointsPage.tsx`
+- 修改：`src/admin/AdminApp.tsx`
+- 修改：`src/admin/components/AdminLayout.tsx`
+- 新建测试：`tests/test_phase4_entitlements_scaffold.py`
 
-- [ ] **Step 1: Add scaffold test**
+- [ ] **步骤 1：新增菜单**
 
-Create `tests/test_phase4_entitlements_scaffold.py`:
+后台菜单加入：
 
-```python
-from pathlib import Path
-import unittest
-
-ROOT = Path(__file__).resolve().parents[1]
-
-class Phase4EntitlementsScaffoldTests(unittest.TestCase):
-    def test_value_accounting_pages_exist(self):
-        for relative in [
-            "src/admin/pages/MembershipPage.tsx",
-            "src/admin/pages/EntitlementsPage.tsx",
-            "src/admin/pages/PointsPage.tsx",
-        ]:
-            self.assertTrue((ROOT / relative).exists(), relative)
-
-    def test_navigation_contains_value_accounting(self):
-        layout = (ROOT / "src" / "admin" / "components" / "AdminLayout.tsx").read_text(encoding="utf-8")
-        for label in ["会员管理", "权益账户", "积分账户"]:
-            self.assertIn(label, layout)
+```text
+会员管理
+权益账户
+积分账户
 ```
 
-- [ ] **Step 2: Build pages**
+- [ ] **步骤 2：会员管理页**
 
-Create:
+展示：
 
-- `MembershipPage.tsx`: plan list, active memberships, manual grant form.
-- `EntitlementsPage.tsx`: report quota balance, grant/spend ledger.
-- `PointsPage.tsx`: points balance, lifetime points, growth level, ledger.
+- 会员套餐。
+- 客户当前会员。
+- 手动发放会员。
 
-- [ ] **Step 3: Run checks and commit**
+- [ ] **步骤 3：权益账户页**
+
+展示：
+
+- 报告次数余额。
+- 发放记录。
+- 扣减记录。
+- 手动发放表单。
+
+- [ ] **步骤 4：积分账户页**
+
+展示：
+
+- 当前积分。
+- 累计积分。
+- 成长等级。
+- 积分流水。
+
+- [ ] **步骤 5：检查并提交**
 
 ```powershell
 python -m unittest tests.test_phase4_entitlements_scaffold
@@ -442,15 +342,11 @@ git add src/admin tests/test_phase4_entitlements_scaffold.py
 git commit -m "feat: add value accounting admin"
 ```
 
-Expected: all checks PASS before commit.
+## 验收标准
 
----
-
-## Acceptance Criteria
-
-- Every customer can have one entitlement account and one points account.
-- Admin grants write ledger rows.
-- Report generation refuses insufficient quota.
-- Successful customer report generation deducts one quota.
-- Growth level updates from lifetime points.
-- Customer can view membership, quota, points, and growth level.
+- 每个客户可以拥有权益账户和积分账户。
+- 后台手动发放会写流水。
+- 报告次数不足时无法生成付费报告。
+- 报告成功生成后扣减 1 次。
+- 成长等级根据累计积分更新。
+- 客户可以查看会员状态、报告次数、积分和成长等级。

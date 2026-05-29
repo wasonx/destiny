@@ -1,135 +1,121 @@
-# Zhensuan Phase 5 Commerce And Payment Reservation Implementation Plan
+﻿# 甄算 阶段 5：轻商城与支付预留实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **给执行代理看的要求：** 按任务逐项执行。执行时优先使用 `superpowers:subagent-driven-development`，也可以使用 `superpowers:executing-plans`。每个任务完成后都要测试、提交，再进入下一项。
 
-**Goal:** Add a lightweight virtual-goods commerce layer with MedusaJS integration boundaries, local order/payment reservation, manual paid testing, and automatic entitlement delivery after payment success.
+**目标：** 建立虚拟商品商城基础能力：商品映射、订单、支付单状态机、人工标记支付成功、支付成功后自动发放权益，并为微信支付真实接入预留接口。
 
-**Architecture:** MedusaJS remains the commerce catalog and order base, while 甄算 keeps a local payment/order mirror for entitlement delivery and audit. WeChat Pay is represented by a provider interface and payment state machine, with real API credentials and callbacks disabled until production payment onboarding is complete.
+**架构：** MedusaJS 作为商品和订单底座的边界，甄算本地保留订单、支付和权益发放镜像，确保报告次数、会员和数字内容发放可审计。第一版支付只做人工确认和微信支付占位，不接真实微信支付签名和回调。
 
-**Tech Stack:** Node.js ESM, Express, PostgreSQL, MedusaJS, Vite, React, TypeScript, native `node:test`, Python unittest.
-
----
-
-## Scope
-
-This phase implements:
-
-- Product mapping for report quota package, monthly membership, yearly membership, and digital content.
-- Local order and payment intent tables.
-- Payment provider interface with manual provider and WeChat placeholder provider.
-- Manual mark-paid admin flow.
-- Entitlement delivery after payment success.
-- Admin commerce pages for products, orders, payments, and delivery logs.
-
-This phase does not implement real WeChat Pay signing, real payment callbacks, refunds, coupons, logistics, or physical goods.
-
-## File Structure
-
-- Create: `server/db/migrations/005_phase5_commerce_payment.sql`
-- Create: `server/commerce/product-mapping-service.mjs`
-- Create: `server/commerce/order-service.mjs`
-- Create: `server/commerce/payment-state-machine.mjs`
-- Create: `server/commerce/payment-providers/manual-provider.mjs`
-- Create: `server/commerce/payment-providers/wechat-placeholder-provider.mjs`
-- Create: `server/commerce/delivery-service.mjs`
-- Create: `server/routes/commerce-routes.mjs`
-- Modify: `server/app.mjs`
-- Create: `server/tests/commerce.test.mjs`
-- Create: `src/admin/pages/ProductsPage.tsx`
-- Create: `src/admin/pages/OrdersPage.tsx`
-- Create: `src/admin/pages/PaymentsPage.tsx`
-- Create: `src/admin/pages/DeliveryLogsPage.tsx`
-- Modify: `src/admin/AdminApp.tsx`
-- Modify: `src/admin/components/AdminLayout.tsx`
-- Create: `tests/test_phase5_commerce_scaffold.py`
+**技术栈：** Node.js ESM、Express、PostgreSQL、MedusaJS、Vite、React、TypeScript、`node:test`、Python unittest。
 
 ---
 
-### Task 1: Add Commerce And Payment Schema
+## 范围
 
-**Files:**
-- Create: `server/db/migrations/005_phase5_commerce_payment.sql`
-- Test: `server/tests/commerce.test.mjs`
+本阶段要完成：
 
-- [ ] **Step 1: Write migration test**
+- 商品映射：报告次数包、月度会员、年度会员、数字内容。
+- 本地订单表。
+- 支付单表。
+- 支付状态机。
+- 人工标记支付成功。
+- 微信支付 placeholder provider。
+- 支付成功后自动发放权益。
+- 后台商品、订单、支付、发放记录页面。
 
-Create `server/tests/commerce.test.mjs`:
+本阶段不做：
 
-```js
-import assert from 'node:assert/strict';
-import fs from 'node:fs/promises';
-import test from 'node:test';
+- 真实微信支付签名。
+- 真实微信支付回调。
+- 退款。
+- 优惠券。
+- 物流、实物商品、收货地址。
 
-test('phase 5 migration defines commerce payment tables', async () => {
-  const sql = await fs.readFile(new URL('../db/migrations/005_phase5_commerce_payment.sql', import.meta.url), 'utf8');
-  for (const phrase of [
-    'create table if not exists app.commerce_products',
-    'create table if not exists app.commerce_orders',
-    'create table if not exists app.payment_intents',
-    'create table if not exists app.entitlement_deliveries',
-  ]) {
-    assert.match(sql, new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  }
-});
+## 文件结构
+
+- 新建：`server/db/migrations/005_phase5_commerce_payment.sql`
+- 新建：`server/commerce/product-mapping-service.mjs`
+- 新建：`server/commerce/order-service.mjs`
+- 新建：`server/commerce/payment-state-machine.mjs`
+- 新建：`server/commerce/payment-providers/manual-provider.mjs`
+- 新建：`server/commerce/payment-providers/wechat-placeholder-provider.mjs`
+- 新建：`server/commerce/delivery-service.mjs`
+- 新建：`server/routes/commerce-routes.mjs`
+- 修改：`server/app.mjs`
+- 新建测试：`server/tests/commerce.test.mjs`
+- 新建：`src/admin/pages/ProductsPage.tsx`
+- 新建：`src/admin/pages/OrdersPage.tsx`
+- 新建：`src/admin/pages/PaymentsPage.tsx`
+- 新建：`src/admin/pages/DeliveryLogsPage.tsx`
+- 修改：`src/admin/AdminApp.tsx`
+- 修改：`src/admin/components/AdminLayout.tsx`
+- 新建测试：`tests/test_phase5_commerce_scaffold.py`
+
+---
+
+## 任务 1：商城和支付数据库表
+
+**文件：**
+- 新建：`server/db/migrations/005_phase5_commerce_payment.sql`
+- 新建测试：`server/tests/commerce.test.mjs`
+
+- [ ] **步骤 1：迁移测试**
+
+检查 SQL 中存在：
+
+```text
+app.commerce_products
+app.commerce_orders
+app.payment_intents
+app.entitlement_deliveries
 ```
 
-- [ ] **Step 2: Create migration**
+- [ ] **步骤 2：商品表**
 
-Create `server/db/migrations/005_phase5_commerce_payment.sql`:
+`commerce_products` 字段：
 
-```sql
-create table if not exists app.commerce_products (
-  id uuid primary key default gen_random_uuid(),
-  medusa_product_id text not null default '',
-  sku text not null unique,
-  name text not null,
-  product_type text not null check (product_type in ('report_quota', 'monthly_membership', 'yearly_membership', 'digital_content')),
-  price_cents integer not null,
-  currency text not null default 'CNY',
-  entitlement_payload jsonb not null default '{}'::jsonb,
-  status text not null default 'active' check (status in ('active', 'disabled')),
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
+- `medusa_product_id`
+- `sku`
+- `name`
+- `product_type`
+- `price_cents`
+- `currency`
+- `entitlement_payload`
+- `status`
 
-create table if not exists app.commerce_orders (
-  id uuid primary key default gen_random_uuid(),
-  customer_id uuid not null references app.users(id) on delete cascade,
-  medusa_order_id text not null default '',
-  order_no text not null unique,
-  status text not null default 'created' check (status in ('created', 'pending_payment', 'paid', 'cancelled', 'closed')),
-  total_cents integer not null,
-  currency text not null default 'CNY',
-  items jsonb not null,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
+商品类型：
 
-create table if not exists app.payment_intents (
-  id uuid primary key default gen_random_uuid(),
-  order_id uuid not null references app.commerce_orders(id) on delete cascade,
-  provider text not null check (provider in ('manual', 'wechat_placeholder')),
-  status text not null default 'created' check (status in ('created', 'pending', 'paid', 'failed', 'cancelled')),
-  amount_cents integer not null,
-  provider_payload jsonb not null default '{}'::jsonb,
-  paid_at timestamptz,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-create table if not exists app.entitlement_deliveries (
-  id uuid primary key default gen_random_uuid(),
-  order_id uuid not null references app.commerce_orders(id) on delete cascade,
-  customer_id uuid not null references app.users(id) on delete cascade,
-  product_sku text not null,
-  delivery_type text not null,
-  delivery_payload jsonb not null,
-  status text not null default 'delivered' check (status in ('delivered', 'failed')),
-  created_at timestamptz not null default now()
-);
+```text
+report_quota
+monthly_membership
+yearly_membership
+digital_content
 ```
 
-- [ ] **Step 3: Run tests and commit**
+- [ ] **步骤 3：订单和支付表**
+
+`commerce_orders` 保存：
+
+- 客户。
+- 订单号。
+- 状态。
+- 金额。
+- 商品明细。
+
+`payment_intents` 保存：
+
+- 订单。
+- 支付提供方。
+- 支付状态。
+- 金额。
+- provider payload。
+- 支付时间。
+
+- [ ] **步骤 4：权益发放表**
+
+`entitlement_deliveries` 保存每个订单商品发放记录，避免重复发放。
+
+- [ ] **步骤 5：测试并提交**
 
 ```powershell
 npm run test:server
@@ -137,72 +123,48 @@ git add server/db/migrations/005_phase5_commerce_payment.sql server/tests/commer
 git commit -m "feat: add commerce payment schema"
 ```
 
-Expected: PASS before commit.
-
 ---
 
-### Task 2: Implement Product Mapping And Payment State Machine
+## 任务 2：商品映射和支付状态机
 
-**Files:**
-- Create: `server/commerce/product-mapping-service.mjs`
-- Create: `server/commerce/payment-state-machine.mjs`
-- Test: `server/tests/commerce.test.mjs`
+**文件：**
+- 新建：`server/commerce/product-mapping-service.mjs`
+- 新建：`server/commerce/payment-state-machine.mjs`
+- 修改测试：`server/tests/commerce.test.mjs`
 
-- [ ] **Step 1: Add state machine tests**
+- [ ] **步骤 1：支付状态机**
 
-Append:
+允许流转：
 
-```js
-import { canTransitionPayment } from '../commerce/payment-state-machine.mjs';
-
-test('payment state machine allows created to pending to paid', () => {
-  assert.equal(canTransitionPayment('created', 'pending'), true);
-  assert.equal(canTransitionPayment('pending', 'paid'), true);
-  assert.equal(canTransitionPayment('paid', 'pending'), false);
-});
+```text
+created -> pending
+created -> cancelled
+pending -> paid
+pending -> failed
+pending -> cancelled
+failed -> pending
 ```
 
-- [ ] **Step 2: Implement state machine**
+不允许：
 
-Create `server/commerce/payment-state-machine.mjs`:
-
-```js
-const transitions = {
-  created: ['pending', 'cancelled'],
-  pending: ['paid', 'failed', 'cancelled'],
-  paid: [],
-  failed: ['pending', 'cancelled'],
-  cancelled: [],
-};
-
-export function canTransitionPayment(from, to) {
-  return transitions[from]?.includes(to) || false;
-}
+```text
+paid -> pending
+paid -> failed
+cancelled -> paid
 ```
 
-- [ ] **Step 3: Implement product mapping service**
+- [ ] **步骤 2：商品权益映射**
 
-Create `server/commerce/product-mapping-service.mjs`:
+`buildEntitlementPayload(product)` 根据商品类型返回：
 
-```js
-export function buildEntitlementPayload(product) {
-  if (product.product_type === 'report_quota') {
-    return { reportQuota: Number(product.entitlement_payload.reportQuota || 0) };
-  }
-  if (product.product_type === 'monthly_membership') {
-    return { membershipPlan: 'monthly', durationDays: 31 };
-  }
-  if (product.product_type === 'yearly_membership') {
-    return { membershipPlan: 'yearly', durationDays: 365 };
-  }
-  if (product.product_type === 'digital_content') {
-    return { digitalContentSku: product.sku };
-  }
-  return {};
-}
+```text
+report_quota       -> reportQuota
+monthly_membership -> membershipPlan monthly + durationDays 31
+yearly_membership  -> membershipPlan yearly + durationDays 365
+digital_content    -> digitalContentSku
 ```
 
-- [ ] **Step 4: Run tests and commit**
+- [ ] **步骤 3：测试并提交**
 
 ```powershell
 npm run test:server
@@ -210,104 +172,73 @@ git add server/commerce/product-mapping-service.mjs server/commerce/payment-stat
 git commit -m "feat: add commerce state helpers"
 ```
 
-Expected: PASS before commit.
-
 ---
 
-### Task 3: Implement Orders, Payment Providers, And Delivery
+## 任务 3：订单、支付提供方和权益发放
 
-**Files:**
-- Create: `server/commerce/order-service.mjs`
-- Create: `server/commerce/payment-providers/manual-provider.mjs`
-- Create: `server/commerce/payment-providers/wechat-placeholder-provider.mjs`
-- Create: `server/commerce/delivery-service.mjs`
+**文件：**
+- 新建：`server/commerce/order-service.mjs`
+- 新建：`server/commerce/payment-providers/manual-provider.mjs`
+- 新建：`server/commerce/payment-providers/wechat-placeholder-provider.mjs`
+- 新建：`server/commerce/delivery-service.mjs`
 
-- [ ] **Step 1: Implement manual payment provider**
+- [ ] **步骤 1：人工支付提供方**
 
-Create `server/commerce/payment-providers/manual-provider.mjs`:
+`manual-provider.mjs` 返回：
 
-```js
-export function createManualPaymentIntent({ orderId, amountCents }) {
-  return {
-    provider: 'manual',
-    status: 'pending',
-    providerPayload: {
-      orderId,
-      amountCents,
-      instruction: '人工确认收款后标记为已支付',
-    },
-  };
-}
-```
-
-- [ ] **Step 2: Implement WeChat placeholder provider**
-
-Create `server/commerce/payment-providers/wechat-placeholder-provider.mjs`:
-
-```js
-export function createWechatPlaceholderIntent({ orderId, amountCents }) {
-  return {
-    provider: 'wechat_placeholder',
-    status: 'created',
-    providerPayload: {
-      orderId,
-      amountCents,
-      disabledReason: '微信支付真实接口尚未接入',
-    },
-  };
-}
-```
-
-- [ ] **Step 3: Implement delivery service**
-
-Create `server/commerce/delivery-service.mjs`:
-
-```js
-import { grantReportQuota, grantPoints } from '../entitlements/ledger-service.mjs';
-
-export async function deliverOrderEntitlements(client, { order, products }) {
-  for (const product of products) {
-    const payload = product.entitlement_payload || {};
-    if (product.product_type === 'report_quota') {
-      await grantReportQuota(client, {
-        customerId: order.customer_id,
-        amount: Number(payload.reportQuota || 0),
-        reason: 'order_paid',
-        referenceType: 'commerce_order',
-        referenceId: order.id,
-      });
-    }
-    if (product.product_type.includes('membership')) {
-      await client.query(
-        `insert into app.customer_memberships(customer_id, plan_code, starts_at, expires_at, source)
-         values ($1, $2, now(), now() + ($3 || ' days')::interval, 'order')`,
-        [order.customer_id, product.product_type, Number(payload.durationDays || 31)],
-      );
-    }
-    await grantPoints(client, {
-      customerId: order.customer_id,
-      amount: Math.floor(product.price_cents / 100),
-      reason: 'order_paid',
-      referenceType: 'commerce_order',
-      referenceId: order.id,
-    });
+```json
+{
+  "provider": "manual",
+  "status": "pending",
+  "providerPayload": {
+    "instruction": "人工确认收款后标记为已支付"
   }
 }
 ```
 
-- [ ] **Step 4: Implement order service**
+- [ ] **步骤 2：微信支付占位提供方**
 
-Create `server/commerce/order-service.mjs` with functions:
+`wechat-placeholder-provider.mjs` 返回：
 
-```text
+```json
+{
+  "provider": "wechat_placeholder",
+  "status": "created",
+  "providerPayload": {
+    "disabledReason": "微信支付真实接口尚未接入"
+  }
+}
+```
+
+- [ ] **步骤 3：权益发放服务**
+
+`delivery-service.mjs` 根据商品类型执行：
+
+- 次数包：调用 `grantReportQuota`。
+- 月度会员：写入 `customer_memberships`，31 天。
+- 年度会员：写入 `customer_memberships`，365 天。
+- 数字内容：写入数字内容解锁记录或先写发放日志。
+- 消费积分：按金额发放积分。
+
+- [ ] **步骤 4：订单服务**
+
+`order-service.mjs` 提供：
+
+```js
 createOrder(client, { customerId, items })
 createPaymentIntent(client, { orderId, provider })
 markPaymentPaid(client, { paymentIntentId, actorUserId })
 ```
 
-`markPaymentPaid` must update payment status, update order status, call `deliverOrderEntitlements`, and write audit logs in one transaction.
+`markPaymentPaid` 必须在一个事务内：
 
-- [ ] **Step 5: Run tests and commit**
+1. 校验支付单状态。
+2. 更新支付单为 `paid`。
+3. 更新订单为 `paid`。
+4. 发放权益。
+5. 写审计日志。
+
+- [ ] **步骤 5：测试并提交**
 
 ```powershell
 npm run test:server
@@ -315,19 +246,15 @@ git add server/commerce
 git commit -m "feat: add commerce order delivery services"
 ```
 
-Expected: PASS before commit.
-
 ---
 
-### Task 4: Add Commerce APIs
+## 任务 4：商城接口
 
-**Files:**
-- Create: `server/routes/commerce-routes.mjs`
-- Modify: `server/app.mjs`
+**文件：**
+- 新建：`server/routes/commerce-routes.mjs`
+- 修改：`server/app.mjs`
 
-- [ ] **Step 1: Create customer commerce endpoints**
-
-Create:
+- [ ] **步骤 1：客户接口**
 
 ```text
 GET  /destiny-api/customer/products
@@ -336,14 +263,12 @@ GET  /destiny-api/customer/orders
 GET  /destiny-api/customer/orders/:id
 ```
 
-Rules:
+要求：
 
-- Only active virtual products are returned.
-- Customer orders can only be read by the current customer.
+- 只展示启用的虚拟商品。
+- 客户只能查看自己的订单。
 
-- [ ] **Step 2: Create admin commerce endpoints**
-
-Create:
+- [ ] **步骤 2：后台接口**
 
 ```text
 GET   /destiny-api/admin/products
@@ -355,12 +280,12 @@ POST  /destiny-api/admin/payments/:id/mark-paid
 GET   /destiny-api/admin/delivery-logs
 ```
 
-Rules:
+要求：
 
-- Mark-paid requires admin role.
-- Mark-paid is disabled for payment intents already paid or cancelled.
+- 标记支付成功必须是管理员。
+- 已支付或已取消的支付单不能再次标记。
 
-- [ ] **Step 3: Mount routes and verify**
+- [ ] **步骤 3：测试并提交**
 
 ```powershell
 npm run test:server
@@ -368,57 +293,50 @@ git add server/routes/commerce-routes.mjs server/app.mjs
 git commit -m "feat: add commerce api"
 ```
 
-Expected: PASS before commit.
-
 ---
 
-### Task 5: Add Commerce Admin UI
+## 任务 5：后台商城页面
 
-**Files:**
-- Create: `src/admin/pages/ProductsPage.tsx`
-- Create: `src/admin/pages/OrdersPage.tsx`
-- Create: `src/admin/pages/PaymentsPage.tsx`
-- Create: `src/admin/pages/DeliveryLogsPage.tsx`
-- Modify: `src/admin/AdminApp.tsx`
-- Modify: `src/admin/components/AdminLayout.tsx`
-- Test: `tests/test_phase5_commerce_scaffold.py`
+**文件：**
+- 新建：`src/admin/pages/ProductsPage.tsx`
+- 新建：`src/admin/pages/OrdersPage.tsx`
+- 新建：`src/admin/pages/PaymentsPage.tsx`
+- 新建：`src/admin/pages/DeliveryLogsPage.tsx`
+- 修改：`src/admin/AdminApp.tsx`
+- 修改：`src/admin/components/AdminLayout.tsx`
+- 新建测试：`tests/test_phase5_commerce_scaffold.py`
 
-- [ ] **Step 1: Add scaffold test**
+- [ ] **步骤 1：新增菜单**
 
-Create `tests/test_phase5_commerce_scaffold.py`:
+后台菜单加入：
 
-```python
-from pathlib import Path
-import unittest
-
-ROOT = Path(__file__).resolve().parents[1]
-
-class Phase5CommerceScaffoldTests(unittest.TestCase):
-    def test_commerce_pages_exist(self):
-        for relative in [
-            "src/admin/pages/ProductsPage.tsx",
-            "src/admin/pages/OrdersPage.tsx",
-            "src/admin/pages/PaymentsPage.tsx",
-            "src/admin/pages/DeliveryLogsPage.tsx",
-        ]:
-            self.assertTrue((ROOT / relative).exists(), relative)
-
-    def test_navigation_contains_commerce_sections(self):
-        layout = (ROOT / "src" / "admin" / "components" / "AdminLayout.tsx").read_text(encoding="utf-8")
-        for label in ["商品管理", "订单管理", "支付管理", "发放记录"]:
-            self.assertIn(label, layout)
+```text
+商品管理
+订单管理
+支付管理
+发放记录
 ```
 
-- [ ] **Step 2: Build pages**
+- [ ] **步骤 2：商品管理页**
 
-Create:
+展示：
 
-- `ProductsPage.tsx`: product list, SKU, price, product type, entitlement payload.
-- `OrdersPage.tsx`: order list, customer, amount, status, item details.
-- `PaymentsPage.tsx`: payment intent list and mark-paid action.
-- `DeliveryLogsPage.tsx`: delivered product, entitlement payload, status, created time.
+- SKU。
+- 商品名称。
+- 商品类型。
+- 价格。
+- 权益 payload。
+- 启用状态。
 
-- [ ] **Step 3: Run checks and commit**
+- [ ] **步骤 3：订单和支付页**
+
+订单页展示客户、金额、状态、商品明细。支付页展示支付单状态，并提供人工标记支付成功入口。
+
+- [ ] **步骤 4：发放记录页**
+
+展示每个订单商品对应的权益发放结果。
+
+- [ ] **步骤 5：检查并提交**
 
 ```powershell
 python -m unittest tests.test_phase5_commerce_scaffold
@@ -428,15 +346,11 @@ git add src/admin tests/test_phase5_commerce_scaffold.py
 git commit -m "feat: add commerce admin pages"
 ```
 
-Expected: all checks PASS before commit.
+## 验收标准
 
----
-
-## Acceptance Criteria
-
-- Admin can define virtual products and entitlement payloads.
-- Customer can create an order for active products.
-- Manual payment success changes payment and order status to paid.
-- Paid orders trigger entitlement delivery exactly once.
-- WeChat Pay is represented as a disabled placeholder provider with explicit disabled reason.
-- No physical goods, logistics, or real payment secrets are introduced.
+- 后台可以配置虚拟商品和权益 payload。
+- 客户可以创建虚拟商品订单。
+- 人工标记支付成功后，订单和支付单都变成已支付。
+- 已支付订单会自动发放权益，且不会重复发放。
+- 微信支付只作为占位 provider 出现，不引入真实密钥。
+- 系统不包含实物商品、物流和收货地址逻辑。

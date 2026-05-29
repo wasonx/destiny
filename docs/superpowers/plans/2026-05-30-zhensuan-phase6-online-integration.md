@@ -1,118 +1,110 @@
-# Zhensuan Phase 6 Online Integration Implementation Plan
+﻿# 甄算 阶段 6：线上联调与发布闭环实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **给执行代理看的要求：** 按任务逐项执行。执行时优先使用 `superpowers:subagent-driven-development`，也可以使用 `superpowers:executing-plans`。每个任务完成后都要测试、提交，再进入下一项。
 
-**Goal:** Connect mini program, H5, admin publishing, report generation, entitlement deduction, commerce, and server operations into one verified online release path.
+**目标：** 把 H5、小程序、后台发布、报告生成、权益扣减、商城订单、服务器运行和日志备份串成一条可验证的线上闭环。
 
-**Architecture:** H5 and mini program call the same customer APIs. Admin manages publishable knowledge/rules/templates and commercial operations. Server deployment uses environment files, migrations, health checks, logs, and backup scripts so the online system can be operated on the existing server without exposing internal services.
+**架构：** H5 和微信小程序共用同一套客户 API；后台负责知识、规则、模板和商业配置；服务器通过环境文件、迁移脚本、健康检查、日志和备份保证可运维。Neo4j、PostgreSQL、MedusaJS 均不直接暴露公网。
 
-**Tech Stack:** Node.js ESM, Express, PostgreSQL, Neo4j, MedusaJS, Vite, React, TypeScript, WeChat Mini Program, Nginx, systemd, native `node:test`, Python unittest.
-
----
-
-## Scope
-
-This phase implements:
-
-- H5 customer login and value-state integration.
-- Mini program customer login and report flow integration.
-- Admin publish workflow smoke tests.
-- End-to-end report flow with entitlement deduction.
-- Server environment files and deployment checklist.
-- Runtime health endpoints and log views.
-- Backup and restore verification notes.
-
-This phase does not add new product modules beyond the MVP modules already planned.
-
-## File Structure
-
-- Create: `server/routes/ops-routes.mjs`
-- Create: `server/ops/health-service.mjs`
-- Create: `server/ops/log-service.mjs`
-- Modify: `server/app.mjs`
-- Modify: `src/lib/insights.ts`
-- Create: `src/lib/customerAuth.ts`
-- Create: `src/components/LoginPanel.tsx`
-- Create: `src/components/ValueState.tsx`
-- Modify: `src/App.tsx`
-- Modify: `miniprogram/utils/api.js`
-- Create: `miniprogram/utils/auth.js`
-- Modify: `miniprogram/pages/home/index.js`
-- Modify: `miniprogram/pages/report/index.js`
-- Create: `docs/deployment/zhensuan-online-runbook.md`
-- Create: `tests/test_phase6_online_integration_scaffold.py`
-- Create: `server/tests/ops.test.mjs`
+**技术栈：** Node.js ESM、Express、PostgreSQL、Neo4j、MedusaJS、Vite、React、TypeScript、微信小程序、Nginx、systemd、`node:test`、Python unittest。
 
 ---
 
-### Task 1: Add Runtime Health And Ops APIs
+## 范围
 
-**Files:**
-- Create: `server/ops/health-service.mjs`
-- Create: `server/ops/log-service.mjs`
-- Create: `server/routes/ops-routes.mjs`
-- Modify: `server/app.mjs`
-- Test: `server/tests/ops.test.mjs`
+本阶段要完成：
 
-- [ ] **Step 1: Add ops tests**
+- H5 客户登录和权益状态接入。
+- 小程序客户登录和报告生成接入。
+- 后台发布流程联调。
+- 报告生成和权益扣减端到端验证。
+- 线上运行手册。
+- 健康检查和最近错误查看。
+- 服务器部署、回滚和备份检查。
 
-Create `server/tests/ops.test.mjs`:
+本阶段不新增新的业务模块，只做前面阶段的联调、补口和上线闭环。
+
+## 文件结构
+
+- 新建：`server/routes/ops-routes.mjs`
+- 新建：`server/ops/health-service.mjs`
+- 新建：`server/ops/log-service.mjs`
+- 修改：`server/app.mjs`
+- 修改：`src/lib/insights.ts`
+- 新建：`src/lib/customerAuth.ts`
+- 新建：`src/components/LoginPanel.tsx`
+- 新建：`src/components/ValueState.tsx`
+- 修改：`src/App.tsx`
+- 修改：`miniprogram/utils/api.js`
+- 新建：`miniprogram/utils/auth.js`
+- 修改：`miniprogram/pages/home/index.js`
+- 修改：`miniprogram/pages/report/index.js`
+- 新建：`docs/deployment/zhensuan-online-runbook.md`
+- 新建测试：`tests/test_phase6_online_integration_scaffold.py`
+- 新建测试：`server/tests/ops.test.mjs`
+
+---
+
+## 任务 1：运行健康检查和运维接口
+
+**文件：**
+- 新建：`server/ops/health-service.mjs`
+- 新建：`server/ops/log-service.mjs`
+- 新建：`server/routes/ops-routes.mjs`
+- 修改：`server/app.mjs`
+- 新建测试：`server/tests/ops.test.mjs`
+
+- [ ] **步骤 1：健康状态结构**
+
+`summarizeHealth` 输入：
 
 ```js
-import assert from 'node:assert/strict';
-import test from 'node:test';
-import { summarizeHealth } from '../ops/health-service.mjs';
-
-test('health summary reports dependency states', () => {
-  const result = summarizeHealth({
-    api: true,
-    postgres: true,
-    neo4j: false,
-    medusa: false,
-  });
-  assert.equal(result.ok, false);
-  assert.equal(result.dependencies.postgres, 'ok');
-  assert.equal(result.dependencies.neo4j, 'down');
-});
-```
-
-- [ ] **Step 2: Implement health service**
-
-Create `server/ops/health-service.mjs`:
-
-```js
-export function summarizeHealth(state) {
-  const dependencies = {
-    api: state.api ? 'ok' : 'down',
-    postgres: state.postgres ? 'ok' : 'down',
-    neo4j: state.neo4j ? 'ok' : 'down',
-    medusa: state.medusa ? 'ok' : 'down',
-  };
-  return {
-    ok: Object.values(dependencies).every((value) => value === 'ok'),
-    dependencies,
-  };
+{
+  api: true,
+  postgres: true,
+  neo4j: false,
+  medusa: false
 }
 ```
 
-- [ ] **Step 3: Implement ops routes**
+输出：
 
-Create admin-protected endpoints:
+```json
+{
+  "ok": false,
+  "dependencies": {
+    "api": "ok",
+    "postgres": "ok",
+    "neo4j": "down",
+    "medusa": "down"
+  }
+}
+```
+
+- [ ] **步骤 2：运维接口**
+
+后台鉴权接口：
 
 ```text
 GET /destiny-api/admin/ops/health
 GET /destiny-api/admin/ops/recent-errors
 ```
 
-Public health remains:
+公开接口保留：
 
 ```text
 GET /destiny-api/health
 ```
 
-The admin health endpoint checks PostgreSQL with `select 1`, Neo4j with a lightweight read query, and Medusa with its configured health URL when available.
+- [ ] **步骤 3：依赖检查**
 
-- [ ] **Step 4: Run tests and commit**
+后台健康检查要检查：
+
+- PostgreSQL：`select 1`
+- Neo4j：轻量只读查询。
+- MedusaJS：如果配置了 health URL，检查 HTTP 状态。
+
+- [ ] **步骤 4：测试并提交**
 
 ```powershell
 npm run test:server
@@ -120,63 +112,49 @@ git add server/ops server/routes/ops-routes.mjs server/app.mjs server/tests/ops.
 git commit -m "feat: add ops health api"
 ```
 
-Expected: PASS before commit.
-
 ---
 
-### Task 2: Add H5 Customer Login And Value State
+## 任务 2：H5 客户登录和权益状态
 
-**Files:**
-- Create: `src/lib/customerAuth.ts`
-- Create: `src/components/LoginPanel.tsx`
-- Create: `src/components/ValueState.tsx`
-- Modify: `src/App.tsx`
-- Modify: `src/lib/insights.ts`
+**文件：**
+- 新建：`src/lib/customerAuth.ts`
+- 新建：`src/components/LoginPanel.tsx`
+- 新建：`src/components/ValueState.tsx`
+- 修改：`src/App.tsx`
+- 修改：`src/lib/insights.ts`
 
-- [ ] **Step 1: Implement customer auth client**
+- [ ] **步骤 1：客户登录客户端**
 
-Create `src/lib/customerAuth.ts`:
+`customerAuth.ts` 提供：
 
 ```ts
-const TOKEN_KEY = 'zhensuan_customer_token';
-
-export function getCustomerToken() {
-  return localStorage.getItem(TOKEN_KEY) || '';
-}
-
-export function setCustomerToken(token: string) {
-  localStorage.setItem(TOKEN_KEY, token);
-}
-
-export async function sendOtp(phone: string) {
-  const response = await fetch('/destiny-api/customer/otp/send', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ phone }),
-  });
-  return response.json();
-}
-
-export async function verifyOtp(phone: string, code: string) {
-  const response = await fetch('/destiny-api/customer/otp/verify', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ phone, code }),
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.message || body.error || '登录失败');
-  setCustomerToken(body.token);
-  return body.customer;
-}
+getCustomerToken()
+setCustomerToken(token)
+sendOtp(phone)
+verifyOtp(phone, code)
 ```
 
-- [ ] **Step 2: Add login panel**
+token 存储 key：
 
-Create `src/components/LoginPanel.tsx` with phone input, send code button, code input, and verify button. The component should not mention provider internals; it only shows 手机号 and 验证码.
+```text
+zhensuan_customer_token
+```
 
-- [ ] **Step 3: Add value state component**
+- [ ] **步骤 2：登录组件**
 
-Create `src/components/ValueState.tsx` showing:
+`LoginPanel.tsx` 显示：
+
+- 手机号输入。
+- 发送验证码按钮。
+- 验证码输入。
+- 登录按钮。
+- 错误提示。
+
+页面文案只写“手机号”和“验证码”，不暴露实现细节。
+
+- [ ] **步骤 3：权益状态组件**
+
+`ValueState.tsx` 展示：
 
 ```text
 会员状态
@@ -185,17 +163,15 @@ Create `src/components/ValueState.tsx` showing:
 成长等级
 ```
 
-- [ ] **Step 4: Attach customer token to report generation**
+- [ ] **步骤 4：报告生成带 token**
 
-Modify `src/lib/insights.ts` so `generateInsight` sends:
+修改 `src/lib/insights.ts`，如果存在客户 token，请求头加入：
 
 ```ts
 Authorization: `Bearer ${getCustomerToken()}`
 ```
 
-when a customer token exists.
-
-- [ ] **Step 5: Run checks and commit**
+- [ ] **步骤 5：检查并提交**
 
 ```powershell
 npm run lint
@@ -204,100 +180,56 @@ git add src/lib/customerAuth.ts src/components/LoginPanel.tsx src/components/Val
 git commit -m "feat: integrate h5 customer auth"
 ```
 
-Expected: both checks PASS before commit.
-
 ---
 
-### Task 3: Add Mini Program Customer Integration
+## 任务 3：微信小程序客户登录接入
 
-**Files:**
-- Modify: `miniprogram/utils/api.js`
-- Create: `miniprogram/utils/auth.js`
-- Modify: `miniprogram/pages/home/index.js`
-- Modify: `miniprogram/pages/report/index.js`
-- Test: `tests/test_phase6_online_integration_scaffold.py`
+**文件：**
+- 修改：`miniprogram/utils/api.js`
+- 新建：`miniprogram/utils/auth.js`
+- 修改：`miniprogram/pages/home/index.js`
+- 修改：`miniprogram/pages/report/index.js`
+- 新建测试：`tests/test_phase6_online_integration_scaffold.py`
 
-- [ ] **Step 1: Add scaffold test**
+- [ ] **步骤 1：小程序 auth 工具**
 
-Create `tests/test_phase6_online_integration_scaffold.py`:
-
-```python
-from pathlib import Path
-import unittest
-
-ROOT = Path(__file__).resolve().parents[1]
-MINI = ROOT / "miniprogram"
-
-class Phase6OnlineIntegrationScaffoldTests(unittest.TestCase):
-    def test_miniprogram_auth_file_exists(self):
-        self.assertTrue((MINI / "utils" / "auth.js").exists())
-
-    def test_miniprogram_uses_customer_token(self):
-        combined = "\n".join(
-            path.read_text(encoding="utf-8")
-            for path in [MINI / "utils" / "api.js", MINI / "utils" / "auth.js"]
-        )
-        self.assertIn("Authorization", combined)
-        self.assertIn("customer_token", combined)
-```
-
-- [ ] **Step 2: Create mini program auth utility**
-
-Create `miniprogram/utils/auth.js`:
+`miniprogram/utils/auth.js` 提供：
 
 ```js
-const TOKEN_KEY = 'customer_token';
-
-function getToken() {
-  return wx.getStorageSync(TOKEN_KEY) || '';
-}
-
-function setToken(token) {
-  wx.setStorageSync(TOKEN_KEY, token);
-}
-
-function loginWithWechatCode() {
-  return new Promise((resolve, reject) => {
-    wx.login({
-      success: ({ code }) => {
-        wx.request({
-          url: 'https://www.goye.cc/destiny-api/customer/login/wechat',
-          method: 'POST',
-          data: { code },
-          success: (response) => {
-            const token = response.data && response.data.token;
-            if (token) setToken(token);
-            resolve(response.data);
-          },
-          fail: reject,
-        });
-      },
-      fail: reject,
-    });
-  });
-}
-
-module.exports = { getToken, setToken, loginWithWechatCode };
+getToken()
+setToken(token)
+loginWithWechatCode()
 ```
 
-- [ ] **Step 3: Attach token in API requests**
+token 存储 key：
 
-Modify `miniprogram/utils/api.js` to add:
+```text
+customer_token
+```
+
+- [ ] **步骤 2：微信 code 登录**
+
+`loginWithWechatCode` 调用：
+
+```text
+POST https://www.goye.cc/destiny-api/customer/login/wechat
+```
+
+成功后保存返回的客户 token。
+
+- [ ] **步骤 3：API 请求带 token**
+
+修改 `miniprogram/utils/api.js`，所有报告请求加入：
 
 ```js
-const auth = require('./auth');
-
-header: {
-  'content-type': 'application/json',
-  Authorization: auth.getToken() ? `Bearer ${auth.getToken()}` : '',
-}
+Authorization: auth.getToken() ? `Bearer ${auth.getToken()}` : ''
 ```
 
-- [ ] **Step 4: Trigger login on home**
+- [ ] **步骤 4：首页自动登录**
 
-Modify `miniprogram/pages/home/index.js` so the page calls `loginWithWechatCode` when no customer token exists.
+`miniprogram/pages/home/index.js` 在没有 token 时调用 `loginWithWechatCode()`。
 
-- [ ] **Step 5: Run tests and commit**
+- [ ] **步骤 5：测试并提交**
 
 ```powershell
 python -m unittest tests.test_phase6_online_integration_scaffold tests.test_miniprogram_scaffold
@@ -305,40 +237,36 @@ git add miniprogram tests/test_phase6_online_integration_scaffold.py
 git commit -m "feat: integrate miniprogram customer auth"
 ```
 
-Expected: both tests PASS before commit.
-
 ---
 
-### Task 4: Verify End-To-End Report And Entitlement Flow
+## 任务 4：报告和权益端到端验证
 
-**Files:**
-- Modify: `server/tests/app-routes.test.mjs`
-- Create: `docs/deployment/zhensuan-online-runbook.md`
+**文件：**
+- 修改：`server/tests/app-routes.test.mjs`
+- 新建：`docs/deployment/zhensuan-online-runbook.md`
 
-- [ ] **Step 1: Create runbook and define manual E2E scenario**
+- [ ] **步骤 1：写入手动 E2E 场景**
 
-Document this scenario in the runbook:
-
-```text
-1. Create or identify a customer.
-2. Grant the customer 1 report quota.
-3. Generate one report from H5 or mini program.
-4. Confirm report is saved in report_runs.
-5. Confirm report_quota_balance decreases by 1.
-6. Confirm insufficient quota returns 402 on the next paid report request.
-```
-
-- [ ] **Step 2: Add API smoke test with mocked services**
-
-Add a Node test that uses mocked pool/model service and asserts:
+运行手册记录：
 
 ```text
-generation response contains report
-spendReportQuota is called after successful report generation
-safety review result is saved
+1. 创建或找到一个客户。
+2. 给客户发放 1 次报告次数。
+3. 从 H5 或小程序生成 1 份报告。
+4. 确认 report_runs 有记录。
+5. 确认 report_quota_balance 减少 1。
+6. 再次请求付费报告时，次数不足返回 402。
 ```
 
-- [ ] **Step 3: Run checks and commit**
+- [ ] **步骤 2：补 API 冒烟测试**
+
+用 mock pool / mock report service 测试：
+
+- 报告生成返回 report。
+- 成功后调用扣减次数逻辑。
+- 安全审查结果被保存。
+
+- [ ] **步骤 3：测试并提交**
 
 ```powershell
 npm run test:server
@@ -346,23 +274,18 @@ git add server/tests/app-routes.test.mjs docs/deployment/zhensuan-online-runbook
 git commit -m "test: document report entitlement e2e"
 ```
 
-Expected: PASS before commit.
-
 ---
 
-### Task 5: Extend Server Deployment Runbook
+## 任务 5：线上运行手册
 
-**Files:**
-- Modify: `docs/deployment/zhensuan-online-runbook.md`
+**文件：**
+- 修改：`docs/deployment/zhensuan-online-runbook.md`
 
-- [ ] **Step 1: Extend runbook**
+- [ ] **步骤 1：补服务组成**
 
-Update `docs/deployment/zhensuan-online-runbook.md` with sections:
+运行手册必须包含：
 
 ```text
-# 甄算线上运行手册
-
-## 服务组成
 Node/Express API
 Vite 静态前端
 PostgreSQL
@@ -370,8 +293,13 @@ Neo4j
 MedusaJS
 Nginx
 systemd
+```
 
-## 环境变量
+- [ ] **步骤 2：补环境变量**
+
+必须列出：
+
+```text
 DATABASE_URL
 SESSION_SECRET
 DEEPSEEK_API_KEY
@@ -379,8 +307,11 @@ NEO4J_URI
 NEO4J_USERNAME
 NEO4J_PASSWORD
 CUSTOMER_AUTH_MOCKS_ENABLED
+```
 
-## 部署顺序
+- [ ] **步骤 3：补部署顺序**
+
+```text
 拉取代码
 npm install
 npm run db:migrate
@@ -388,34 +319,29 @@ npm run build
 重启 Node 服务
 检查 Nginx
 检查 HTTPS
-
-## 健康检查
-curl https://www.goye.cc/destiny-api/health
-curl http://127.0.0.1:3201/destiny-api/health
-
-## 回滚策略
-保留上一版构建产物
-代码回滚走 git
-数据库只做前向修复迁移
-
-## 备份
-PostgreSQL 每日备份
-Neo4j 定期 dump
-上传目录和环境文件独立备份
 ```
 
-- [ ] **Step 2: Add server verification commands**
-
-Include commands:
+- [ ] **步骤 4：补服务器检查命令**
 
 ```bash
 systemctl status zhensuan-api
 journalctl -u zhensuan-api -n 100 --no-pager
 nginx -t
 curl -I https://www.goye.cc
+curl https://www.goye.cc/destiny-api/health
 ```
 
-- [ ] **Step 3: Commit**
+- [ ] **步骤 5：补回滚和备份**
+
+说明：
+
+- 代码回滚走 git。
+- 数据库只做前向修复迁移。
+- PostgreSQL 每日备份。
+- Neo4j 定期 dump。
+- 环境文件单独备份。
+
+- [ ] **步骤 6：提交**
 
 ```powershell
 git add docs/deployment/zhensuan-online-runbook.md
@@ -424,12 +350,9 @@ git commit -m "docs: extend online runbook"
 
 ---
 
-### Task 6: Final Release Verification
+## 任务 6：最终发布验证
 
-**Files:**
-- Modify: `docs/deployment/zhensuan-online-runbook.md`
-
-- [ ] **Step 1: Run local verification**
+- [ ] **步骤 1：本地验证**
 
 ```powershell
 npm run test:server
@@ -438,11 +361,9 @@ npm run lint
 npm run build
 ```
 
-Expected: all PASS.
+- [ ] **步骤 2：服务器验证**
 
-- [ ] **Step 2: Run server verification**
-
-On the server:
+在服务器运行：
 
 ```bash
 npm run db:migrate
@@ -451,35 +372,34 @@ systemctl restart zhensuan-api
 curl https://www.goye.cc/destiny-api/health
 ```
 
-Expected: health response contains `"ok":true`.
+预期：返回 `"ok": true`。
 
-- [ ] **Step 3: Browser and mini program checks**
+- [ ] **步骤 3：浏览器和小程序验证**
 
-Verify:
+确认：
 
 ```text
-https://www.goye.cc opens H5
-https://www.goye.cc/admin opens backend login
-mini program can request https://www.goye.cc/destiny-api/health
-customer report generation returns a report
+https://www.goye.cc 打开 H5
+https://www.goye.cc/admin 打开后台登录
+小程序能请求 https://www.goye.cc/destiny-api/health
+客户能生成报告
+报告生成后权益次数扣减
 ```
 
-- [ ] **Step 4: Commit final runbook updates**
+- [ ] **步骤 4：记录验证结果**
+
+如果运行手册写入了实际验证结果，提交：
 
 ```powershell
 git add docs/deployment/zhensuan-online-runbook.md
 git commit -m "docs: record online verification"
 ```
 
-Commit only if the runbook was updated with concrete verification results.
+## 验收标准
 
----
-
-## Acceptance Criteria
-
-- H5 and mini program use the same customer token model.
-- Customer report generation consumes entitlement quota.
-- Admin can view runtime health and recent errors.
-- Deployment runbook includes environment, migration, restart, health, rollback, and backup procedures.
-- Server health check passes over HTTPS.
-- The online MVP can be operated without direct database edits for normal customer/report/order workflows.
+- H5 和小程序使用同一套客户 token 模型。
+- 客户报告生成会扣减权益次数。
+- 后台可以查看运行健康状态和最近错误。
+- 运行手册包含环境、迁移、重启、健康检查、回滚和备份。
+- HTTPS 健康检查通过。
+- 线上 MVP 的普通客户、报告、订单和后台运维流程不需要直接改数据库。

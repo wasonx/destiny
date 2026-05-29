@@ -1,63 +1,72 @@
-# Zhensuan Six Phase Delivery Roadmap
+﻿# 甄算六阶段交付总索引
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **给执行代理看的要求：** 按任务逐项执行。执行时优先使用 `superpowers:subagent-driven-development`，也可以使用 `superpowers:executing-plans`。每个阶段都要测试、提交、再进入下一阶段。
 
-**Goal:** Provide one master index for the six 甄算 delivery phases so each phase can be executed, verified, and deployed without losing the product thread.
+**目标：** 把甄算从当前 MVP 推进到可运营的线上系统，并让六个阶段都有清晰的实施边界、交付物和验收口径。
 
-**Architecture:** The platform is built as a staged system: account foundation first, knowledge base second, rule/report production third, entitlement/commercial capability fourth and fifth, then full online integration. Each phase produces working software and leaves the system deployable.
+**架构：** 整体采用分阶段建设：先打账号、数据库和后台骨架，再建设知识库与图谱，然后接规则引擎和报告模板，之后补会员权益、积分、商城和支付预留，最后完成 H5、小程序、后台和服务器联调。每个阶段都必须能独立验收，不能把风险堆到最后。
 
-**Tech Stack:** Node.js ESM, Express, PostgreSQL, Neo4j, MedusaJS, Vite, React, TypeScript, WeChat Mini Program, native `node:test`, Python unittest.
+**技术栈：** Node.js ESM、Express、PostgreSQL、Neo4j、MedusaJS、Vite、React、TypeScript、微信小程序、Nginx、systemd、`node:test`、Python unittest。
 
 ---
 
-## Phase Plan Index
+## 阶段计划文件
 
-1. Phase 1: [基础账号与后台骨架](2026-05-30-zhensuan-phase1-foundation.md)
-2. Phase 2: [八字知识库 MVP](2026-05-30-zhensuan-phase2-bazi-knowledge-mvp.md)
-3. Phase 3: [规则引擎与报告模板](2026-05-30-zhensuan-phase3-rule-engine-report-templates.md)
-4. Phase 4: [会员、积分与权益](2026-05-30-zhensuan-phase4-membership-points-entitlements.md)
-5. Phase 5: [轻商城与支付预留](2026-05-30-zhensuan-phase5-commerce-payment-reservation.md)
-6. Phase 6: [线上联调与发布闭环](2026-05-30-zhensuan-phase6-online-integration.md)
+1. 阶段 1：[基础账号与后台骨架](2026-05-30-zhensuan-phase1-foundation.md)
+2. 阶段 2：[八字知识库 MVP](2026-05-30-zhensuan-phase2-bazi-knowledge-mvp.md)
+3. 阶段 3：[规则引擎与报告模板](2026-05-30-zhensuan-phase3-rule-engine-report-templates.md)
+4. 阶段 4：[会员、积分与权益](2026-05-30-zhensuan-phase4-membership-points-entitlements.md)
+5. 阶段 5：[轻商城与支付预留](2026-05-30-zhensuan-phase5-commerce-payment-reservation.md)
+6. 阶段 6：[线上联调与发布闭环](2026-05-30-zhensuan-phase6-online-integration.md)
 
-## Delivery Logic
+## 总体交付逻辑
 
-- Phase 1 gives the system an identity, database, API, and admin shell.
-- Phase 2 gives the system a maintainable knowledge base and first ontology sample.
-- Phase 3 turns knowledge into structured conclusions and user-facing reports.
-- Phase 4 adds customer value accounting: report quota, membership, growth level, and points.
-- Phase 5 adds product/order/payment reservation so commercial operation has a base.
-- Phase 6 connects Web/H5, mini program, admin publishing, report generation, and server operations into one live path.
+- 阶段 1 解决“谁能登录、后台在哪里、数据存哪里、API 怎么拆”的地基问题。
+- 阶段 2 解决“知识怎么维护、八字本体怎么表达、图谱路径怎么看”的知识库问题。
+- 阶段 3 解决“知识如何变成规则、规则如何命中、报告如何安全生成”的分析生产问题。
+- 阶段 4 解决“客户有什么权益、报告次数怎么扣、积分和会员怎么算”的运营账户问题。
+- 阶段 5 解决“卖什么、订单怎么建、支付状态怎么预留、权益怎么自动发放”的商业闭环问题。
+- 阶段 6 解决“H5、小程序、后台、服务器、日志、备份、上线验证”这一整条线上链路。
 
-## Global Quality Gates
-
-- Every phase must end with `npm run test:server`, Python smoke tests that apply to that phase, `npm run lint`, and `npm run build`.
-- Every phase must commit only its own files.
-- Database migrations must be forward-only and named in sequence.
-- Admin features must be protected by backend editor/platform admin sessions.
-- Customer-facing flows must preserve the disclaimer and avoid absolute, medical, investment, or legal advice.
-- External providers stay behind adapter modules so mocks and production providers can be swapped without changing business services.
-
-## Dependency Map
+## 阶段依赖
 
 ```text
-Phase 1 -> Phase 2 -> Phase 3 -> Phase 6
+阶段 1 -> 阶段 2 -> 阶段 3 -> 阶段 6
    |          |          |
-   |          |          -> Phase 4 -> Phase 5 -> Phase 6
+   |          |          -> 阶段 4 -> 阶段 5 -> 阶段 6
    |          |
-   -> Phase 4
+   -> 阶段 4
 ```
 
-Phase 2 can begin after Phase 1 database and admin shell are in place. Phase 3 needs Phase 2 knowledge/rule primitives. Phase 4 needs Phase 1 users and sessions. Phase 5 needs Phase 4 entitlement accounts. Phase 6 needs all earlier phase APIs stable.
+说明：
 
-## Execution Order
+- 阶段 2 依赖 阶段 1 的数据库、后台登录和后台壳子。
+- 阶段 3 依赖 阶段 2 的知识条目和图谱基础。
+- 阶段 4 依赖 阶段 1 的客户账号和会话。
+- 阶段 5 依赖 阶段 4 的权益账户和会员账户。
+- 阶段 6 依赖前面所有阶段的 API 稳定。
 
-- [ ] Complete Phase 1 foundation plan.
-- [ ] Execute Phase 2 knowledge MVP plan.
-- [ ] Execute Phase 3 rule and report plan.
-- [ ] Execute Phase 4 membership and entitlement plan.
-- [ ] Execute Phase 5 commerce and payment reservation plan.
-- [ ] Execute Phase 6 integration and release plan.
+## 全局质量门槛
 
-## Rollback Principle
+- 每个阶段结束时都要运行 `npm run test:server`。
+- 涉及前端时必须运行 `npm run lint` 和 `npm run build`。
+- 涉及 Python 静态检查时必须运行对应的 `python -m unittest ...`。
+- 每个阶段只提交本阶段文件，不混入无关改动。
+- 数据库迁移只做前向迁移，不做破坏式回滚。
+- 后台功能必须有后台账号鉴权。
+- 客户功能必须有客户会话或明确的模拟入口。
+- 报告生成必须保留免责声明、安全审查和风险边界。
+- 外部服务必须通过适配层接入，第一版优先保留 mock 或 placeholder。
 
-Each phase should be reversible at the feature level by hiding navigation entries and disabling new routes behind configuration where practical. Database migrations are not rolled back destructively; if a migration needs correction, create a new forward migration.
+## 执行顺序
+
+- [ ] 完成 阶段 1：基础账号与后台骨架。
+- [ ] 完成 阶段 2：八字知识库 MVP。
+- [ ] 完成 阶段 3：规则引擎与报告模板。
+- [ ] 完成 阶段 4：会员、积分与权益。
+- [ ] 完成 阶段 5：轻商城与支付预留。
+- [ ] 完成 阶段 6：线上联调与发布闭环。
+
+## 回滚原则
+
+功能层面优先通过隐藏菜单、关闭配置、停用发布状态来回退。数据库不做破坏式回滚；如果迁移有问题，用新的前向迁移修正。线上每次发布前保留上一版构建产物和数据库备份记录。

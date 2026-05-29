@@ -1,240 +1,182 @@
-# Zhensuan Phase 3 Rule Engine And Report Templates Implementation Plan
+﻿# 甄算 阶段 3：规则引擎与报告模板实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **给执行代理看的要求：** 按任务逐项执行。执行时优先使用 `superpowers:subagent-driven-development`，也可以使用 `superpowers:executing-plans`。每个任务完成后都要测试、提交，再进入下一项。
 
-**Goal:** Build a semi-automatic rule engine and report template system that turns local knowledge and ontology paths into safe, structured, user-facing reports.
+**目标：** 建立半自动规则引擎和报告模板系统，让本地知识库、图谱路径和规则命中结果可以生成安全、可解释、亲民的报告。
 
-**Architecture:** PostgreSQL stores rule definitions, template definitions, report runs, and safety review results. The rule engine produces structured conclusions first; the online model only rewrites and organizes approved context. Report generation remains explainable by preserving rule hits, knowledge references, graph paths, and template sections.
+**架构：** PostgreSQL 存分析规则、报告模板、报告生成记录和安全审查结果。规则引擎先产出结构化结论，大模型只负责组织和表达。每份报告都保留规则命中、知识引用、图谱路径、模板段落和安全审查记录。
 
-**Tech Stack:** Node.js ESM, Express, PostgreSQL, Neo4j, DeepSeek-compatible chat API, Vite, React, TypeScript, native `node:test`, Python unittest.
-
----
-
-## Scope
-
-This phase implements:
-
-- Rule schema and report template schema.
-- Rule condition evaluator for 八字 MVP features.
-- Rule hit API and admin test runner.
-- Template section editor and preview.
-- Prompt context assembly from rules, knowledge, graph paths, and safety boundaries.
-- Safety review pass before saving report history.
-- Report history table and API.
-
-This phase does not implement paid quota deduction, commerce, or real-time internet search.
-
-## File Structure
-
-- Create: `server/db/migrations/003_phase3_rules_reports.sql`
-- Create: `server/rules/condition-evaluator.mjs`
-- Create: `server/rules/rule-engine.mjs`
-- Create: `server/reports/context-builder.mjs`
-- Create: `server/reports/safety-review.mjs`
-- Create: `server/reports/report-service.mjs`
-- Create: `server/routes/rule-routes.mjs`
-- Create: `server/routes/template-routes.mjs`
-- Create: `server/routes/report-history-routes.mjs`
-- Modify: `server/routes/report-routes.mjs` to call the report service.
-- Modify: `server/app.mjs` to mount admin routes.
-- Create: `server/tests/rule-engine.test.mjs`
-- Create: `server/tests/report-safety.test.mjs`
-- Create: `src/admin/pages/RulesPage.tsx`
-- Create: `src/admin/pages/TemplatesPage.tsx`
-- Create: `src/admin/pages/ReportRunsPage.tsx`
-- Modify: `src/admin/components/AdminLayout.tsx`
-- Modify: `src/admin/AdminApp.tsx`
-- Create: `tests/test_phase3_rules_scaffold.py`
+**技术栈：** Node.js ESM、Express、PostgreSQL、Neo4j、在线大模型 API、Vite、React、TypeScript、`node:test`、Python unittest。
 
 ---
 
-### Task 1: Add Rules And Report Schema
+## 范围
 
-**Files:**
-- Create: `server/db/migrations/003_phase3_rules_reports.sql`
-- Test: `server/tests/rule-engine.test.mjs`
+本阶段要完成：
 
-- [ ] **Step 1: Add migration smoke test**
+- 分析规则表。
+- 报告模板表。
+- 八字 MVP 特征条件判断器。
+- 规则命中和排序。
+- 模板段落编辑和预览。
+- 大模型上下文拼装。
+- 安全审查。
+- 报告历史保存和后台查看。
 
-Create or extend `server/tests/rule-engine.test.mjs`:
+本阶段不做：
 
-```js
-import assert from 'node:assert/strict';
-import fs from 'node:fs/promises';
-import test from 'node:test';
+- 会员扣费。
+- 商城订单。
+- 真实联网搜索。
 
-test('phase 3 migration defines rules templates and report runs', async () => {
-  const sql = await fs.readFile(new URL('../db/migrations/003_phase3_rules_reports.sql', import.meta.url), 'utf8');
-  for (const phrase of [
-    'create table if not exists app.analysis_rules',
-    'create table if not exists app.report_templates',
-    'create table if not exists app.report_runs',
-    'create table if not exists app.safety_reviews',
-  ]) {
-    assert.match(sql, new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  }
-});
+## 文件结构
+
+- 新建：`server/db/migrations/003_phase3_rules_reports.sql`
+- 新建：`server/rules/condition-evaluator.mjs`
+- 新建：`server/rules/rule-engine.mjs`
+- 新建：`server/reports/context-builder.mjs`
+- 新建：`server/reports/safety-review.mjs`
+- 新建：`server/reports/report-service.mjs`
+- 新建：`server/routes/rule-routes.mjs`
+- 新建：`server/routes/template-routes.mjs`
+- 新建：`server/routes/report-history-routes.mjs`
+- 修改：`server/routes/report-routes.mjs`
+- 修改：`server/app.mjs`
+- 新建测试：`server/tests/rule-engine.test.mjs`
+- 新建测试：`server/tests/report-safety.test.mjs`
+- 新建：`src/admin/pages/RulesPage.tsx`
+- 新建：`src/admin/pages/TemplatesPage.tsx`
+- 新建：`src/admin/pages/ReportRunsPage.tsx`
+- 修改：`src/admin/components/AdminLayout.tsx`
+- 修改：`src/admin/AdminApp.tsx`
+- 新建测试：`tests/test_phase3_rules_scaffold.py`
+
+---
+
+## 任务 1：新增规则和报告数据库表
+
+**文件：**
+- 新建：`server/db/migrations/003_phase3_rules_reports.sql`
+- 新建测试：`server/tests/rule-engine.test.mjs`
+
+- [ ] **步骤 1：迁移测试**
+
+检查 SQL 中包含：
+
+```text
+app.analysis_rules
+app.report_templates
+app.report_runs
+app.safety_reviews
 ```
 
-- [ ] **Step 2: Create migration**
+- [ ] **步骤 2：分析规则表**
 
-Create `server/db/migrations/003_phase3_rules_reports.sql`:
+`app.analysis_rules` 关键字段：
 
-```sql
-create table if not exists app.analysis_rules (
-  id uuid primary key default gen_random_uuid(),
-  module text not null default 'bazi',
-  name text not null,
-  priority integer not null default 100,
-  weight numeric(8,2) not null default 1,
-  condition jsonb not null,
-  conclusion text not null,
-  advice text not null default '',
-  risk_boundary text not null default '',
-  knowledge_entry_ids uuid[] not null default '{}',
-  status text not null default 'draft' check (status in ('draft', 'published', 'disabled')),
-  created_by uuid references app.users(id) on delete set null,
-  published_by uuid references app.users(id) on delete set null,
-  published_at timestamptz,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
+- `module`
+- `name`
+- `priority`
+- `weight`
+- `condition`
+- `conclusion`
+- `advice`
+- `risk_boundary`
+- `knowledge_entry_ids`
+- `status`
+- `created_by`
+- `published_by`
+- `published_at`
 
-create table if not exists app.report_templates (
-  id uuid primary key default gen_random_uuid(),
-  module text not null default 'bazi',
-  name text not null,
-  report_kind text not null,
-  sections jsonb not null,
-  tone text not null default '亲民、克制、清晰',
-  disclaimer text not null,
-  forbidden_expressions text[] not null default '{}',
-  status text not null default 'draft' check (status in ('draft', 'published', 'disabled')),
-  created_by uuid references app.users(id) on delete set null,
-  published_by uuid references app.users(id) on delete set null,
-  published_at timestamptz,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
+- [ ] **步骤 3：报告模板表**
 
-create table if not exists app.report_runs (
-  id uuid primary key default gen_random_uuid(),
-  customer_id uuid references app.users(id) on delete set null,
-  report_kind text not null,
-  input_payload jsonb not null,
-  structured_context jsonb not null,
-  final_report jsonb not null,
-  source text not null check (source in ('fallback', 'ai', 'testbench')),
-  created_at timestamptz not null default now()
-);
+`app.report_templates` 关键字段：
 
-create table if not exists app.safety_reviews (
-  id uuid primary key default gen_random_uuid(),
-  report_run_id uuid references app.report_runs(id) on delete cascade,
-  passed boolean not null,
-  flags text[] not null default '{}',
-  reviewed_text text not null default '',
-  created_at timestamptz not null default now()
-);
-```
+- `module`
+- `name`
+- `report_kind`
+- `sections`
+- `tone`
+- `disclaimer`
+- `forbidden_expressions`
+- `status`
 
-- [ ] **Step 3: Run test**
+- [ ] **步骤 4：报告记录和安全审查表**
+
+`app.report_runs` 保存：
+
+- 客户。
+- 报告类型。
+- 输入参数。
+- 结构化上下文。
+- 最终报告 JSON。
+- 来源：`fallback`、`ai`、`testbench`。
+
+`app.safety_reviews` 保存：
+
+- 是否通过。
+- 风险 flags。
+- 审查文本。
+
+- [ ] **步骤 5：测试并提交**
 
 ```powershell
 npm run test:server
-```
-
-Expected: PASS.
-
-- [ ] **Step 4: Commit**
-
-```powershell
 git add server/db/migrations/003_phase3_rules_reports.sql server/tests/rule-engine.test.mjs
 git commit -m "feat: add rule and report schema"
 ```
 
 ---
 
-### Task 2: Implement Rule Condition Evaluator
+## 任务 2：规则条件判断器
 
-**Files:**
-- Create: `server/rules/condition-evaluator.mjs`
-- Create: `server/rules/rule-engine.mjs`
-- Test: `server/tests/rule-engine.test.mjs`
+**文件：**
+- 新建：`server/rules/condition-evaluator.mjs`
+- 新建：`server/rules/rule-engine.mjs`
+- 修改测试：`server/tests/rule-engine.test.mjs`
 
-- [ ] **Step 1: Add evaluator tests**
+- [ ] **步骤 1：支持条件结构**
 
-Append:
+第一版支持：
 
-```js
-import { evaluateCondition } from '../rules/condition-evaluator.mjs';
-import { rankRuleHits } from '../rules/rule-engine.mjs';
-
-test('condition evaluator matches element minimum count', () => {
-  const features = { elements: { 木: 3, 火: 1 } };
-  const condition = { all: [{ field: 'elements.木', operator: 'gte', value: 2 }] };
-  assert.equal(evaluateCondition(condition, features), true);
-});
-
-test('rule engine ranks by priority then weight', () => {
-  const hits = rankRuleHits([
-    { id: 'a', priority: 20, weight: 1 },
-    { id: 'b', priority: 10, weight: 1 },
-    { id: 'c', priority: 10, weight: 3 },
-  ]);
-  assert.deepEqual(hits.map((hit) => hit.id), ['c', 'b', 'a']);
-});
-```
-
-- [ ] **Step 2: Implement evaluator**
-
-Create `server/rules/condition-evaluator.mjs`:
-
-```js
-function readPath(object, path) {
-  return path.split('.').reduce((value, key) => value?.[key], object);
-}
-
-function compare(actual, operator, expected) {
-  if (operator === 'eq') return actual === expected;
-  if (operator === 'neq') return actual !== expected;
-  if (operator === 'gte') return Number(actual || 0) >= Number(expected);
-  if (operator === 'lte') return Number(actual || 0) <= Number(expected);
-  if (operator === 'includes') return Array.isArray(actual) && actual.includes(expected);
-  return false;
-}
-
-export function evaluateCondition(condition, features) {
-  if (condition.all) {
-    return condition.all.every((item) => evaluateCondition(item, features));
-  }
-  if (condition.any) {
-    return condition.any.some((item) => evaluateCondition(item, features));
-  }
-  return compare(readPath(features, condition.field), condition.operator, condition.value);
+```json
+{
+  "all": [
+    {"field": "elements.木", "operator": "gte", "value": 2}
+  ]
 }
 ```
 
-- [ ] **Step 3: Implement rule ranking**
+以及：
 
-Create `server/rules/rule-engine.mjs`:
-
-```js
-import { evaluateCondition } from './condition-evaluator.mjs';
-
-export function rankRuleHits(hits) {
-  return [...hits].sort((left, right) => {
-    if (left.priority !== right.priority) return left.priority - right.priority;
-    return Number(right.weight) - Number(left.weight);
-  });
-}
-
-export function runRules(rules, features) {
-  return rankRuleHits(rules.filter((rule) => evaluateCondition(rule.condition, features)));
+```json
+{
+  "any": [
+    {"field": "dayStem", "operator": "eq", "value": "甲"}
+  ]
 }
 ```
 
-- [ ] **Step 4: Run tests and commit**
+- [ ] **步骤 2：支持操作符**
+
+第一版支持：
+
+```text
+eq
+neq
+gte
+lte
+includes
+```
+
+- [ ] **步骤 3：规则排序**
+
+命中规则排序：
+
+1. `priority` 数字越小越靠前。
+2. `priority` 相同，`weight` 越高越靠前。
+
+- [ ] **步骤 4：测试并提交**
 
 ```powershell
 npm run test:server
@@ -242,90 +184,59 @@ git add server/rules server/tests/rule-engine.test.mjs
 git commit -m "feat: add rule evaluator"
 ```
 
-Expected: PASS before commit.
-
 ---
 
-### Task 3: Add Report Context Builder And Safety Review
+## 任务 3：报告上下文和安全审查
 
-**Files:**
-- Create: `server/reports/context-builder.mjs`
-- Create: `server/reports/safety-review.mjs`
-- Test: `server/tests/report-safety.test.mjs`
+**文件：**
+- 新建：`server/reports/context-builder.mjs`
+- 新建：`server/reports/safety-review.mjs`
+- 新建测试：`server/tests/report-safety.test.mjs`
 
-- [ ] **Step 1: Write safety tests**
+- [ ] **步骤 1：上下文结构**
 
-Create `server/tests/report-safety.test.mjs`:
+`buildReportContext` 输出必须包含：
 
-```js
-import assert from 'node:assert/strict';
-import test from 'node:test';
-import { reviewReportText } from '../reports/safety-review.mjs';
-
-test('safety review blocks absolute claims', () => {
-  const result = reviewReportText('你一定发财，并且保证复合。');
-  assert.equal(result.passed, false);
-  assert.deepEqual(result.flags, ['absolute_claim']);
-});
-
-test('safety review allows restrained advice', () => {
-  const result = reviewReportText('建议先观察现实反馈，再做小步调整。');
-  assert.equal(result.passed, true);
-  assert.deepEqual(result.flags, []);
-});
+```text
+input
+features
+rules
+knowledge
+template
 ```
 
-- [ ] **Step 2: Implement safety review**
+规则上下文包含：
 
-Create `server/reports/safety-review.mjs`:
+- 规则 ID。
+- 规则名称。
+- 结论。
+- 建议。
+- 风险边界。
+- 关联知识条目。
 
-```js
-const absolutePatterns = [/一定/, /必定/, /保证/, /改命/, /转运/, /必然/];
+- [ ] **步骤 2：安全审查**
 
-export function reviewReportText(text) {
-  const hasAbsoluteClaim = absolutePatterns.some((pattern) => pattern.test(text));
-  return {
-    passed: !hasAbsoluteClaim,
-    flags: hasAbsoluteClaim ? ['absolute_claim'] : [],
-  };
+第一版先拦截绝对化和高风险词：
+
+```text
+一定
+必定
+保证
+改命
+转运
+必然
+```
+
+命中后返回：
+
+```json
+{
+  "passed": false,
+  "flags": ["absolute_claim"]
 }
 ```
 
-- [ ] **Step 3: Implement context builder**
-
-Create `server/reports/context-builder.mjs`:
-
-```js
-export function buildReportContext({ input, features, ruleHits, knowledgeEntries, template }) {
-  return {
-    input,
-    features,
-    rules: ruleHits.map((rule) => ({
-      id: rule.id,
-      name: rule.name,
-      conclusion: rule.conclusion,
-      advice: rule.advice,
-      riskBoundary: rule.risk_boundary || rule.riskBoundary || '',
-      knowledgeEntryIds: rule.knowledge_entry_ids || rule.knowledgeEntryIds || [],
-    })),
-    knowledge: knowledgeEntries.map((entry) => ({
-      id: entry.id,
-      title: entry.title,
-      summary: entry.summary,
-      body: entry.body,
-    })),
-    template: {
-      id: template.id,
-      name: template.name,
-      sections: template.sections,
-      tone: template.tone,
-      disclaimer: template.disclaimer,
-    },
-  };
-}
-```
-
-- [ ] **Step 4: Run tests and commit**
+- [ ] **步骤 3：测试并提交**
 
 ```powershell
 npm run test:server
@@ -333,23 +244,21 @@ git add server/reports server/tests/report-safety.test.mjs
 git commit -m "feat: add report context safety"
 ```
 
-Expected: PASS before commit.
-
 ---
 
-### Task 4: Add Rule, Template, And Report APIs
+## 任务 4：规则、模板和报告接口
 
-**Files:**
-- Create: `server/routes/rule-routes.mjs`
-- Create: `server/routes/template-routes.mjs`
-- Create: `server/routes/report-history-routes.mjs`
-- Create: `server/reports/report-service.mjs`
-- Modify: `server/routes/report-routes.mjs`
-- Modify: `server/app.mjs`
+**文件：**
+- 新建：`server/routes/rule-routes.mjs`
+- 新建：`server/routes/template-routes.mjs`
+- 新建：`server/routes/report-history-routes.mjs`
+- 新建：`server/reports/report-service.mjs`
+- 修改：`server/routes/report-routes.mjs`
+- 修改：`server/app.mjs`
 
-- [ ] **Step 1: Define admin rule endpoints**
+- [ ] **步骤 1：规则接口**
 
-Create endpoints:
+后台鉴权接口：
 
 ```text
 GET    /destiny-api/admin/rules
@@ -360,15 +269,12 @@ POST   /destiny-api/admin/rules/:id/disable
 POST   /destiny-api/admin/rules/test
 ```
 
-Rules:
+权限：
 
-- Editors can save drafts and run tests.
-- Admins can publish and disable.
-- Test endpoint returns feature extraction, matching rules, ranking order, and related knowledge IDs.
+- 编辑人员可保存草稿和测试。
+- 管理员可发布和停用。
 
-- [ ] **Step 2: Define template endpoints**
-
-Create endpoints:
+- [ ] **步骤 2：模板接口**
 
 ```text
 GET    /destiny-api/admin/templates
@@ -378,11 +284,9 @@ POST   /destiny-api/admin/templates/:id/publish
 POST   /destiny-api/admin/templates/:id/preview
 ```
 
-Preview endpoint uses a sample input and returns structured report sections without saving a customer report.
+模板预览只生成预览，不写入客户报告历史。
 
-- [ ] **Step 3: Define report history endpoints**
-
-Create endpoints:
+- [ ] **步骤 3：报告历史接口**
 
 ```text
 GET /destiny-api/admin/report-runs
@@ -390,23 +294,23 @@ GET /destiny-api/admin/report-runs/:id
 GET /destiny-api/customer/report-runs
 ```
 
-Customer endpoint requires a customer session and only returns the current customer reports.
+客户接口只能读取当前客户自己的报告。
 
-- [ ] **Step 4: Route report generation through report service**
+- [ ] **步骤 4：报告生成链路**
 
-Modify `/destiny-api/generate` so it:
+`/destiny-api/generate` 改为：
 
-1. Validates input.
-2. Extracts features.
-3. Loads published rules and template.
-4. Runs rules.
-5. Builds model context.
-6. Calls model or fallback.
-7. Runs safety review.
-8. Saves report run.
-9. Returns final report.
+1. 校验输入。
+2. 提取特征。
+3. 读取已发布规则和模板。
+4. 运行规则。
+5. 拼装上下文。
+6. 调用大模型或 fallback。
+7. 安全审查。
+8. 保存报告历史。
+9. 返回报告。
 
-- [ ] **Step 5: Run checks and commit**
+- [ ] **步骤 5：测试并提交**
 
 ```powershell
 npm run test:server
@@ -415,54 +319,59 @@ git add server/routes server/reports server/app.mjs
 git commit -m "feat: add rule template report api"
 ```
 
-Expected: both checks PASS before commit.
-
 ---
 
-### Task 5: Add Admin Rule And Template UI
+## 任务 5：后台规则和模板页面
 
-**Files:**
-- Create: `src/admin/pages/RulesPage.tsx`
-- Create: `src/admin/pages/TemplatesPage.tsx`
-- Create: `src/admin/pages/ReportRunsPage.tsx`
-- Modify: `src/admin/components/AdminLayout.tsx`
-- Modify: `src/admin/AdminApp.tsx`
-- Test: `tests/test_phase3_rules_scaffold.py`
+**文件：**
+- 新建：`src/admin/pages/RulesPage.tsx`
+- 新建：`src/admin/pages/TemplatesPage.tsx`
+- 新建：`src/admin/pages/ReportRunsPage.tsx`
+- 修改：`src/admin/components/AdminLayout.tsx`
+- 修改：`src/admin/AdminApp.tsx`
+- 新建测试：`tests/test_phase3_rules_scaffold.py`
 
-- [ ] **Step 1: Add scaffold test**
+- [ ] **步骤 1：新增菜单**
 
-Create `tests/test_phase3_rules_scaffold.py`:
+后台菜单加入：
 
-```python
-from pathlib import Path
-import unittest
-
-ROOT = Path(__file__).resolve().parents[1]
-
-class Phase3RulesScaffoldTests(unittest.TestCase):
-    def test_rule_template_pages_exist(self):
-        for relative in [
-            "src/admin/pages/RulesPage.tsx",
-            "src/admin/pages/TemplatesPage.tsx",
-            "src/admin/pages/ReportRunsPage.tsx",
-        ]:
-            self.assertTrue((ROOT / relative).exists(), relative)
-
-    def test_navigation_contains_rule_sections(self):
-        layout = (ROOT / "src" / "admin" / "components" / "AdminLayout.tsx").read_text(encoding="utf-8")
-        for label in ["分析规则", "报告模板", "报告记录"]:
-            self.assertIn(label, layout)
+```text
+分析规则
+报告模板
+报告记录
 ```
 
-- [ ] **Step 2: Build UI pages**
+- [ ] **步骤 2：规则页**
 
-Create:
+功能：
 
-- `RulesPage.tsx`: rule list, JSON condition editor, natural-language draft input panel, test-run button.
-- `TemplatesPage.tsx`: section editor, tone/disclaimer fields, preview panel.
-- `ReportRunsPage.tsx`: report history list, rule hit detail, safety review flags.
+- 规则列表。
+- JSON 条件编辑。
+- 自然语言规则草稿输入区。
+- 测试运行按钮。
+- 命中结果展示。
 
-- [ ] **Step 3: Run checks and commit**
+- [ ] **步骤 3：模板页**
+
+功能：
+
+- 段落结构编辑。
+- 语气字段。
+- 免责声明字段。
+- 禁用表达字段。
+- 模板预览。
+
+- [ ] **步骤 4：报告记录页**
+
+功能：
+
+- 报告列表。
+- 输入参数。
+- 命中规则。
+- 安全审查 flags。
+- 最终报告 JSON。
+
+- [ ] **步骤 5：检查并提交**
 
 ```powershell
 python -m unittest tests.test_phase3_rules_scaffold
@@ -472,15 +381,11 @@ git add src/admin tests/test_phase3_rules_scaffold.py
 git commit -m "feat: add rule template admin"
 ```
 
-Expected: all checks PASS before commit.
+## 验收标准
 
----
-
-## Acceptance Criteria
-
-- Published knowledge and rules can generate a structured report context.
-- Rule hits are ranked deterministically by priority and weight.
-- Templates control report sections, tone, disclaimer, and forbidden expressions.
-- Safety review blocks absolute or risky report wording before saving.
-- Admin can create, test, publish, and inspect rules and templates.
-- Customers can receive reports through the existing generation endpoint.
+- 已发布知识和规则能生成结构化报告上下文。
+- 规则按优先级和权重稳定排序。
+- 模板能控制报告段落、语气、免责声明和禁用表达。
+- 安全审查能阻止绝对化和高风险表达入库。
+- 后台能创建、测试、发布、停用规则和模板。
+- 客户能通过现有生成接口获得报告。
