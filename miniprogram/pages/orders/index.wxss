@@ -1,0 +1,57 @@
+.order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.order-card {
+  background: #ffffff;
+  border: 1rpx solid #e5e7eb;
+  border-radius: 16rpx;
+  padding: 28rpx;
+}
+
+.order-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.order-no {
+  color: #1a2f4b;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.order-items {
+  color: #6b7280;
+  font-size: 25rpx;
+  line-height: 1.6;
+  margin-top: 10rpx;
+}
+
+.order-status {
+  color: #4a7c77;
+  font-size: 24rpx;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.order-amount {
+  color: #b89150;
+  font-size: 30rpx;
+  font-weight: 700;
+  margin-top: 22rpx;
+}
+
+.refund-button {
+  margin-top: 20rpx;
+  min-height: 78rpx;
+}
+
+.empty {
+  color: #9ca3af;
+  font-size: 28rpx;
+  padding: 80rpx 0;
+  text-align: center;
+}

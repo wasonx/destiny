@@ -1,0 +1,51 @@
+<view class="page">
+  <view class="hero">
+    <view class="brand">甄算 · 收货地址</view>
+    <view class="title">管理实物商品地址</view>
+    <view class="subtitle">实物商品下单时会使用默认或第一条收货地址。</view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">新增地址</view>
+    <view class="field">
+      <text class="label">收货人</text>
+      <input class="input" value="{{form.receiver_name}}" data-field="receiver_name" bindinput="updateField" placeholder="姓名" />
+    </view>
+    <view class="field">
+      <text class="label">手机号</text>
+      <input class="input" type="number" value="{{form.phone}}" data-field="phone" bindinput="updateField" placeholder="手机号" />
+    </view>
+    <view class="address-grid">
+      <view class="field">
+        <text class="label">省</text>
+        <input class="input" value="{{form.province}}" data-field="province" bindinput="updateField" placeholder="省份" />
+      </view>
+      <view class="field">
+        <text class="label">市</text>
+        <input class="input" value="{{form.city}}" data-field="city" bindinput="updateField" placeholder="城市" />
+      </view>
+      <view class="field">
+        <text class="label">区县</text>
+        <input class="input" value="{{form.district}}" data-field="district" bindinput="updateField" placeholder="区县" />
+      </view>
+    </view>
+    <view class="field">
+      <text class="label">详细地址</text>
+      <textarea class="textarea" value="{{form.detail_address}}" data-field="detail_address" bindinput="updateField" placeholder="街道、门牌号" />
+    </view>
+    <button class="primary-button" bindtap="submit" loading="{{saving}}" disabled="{{saving}}">
+      {{saving ? '保存中' : '保存收货地址'}}
+    </button>
+  </view>
+
+  <view class="section">
+    <view class="section-title">已保存地址</view>
+    <block wx:for="{{addresses}}" wx:key="id">
+      <view class="address-card">
+        <view class="address-name">{{item.receiver_name}} · {{item.phone}}</view>
+        <view class="address-detail">{{item.province}}{{item.city}}{{item.district}} {{item.detail_address}}</view>
+      </view>
+    </block>
+    <view wx:if="{{!addresses.length}}" class="empty">暂无收货地址</view>
+  </view>
+</view>

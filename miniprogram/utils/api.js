@@ -37,6 +37,58 @@ function checkHealth() {
   return request('/health');
 }
 
+function fetchValueState() {
+  return request('/customer/value-state');
+}
+
+function listProducts() {
+  return request('/customer/products');
+}
+
+function listAddresses() {
+  return request('/customer/addresses');
+}
+
+function createAddress(address) {
+  return request('/customer/addresses', {
+    method: 'POST',
+    data: address,
+  });
+}
+
+function updateAddress(id, address) {
+  return request(`/customer/addresses/${id}`, {
+    method: 'PATCH',
+    data: address,
+  });
+}
+
+function createOrder({ items, address, provider = 'manual' }) {
+  return request('/customer/orders', {
+    method: 'POST',
+    data: {
+      provider,
+      items,
+      address,
+    },
+  });
+}
+
+function listOrders() {
+  return request('/customer/orders');
+}
+
+function getOrder(id) {
+  return request(`/customer/orders/${id}`);
+}
+
+function createRefundRequest(orderId, payload) {
+  return request(`/customer/orders/${orderId}/refund-requests`, {
+    method: 'POST',
+    data: payload,
+  });
+}
+
 function generateInsight(kind, payload) {
   return request('/generate', {
     method: 'POST',
@@ -60,5 +112,14 @@ module.exports = {
   API_BASE,
   request,
   checkHealth,
+  fetchValueState,
+  listProducts,
+  listAddresses,
+  createAddress,
+  updateAddress,
+  createOrder,
+  listOrders,
+  getOrder,
+  createRefundRequest,
   generateInsight,
 };

@@ -6,6 +6,9 @@
     "pages/question/index",
     "pages/space/index",
     "pages/compass/index",
+    "pages/store/index",
+    "pages/address/index",
+    "pages/orders/index",
     "pages/report/index"
   ],
   "window": {

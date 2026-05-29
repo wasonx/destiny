@@ -104,6 +104,9 @@ curl https://www.goye.cc/destiny-api/health
 - 确认 AppID 为 `wxc4ed7c07ce86326c`。
 - 首页自动执行微信登录模拟接口。
 - 报告生成请求访问 `https://www.goye.cc/destiny-api/generate`。
+- 商城页面访问 `https://www.goye.cc/destiny-api/customer/products`，可创建报告次数包订单。
+- 收货地址页面访问客户地址接口，实物商品下单时使用默认或第一条地址。
+- 订单页面访问客户订单接口，并可提交退款申请。
 - 罗盘页面调用 `wx.startCompass`、`wx.onCompassChange` 和 `wx.stopCompass`。
 - 罗盘可显示方位角、方向文字，并记录房屋朝向。
 - 当前本机已完成 JS 语法检查和 JSON 配置解析；微信开发者工具 CLI 如果未登录或 HTTP 服务未启动，`islogin/open/preview` 可能无法自动返回，需要在工具内人工登录后再预览。

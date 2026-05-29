@@ -33,10 +33,41 @@ class MiniprogramScaffoldTests(unittest.TestCase):
                 "pages/question/index",
                 "pages/space/index",
                 "pages/compass/index",
+                "pages/store/index",
+                "pages/address/index",
+                "pages/orders/index",
                 "pages/report/index",
             ],
         )
         self.assertEqual(app_json["window"]["navigationBarTitleText"], "甄算")
+
+    def test_native_commerce_pages_and_api_helpers_exist(self):
+        app_json = json.loads((MINI / "app.json").read_text(encoding="utf-8"))
+        api_js = (MINI / "utils" / "api.js").read_text(encoding="utf-8")
+        combined = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in MINI.rglob("*")
+            if path.is_file() and path.suffix in {".js", ".json", ".wxml", ".wxss"}
+        )
+
+        for page in ["pages/store/index", "pages/address/index", "pages/orders/index"]:
+            self.assertIn(page, app_json["pages"])
+            for suffix in ["js", "wxml", "wxss", "json"]:
+                self.assertTrue((MINI / f"{page}.{suffix}").exists())
+
+        for helper in [
+            "listProducts",
+            "listAddresses",
+            "createAddress",
+            "createOrder",
+            "listOrders",
+            "createRefundRequest",
+            "fetchValueState",
+        ]:
+            self.assertIn(helper, api_js)
+
+        for text in ["商城", "收货地址", "订单", "申请退款", "/customer/orders"]:
+            self.assertIn(text, combined)
 
     def test_backend_api_and_branding_are_consistent(self):
         combined = "\n".join(

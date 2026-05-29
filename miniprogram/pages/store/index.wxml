@@ -1,0 +1,48 @@
+<view class="page">
+  <view class="hero">
+    <view class="brand">甄算 · 商城</view>
+    <view class="title">报告权益与甄算产品</view>
+    <view class="subtitle">支持虚拟权益和实物商品。第一版支付由后台人工确认。</view>
+  </view>
+
+  <view class="section value-panel" wx:if="{{valueState}}">
+    <view>
+      <view class="metric-label">报告次数</view>
+      <view class="metric-value">{{valueState.reportQuotaBalance || 0}}</view>
+    </view>
+    <view>
+      <view class="metric-label">积分余额</view>
+      <view class="metric-value">{{valueState.points.points_balance || 0}}</view>
+    </view>
+    <view>
+      <view class="metric-label">成长等级</view>
+      <view class="metric-value">{{valueState.points.growth_level || '启蒙'}}</view>
+    </view>
+  </view>
+
+  <view class="quick-actions">
+    <button class="secondary-button quick-button" type="default" bindtap="openAddress">收货地址</button>
+    <button class="secondary-button quick-button" type="default" bindtap="openOrders">订单记录</button>
+  </view>
+
+  <view class="product-list">
+    <block wx:for="{{products}}" wx:key="sku">
+      <view class="product-card">
+        <view class="product-head">
+          <view>
+            <view class="product-name">{{item.name}}</view>
+            <view class="product-sku">{{item.sku}} · {{item.typeText}}</view>
+          </view>
+          <view class="product-price">¥{{item.priceText}}</view>
+        </view>
+        <view class="product-payload">权益配置：{{item.entitlement_payload.amount || item.entitlement_payload.inventorySku || '人工履约'}}</view>
+        <button class="primary-button" data-sku="{{item.sku}}" bindtap="buyProduct" loading="{{creating}}" disabled="{{creating}}">
+          {{creating ? '处理中' : '创建订单'}}
+        </button>
+      </view>
+    </block>
+  </view>
+
+  <view wx:if="{{!products.length && !loading}}" class="empty">暂无可售商品</view>
+  <view class="notice">下单后请等待后台确认支付；实物商品会进入人工发货流程。</view>
+</view>

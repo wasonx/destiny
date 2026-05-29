@@ -38,6 +38,13 @@ Page({
         description: '使用手机电子罗盘记录房屋朝向，为安居分析提供基础数据。',
         view: '/pages/compass/index',
       },
+      {
+        id: 'store',
+        title: '商城',
+        subtitle: '权益与实物',
+        description: '购买报告次数包或实物产品，查看订单和退款进度。',
+        view: '/pages/store/index',
+      },
     ],
   },
 

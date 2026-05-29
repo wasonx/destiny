@@ -1,0 +1,34 @@
+<view class="page">
+  <view class="hero">
+    <view class="brand">甄算 · 订单</view>
+    <view class="title">查看订单与退款进度</view>
+    <view class="subtitle">支付、发货和退款由后台人工确认处理。</view>
+  </view>
+
+  <view class="order-list">
+    <block wx:for="{{orders}}" wx:key="id">
+      <view class="order-card">
+        <view class="order-head">
+          <view>
+            <view class="order-no">{{item.order_no}}</view>
+            <view class="order-items">{{item.itemText}}</view>
+          </view>
+          <view class="order-status">{{item.statusText}}</view>
+        </view>
+        <view class="order-amount">合计 ¥{{item.amountText}}</view>
+        <button
+          wx:if="{{item.status !== 'refund_requested' && item.status !== 'refunded' && item.status !== 'closed'}}"
+          class="secondary-button refund-button"
+          data-id="{{item.id}}"
+          bindtap="requestRefund"
+          loading="{{refundingId === item.id}}"
+          disabled="{{!!refundingId}}"
+        >
+          申请退款
+        </button>
+      </view>
+    </block>
+  </view>
+
+  <view wx:if="{{!orders.length && !loading}}" class="empty">暂无订单</view>
+</view>
