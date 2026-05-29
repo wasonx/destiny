@@ -1,3 +1,4 @@
+import { loadPublishedReportContent } from '../content/published-content-service.mjs';
 import { spendReportQuota } from '../entitlements/ledger-service.mjs';
 import { findSession, getBearerToken } from '../middleware/require-session.mjs';
 import { buildReportContext } from '../reports/context-builder.mjs';
@@ -138,7 +139,17 @@ export function mountReportRoutes(app, { config, pool }) {
       report = buildFallbackReport(kind, payload);
     }
 
-    const context = buildReportContext({ input: payload, features: {}, rules: [], knowledge: [], template: null });
+    const publishedContent = await loadPublishedReportContent(pool, {
+      reportKind: kind,
+      module: kind === 'life' ? 'bazi' : kind,
+    });
+    const context = buildReportContext({
+      input: payload,
+      features: {},
+      rules: publishedContent.rules,
+      knowledge: publishedContent.knowledge,
+      template: publishedContent.template,
+    });
     if (pool) {
       const client = await pool.connect();
       try {

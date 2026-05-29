@@ -3,6 +3,19 @@ import { test } from 'node:test';
 import { createApp } from '../app.mjs';
 import { loadConfig } from '../config.mjs';
 
+function publishedContentRows(sql) {
+  if (sql.includes('from app.knowledge_entries')) {
+    return { rows: [] };
+  }
+  if (sql.includes('from app.analysis_rules')) {
+    return { rows: [] };
+  }
+  if (sql.includes('from app.report_templates')) {
+    return { rows: [] };
+  }
+  return null;
+}
+
 test('health route returns configured model state', async () => {
   const app = createApp({ config: loadConfig({ DEEPSEEK_API_KEY: '', DEEPSEEK_MODEL: 'deepseek-chat' }) });
   const server = app.listen(0);
@@ -83,6 +96,10 @@ test('generate route with customer session spends report quota and records custo
       if (sql.includes('from app.login_sessions')) {
         return { rows: [{ session_id: 'session-1', account_type: 'customer', user_id: 'customer-1', status: 'active', display_name: '客户' }] };
       }
+      const publishedRows = publishedContentRows(sql);
+      if (publishedRows) {
+        return publishedRows;
+      }
       if (sql.includes('update app.entitlement_accounts')) {
         return { rows: [{ report_quota_balance: 2 }], rowCount: 1 };
       }
@@ -134,6 +151,10 @@ test('generate route returns 402 when logged-in customer has no report quota', a
     async query(sql) {
       if (sql.includes('from app.login_sessions')) {
         return { rows: [{ session_id: 'session-1', account_type: 'customer', user_id: 'customer-1', status: 'active', display_name: '客户' }] };
+      }
+      const publishedRows = publishedContentRows(sql);
+      if (publishedRows) {
+        return publishedRows;
       }
       if (sql.includes('update app.entitlement_accounts')) {
         return { rows: [], rowCount: 0 };
