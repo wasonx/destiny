@@ -1,3 +1,5 @@
+import { spendReportQuota } from '../entitlements/ledger-service.mjs';
+import { findSession, getBearerToken } from '../middleware/require-session.mjs';
 import { buildReportContext } from '../reports/context-builder.mjs';
 import { reviewReportSafety } from '../reports/safety-review.mjs';
 import { memory, nextId } from './memory-state.mjs';
@@ -85,6 +87,12 @@ export function mountReportRoutes(app, { config, pool }) {
       res.status(400).json({ error: 'Unsupported report kind' });
       return;
     }
+    const token = getBearerToken(req);
+    const session = pool && token ? await findSession(req, { pool, config, accountTypes: ['customer'] }) : null;
+    if (pool && token && !session) {
+      res.status(401).json({ error: 'UNAUTHORIZED' });
+      return;
+    }
 
     let report = null;
     if (config.apiKey) {
@@ -132,16 +140,43 @@ export function mountReportRoutes(app, { config, pool }) {
 
     const context = buildReportContext({ input: payload, features: {}, rules: [], knowledge: [], template: null });
     if (pool) {
+      const client = await pool.connect();
       try {
-        await pool.query(
+        await client.query('begin');
+        if (session) {
+          await spendReportQuota(client, {
+            customerId: session.user_id,
+            amount: 1,
+            reason: 'report_generation',
+            referenceType: 'report',
+            referenceId: kind,
+          });
+        }
+        const run = await client.query(
           `
-            insert into app.report_runs(report_kind, input_params, structured_context, final_report, source)
-            values ($1, $2, $3, $4, $5)
+            insert into app.report_runs(customer_id, report_kind, input_params, structured_context, final_report, source)
+            values ($1, $2, $3, $4, $5, $6)
+            returning id
           `,
-          [kind, payload, context, report, report.source || 'fallback'],
+          [session?.user_id || null, kind, payload, context, report, report.source || 'fallback'],
         );
+        await client.query(
+          `
+            insert into app.safety_reviews(report_run_id, passed, flags, review_text)
+            values ($1, $2, $3, $4)
+          `,
+          [run.rows[0]?.id || null, safety.passed, safety.flags || [], JSON.stringify(safety)],
+        );
+        await client.query('commit');
       } catch (error) {
+        await client.query('rollback');
+        if (error.code === 'INSUFFICIENT_REPORT_QUOTA') {
+          res.status(402).json({ error: 'INSUFFICIENT_REPORT_QUOTA' });
+          return;
+        }
         console.error(error);
+      } finally {
+        client.release();
       }
     } else {
       memory.reportRuns.push({ id: nextId('report'), report_kind: kind, input_params: payload, structured_context: context, final_report: report, source: report.source });

@@ -11,6 +11,7 @@ import { mountReportRoutes } from './routes/report-routes.mjs';
 import { mountRuleRoutes } from './routes/rule-routes.mjs';
 import { mountTemplateRoutes } from './routes/template-routes.mjs';
 import { mountTestBenchRoutes } from './routes/testbench-routes.mjs';
+import { requireSession } from './middleware/require-session.mjs';
 
 export function createApp({ config, pool = null, graphDriver = null } = {}) {
   const app = express();
@@ -19,6 +20,9 @@ export function createApp({ config, pool = null, graphDriver = null } = {}) {
 
   mountReportRoutes(app, { config, pool });
   mountAdminAuthRoutes(app, { config, pool });
+  if (pool) {
+    app.use('/destiny-api/admin', requireSession({ config, pool, accountTypes: ['editor', 'admin'] }));
+  }
   mountCustomerAuthRoutes(app, { config, pool });
   mountKnowledgeRoutes(app, { pool });
   mountGraphRoutes(app, { config, graphDriver });
@@ -26,8 +30,8 @@ export function createApp({ config, pool = null, graphDriver = null } = {}) {
   mountRuleRoutes(app, { pool });
   mountTemplateRoutes(app, { pool });
   mountReportHistoryRoutes(app, { pool });
-  mountEntitlementRoutes(app, { pool });
-  mountCommerceRoutes(app, { pool });
+  mountEntitlementRoutes(app, { config, pool });
+  mountCommerceRoutes(app, { config, pool });
   mountOpsRoutes(app, { config, pool, graphDriver });
 
   app.use((err, _req, res, _next) => {

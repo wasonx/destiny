@@ -34,6 +34,14 @@ export const memory = {
   payments: [],
   refunds: [],
   shipments: [],
+  inventory: [
+    {
+      sku: 'CARD-001',
+      quantity: 20,
+      safety_stock: 3,
+      updated_at: new Date().toISOString(),
+    },
+  ],
 };
 
 export function nextId(prefix) {

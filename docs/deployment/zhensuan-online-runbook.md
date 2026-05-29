@@ -6,9 +6,9 @@
 - Vite 静态前端：提供 H5 和 `/admin` 后台入口。
 - PostgreSQL：保存账号、知识库、规则、报告、会员积分、订单、支付、退款和审计数据。
 - Neo4j：保存八字本体图谱和概念关系。
-- MedusaJS：作为未来商品底座边界，第一版本地轻商城已保留映射字段。
+- MedusaJS：作为未来商品底座边界，第一版本地轻商城已保留映射字段并接入健康检查。
 - Nginx：负责 HTTPS、静态文件和 `/destiny-api` 反向代理。
-- systemd：负责 Node API 常驻运行和重启。
+- PM2：负责 Node API 和 Medusa 后端常驻运行、重启与进程列表保存。
 
 ## 关键环境变量
 
@@ -43,6 +43,33 @@ nginx -t
 systemctl reload nginx
 ```
 
+## MedusaJS 服务
+
+线上 Medusa 后端部署在：
+
+```text
+/var/www/zhensuan-medusa/apps/backend
+```
+
+环境文件：
+
+```text
+/etc/zhensuan/medusa.env
+```
+
+PM2 服务：
+
+```bash
+pm2 status zhensuan-medusa
+curl http://127.0.0.1:9000/health
+```
+
+甄算主应用通过以下环境变量检查 Medusa：
+
+```env
+MEDUSA_HEALTH_URL="http://127.0.0.1:9000/health"
+```
+
 ## 健康检查
 
 ```bash
@@ -58,14 +85,18 @@ curl https://www.goye.cc/destiny-api/health
 - `/destiny-api/admin/ops/health`
 - `/destiny-api/admin/ops/recent-errors`
 
+生产环境除 `/destiny-api/admin/login` 外，其它 `/destiny-api/admin/*` 接口都需要管理员或编辑 token。
+
 ## 报告与权益端到端场景
 
 1. 创建或找到一个客户。
-2. 给客户发放 1 次报告次数。
-3. 从 H5 或小程序生成 1 份报告。
-4. 确认 `app.report_runs` 有记录。
-5. 确认 `app.entitlement_accounts.report_quota_balance` 减少 1。
-6. 再次请求付费报告时，次数不足返回 `402` 和 `INSUFFICIENT_REPORT_QUOTA`。
+2. 客户创建报告次数包订单。
+3. 后台人工标记支付成功。
+4. 确认自动发放 3 次报告权益，并在 `app.entitlement_deliveries` 记录发放日志。
+5. 从 H5 或小程序生成 1 份报告。
+6. 确认 `app.report_runs` 有记录，且 `app.safety_reviews` 有安全审查记录。
+7. 确认 `app.entitlement_accounts.report_quota_balance` 减少 1。
+8. 再次请求付费报告时，次数不足返回 `402` 和 `INSUFFICIENT_REPORT_QUOTA`。
 
 ## 小程序验证
 
@@ -75,6 +106,7 @@ curl https://www.goye.cc/destiny-api/health
 - 报告生成请求访问 `https://www.goye.cc/destiny-api/generate`。
 - 罗盘页面调用 `wx.startCompass`、`wx.onCompassChange` 和 `wx.stopCompass`。
 - 罗盘可显示方位角、方向文字，并记录房屋朝向。
+- 当前本机已完成 JS 语法检查和 JSON 配置解析；微信开发者工具 CLI 如果未登录或 HTTP 服务未启动，`islogin/open/preview` 可能无法自动返回，需要在工具内人工登录后再预览。
 
 ## 回滚和备份
 

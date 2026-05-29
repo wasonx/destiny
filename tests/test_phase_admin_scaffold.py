@@ -40,6 +40,35 @@ class AdminScaffoldTests(unittest.TestCase):
         self.assertIn("startsWith('/admin')", main)
         self.assertIn("AdminApp", main)
 
+    def test_commerce_admin_pages_call_backend_endpoints(self):
+        combined = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in [
+                ROOT / "src" / "admin" / "pages" / "ProductsPage.tsx",
+                ROOT / "src" / "admin" / "pages" / "InventoryPage.tsx",
+                ROOT / "src" / "admin" / "pages" / "OrdersPage.tsx",
+                ROOT / "src" / "admin" / "pages" / "PaymentsPage.tsx",
+                ROOT / "src" / "admin" / "pages" / "ShipmentsPage.tsx",
+                ROOT / "src" / "admin" / "pages" / "RefundsPage.tsx",
+                ROOT / "src" / "admin" / "pages" / "DeliveryLogsPage.tsx",
+            ]
+        )
+
+        self.assertIn("adminRequest", combined)
+        for endpoint in [
+            "/products",
+            "/inventory",
+            "/orders",
+            "/payments",
+            "/shipments",
+            "/refund-requests",
+            "/delivery-logs",
+            "mark-paid",
+            "/ship",
+            "/review",
+        ]:
+            self.assertIn(endpoint, combined)
+
 
 if __name__ == "__main__":
     unittest.main()

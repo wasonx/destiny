@@ -1,9 +1,19 @@
 import { grantPoints, grantReportQuota } from '../entitlements/ledger-service.mjs';
 import { getCustomerValueState } from '../entitlements/membership-service.mjs';
+import { findSession } from '../middleware/require-session.mjs';
 
-export function mountEntitlementRoutes(app, { pool }) {
-  app.get('/destiny-api/customer/value-state', async (_req, res) => {
-    res.json(await getCustomerValueState(pool, null));
+export function mountEntitlementRoutes(app, { config, pool }) {
+  app.get('/destiny-api/customer/value-state', async (req, res) => {
+    if (!pool) {
+      res.json(await getCustomerValueState(pool, null));
+      return;
+    }
+    const session = await findSession(req, { pool, config, accountTypes: ['customer'] });
+    if (!session) {
+      res.status(401).json({ error: 'UNAUTHORIZED' });
+      return;
+    }
+    res.json(await getCustomerValueState(pool, session.user_id));
   });
 
   app.get('/destiny-api/admin/customers/:customerId/value-state', async (req, res) => {
