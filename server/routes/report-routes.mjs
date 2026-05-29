@@ -104,7 +104,21 @@ export function mountReportRoutes(app, { config, pool }) {
         });
         const data = await response.json();
         const parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
-        report = { ...parsed, kind, generatedAt: today(), disclaimer: parsed.disclaimer || disclaimer, source: 'ai' };
+        const fallback = buildFallbackReport(kind, payload);
+        report = {
+          ...fallback,
+          ...parsed,
+          kind,
+          title: parsed.title || fallback.title,
+          subtitle: parsed.subtitle || fallback.subtitle,
+          keywords: Array.isArray(parsed.keywords) && parsed.keywords.length ? parsed.keywords : fallback.keywords,
+          summary: parsed.summary || fallback.summary,
+          sections: Array.isArray(parsed.sections) && parsed.sections.length ? parsed.sections : fallback.sections,
+          actions: Array.isArray(parsed.actions) && parsed.actions.length ? parsed.actions : fallback.actions,
+          generatedAt: today(),
+          disclaimer: parsed.disclaimer || disclaimer,
+          source: 'ai',
+        };
       } catch (error) {
         console.error(error);
       }

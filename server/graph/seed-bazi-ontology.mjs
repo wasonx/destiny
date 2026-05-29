@@ -3,8 +3,8 @@ import { loadConfig } from '../config.mjs';
 import { createNeo4jDriver } from './neo4j-driver.mjs';
 import { branchConflicts, earthlyBranches, elementCycles, fiveElements, heavenlyStems, tenGods } from './bazi-seed-data.mjs';
 
-dotenv.config();
-dotenv.config({ path: '/etc/zhensuan/knowledge.env', override: false });
+dotenv.config({ quiet: true });
+dotenv.config({ path: '/etc/zhensuan/knowledge.env', override: false, quiet: true });
 
 async function mergeConcept(session, item, type) {
   await session.run(

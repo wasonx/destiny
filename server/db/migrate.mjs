@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { createPool } from './pool.mjs';
 import { loadConfig } from '../config.mjs';
 
-dotenv.config();
-dotenv.config({ path: '/etc/zhensuan/knowledge.env', override: false });
+dotenv.config({ quiet: true });
+dotenv.config({ path: '/etc/zhensuan/knowledge.env', override: false, quiet: true });
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const migrationsDir = path.join(__dirname, 'migrations');

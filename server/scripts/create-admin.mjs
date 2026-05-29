@@ -3,8 +3,8 @@ import { loadConfig } from '../config.mjs';
 import { createPool } from '../db/pool.mjs';
 import { hashPassword } from '../auth/passwords.mjs';
 
-dotenv.config();
-dotenv.config({ path: '/etc/zhensuan/knowledge.env', override: false });
+dotenv.config({ quiet: true });
+dotenv.config({ path: '/etc/zhensuan/knowledge.env', override: false, quiet: true });
 
 const config = loadConfig();
 const username = process.env.ADMIN_INITIAL_USERNAME || 'admin';
