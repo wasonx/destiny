@@ -16,6 +16,7 @@
 
 - H5 客户登录和权益状态接入。
 - 原生微信小程序客户登录和报告生成接入。
+- 原生微信小程序拟物电子罗盘。
 - 后台发布流程联调。
 - 报告生成和权益扣减端到端验证。
 - 线上运行手册。
@@ -47,6 +48,10 @@
 - 新建：`miniprogram/utils/auth.js`
 - 修改：`miniprogram/pages/home/index.js`
 - 修改：`miniprogram/pages/report/index.js`
+- 新建：`miniprogram/pages/compass/index.js`
+- 新建：`miniprogram/pages/compass/index.wxml`
+- 新建：`miniprogram/pages/compass/index.wxss`
+- 新建：`miniprogram/pages/compass/index.json`
 - 新建：`docs/deployment/zhensuan-online-runbook.md`
 - 新建测试：`tests/test_phase6_online_integration_scaffold.py`
 - 新建测试：`server/tests/ops.test.mjs`
@@ -260,7 +265,58 @@ git commit -m "feat: integrate miniprogram customer auth"
 
 ---
 
-## 任务 4：报告和权益端到端验证
+## 任务 4：原生小程序拟物电子罗盘
+
+**文件：**
+- 新建：`miniprogram/pages/compass/index.js`
+- 新建：`miniprogram/pages/compass/index.wxml`
+- 新建：`miniprogram/pages/compass/index.wxss`
+- 新建：`miniprogram/pages/compass/index.json`
+- 修改：`miniprogram/app.json`
+- 修改测试：`tests/test_phase6_online_integration_scaffold.py`
+
+- [ ] **步骤 1：拟物罗盘页面**
+
+新增原生小程序页面：
+
+```text
+pages/compass/index
+```
+
+页面使用 `wxml` / `wxss` / `js` 原生实现，展示拟物罗盘盘面、当前角度和房屋朝向记录按钮。
+
+- [ ] **步骤 2：调用微信罗盘能力**
+
+使用：
+
+```js
+wx.startCompass()
+wx.onCompassChange()
+wx.stopCompass()
+```
+
+显示：
+
+- 当前方位角。
+- 朝向文字：北、东北、东、东南、南、西南、西、西北。
+- 记录当前房屋朝向。
+- 手动校准入口。
+
+- [ ] **步骤 3：第一版边界**
+
+第一版只做“测房屋朝向”的工具，不做复杂风水罗盘盘层，不做二十四山、分金和专业盘面解释。
+
+- [ ] **步骤 4：测试并提交**
+
+```powershell
+python -m unittest tests.test_phase6_online_integration_scaffold tests.test_miniprogram_scaffold
+git add miniprogram tests/test_phase6_online_integration_scaffold.py
+git commit -m "feat: add native miniprogram compass plan"
+```
+
+---
+
+## 任务 5：报告和权益端到端验证
 
 **文件：**
 - 修改：`server/tests/app-routes.test.mjs`
@@ -297,7 +353,7 @@ git commit -m "test: document report entitlement e2e"
 
 ---
 
-## 任务 5：线上运行手册
+## 任务 6：线上运行手册
 
 **文件：**
 - 修改：`docs/deployment/zhensuan-online-runbook.md`
@@ -371,7 +427,7 @@ git commit -m "docs: extend online runbook"
 
 ---
 
-## 任务 6：最终发布验证
+## 任务 7：最终发布验证
 
 - [ ] **步骤 1：本地验证**
 
@@ -403,6 +459,7 @@ curl https://www.goye.cc/destiny-api/health
 https://www.goye.cc 打开 H5
 https://www.goye.cc/admin 打开后台登录
 小程序能请求 https://www.goye.cc/destiny-api/health
+小程序拟物电子罗盘可以读取方向并记录房屋朝向
 客户能生成报告
 报告生成后权益次数扣减
 ```
@@ -420,6 +477,7 @@ git commit -m "docs: record online verification"
 
 - H5 和小程序使用同一套客户 token 模型。
 - 小程序端保持原生微信小程序实现，不依赖 H5 转换。
+- 小程序端包含拟物电子罗盘，可以读取方位角并记录房屋朝向。
 - 客户报告生成会扣减权益次数。
 - 后台可以查看运行健康状态和最近错误。
 - 运行手册包含环境、迁移、重启、健康检查、回滚和备份。
