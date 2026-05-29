@@ -32,6 +32,9 @@ class OnlineIntegrationScaffoldTests(unittest.TestCase):
         self.assertIn("customer_token", mini_auth)
         self.assertIn("Authorization", mini_api)
         self.assertIn("wx.login", mini_auth)
+        self.assertIn("code: loginRes.code", mini_auth)
+        self.assertNotIn("mock-code", mini_auth)
+        self.assertNotIn("loginRes.code ||", mini_auth)
 
 
 if __name__ == "__main__":

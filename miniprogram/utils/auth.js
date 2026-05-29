@@ -14,10 +14,14 @@ function loginWithWechatCode() {
   return new Promise((resolve, reject) => {
     wx.login({
       success(loginRes) {
+        if (!loginRes.code) {
+          reject(new Error('WECHAT_CODE_MISSING'));
+          return;
+        }
         api.request('/customer/login/wechat', {
           method: 'POST',
           data: {
-            code: loginRes.code || 'mock-code',
+            code: loginRes.code,
           },
         }).then((data) => {
           if (data && data.token) {
