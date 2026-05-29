@@ -38,7 +38,7 @@ npm install
 npm run db:migrate
 npm run graph:seed
 npm run build
-systemctl restart zhensuan-api
+pm2 restart destiny-api --update-env
 nginx -t
 systemctl reload nginx
 ```
@@ -46,8 +46,8 @@ systemctl reload nginx
 ## 健康检查
 
 ```bash
-systemctl status zhensuan-api
-journalctl -u zhensuan-api -n 100 --no-pager
+pm2 status destiny-api
+pm2 logs destiny-api --lines 100 --nostream
 nginx -t
 curl -I https://www.goye.cc
 curl https://www.goye.cc/destiny-api/health

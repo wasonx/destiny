@@ -1,7 +1,10 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import { createApp } from './app.mjs';
 import { loadConfig } from './config.mjs';
 import { createPool } from './db/pool.mjs';
+
+dotenv.config();
+dotenv.config({ path: '/etc/zhensuan/knowledge.env', override: false });
 
 const config = loadConfig();
 const pool = config.databaseUrl ? createPool({ config }) : null;
