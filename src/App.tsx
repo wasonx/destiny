@@ -69,14 +69,14 @@ export default function App() {
   };
 
   const getTitle = () => {
-    if (reportsView) return "人生全景报告";
+    if (reportsView) return "甄算 · 报告";
     switch (view) {
-      case 'input': return "照见 · 信息录入";
-      case 'report': return "照见 · 人生全景";
-      case 'relationship': return "合缘 · 双人关系";
-      case 'questions': return "问时 · 一事一解";
-      case 'anju': return "安居 · 环境分析";
-      default: return "元启东方";
+      case 'input': return "甄算 · 照见";
+      case 'report': return "甄算 · 照见";
+      case 'relationship': return "甄算 · 合缘";
+      case 'questions': return "甄算 · 问时";
+      case 'anju': return "甄算 · 安居";
+      default: return "甄算";
     }
   };
 

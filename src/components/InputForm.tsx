@@ -28,7 +28,7 @@ export default function InputForm({ onSubmit }: InputFormProps) {
     >
       <div className="mb-10 text-center">
         <p className="text-on-surface-variant text-base md:text-lg tracking-wide leading-relaxed">
-          输入您的出生信息，<br />开启 AI 东方人生全景探索。
+          输入您的基础信息，<br />开启甄算个人节奏参考。
         </p>
         <div className="w-12 h-[2px] bg-wisdom-gold mx-auto mt-6 rounded-full opacity-60" />
       </div>
@@ -142,7 +142,7 @@ export default function InputForm({ onSubmit }: InputFormProps) {
             type="submit"
             className="w-full bg-ink-blue text-white py-4 px-6 rounded-xl font-serif text-xl flex justify-center items-center gap-2 hover:bg-primary-container active:scale-[0.98] transition-all shadow-md"
           >
-            <span>生成人生全景报告</span>
+            <span>生成个人参考报告</span>
             <ArrowRight className="w-5 h-5" />
           </button>
         </div>
