@@ -7,12 +7,13 @@ dotenv.config({ quiet: true });
 dotenv.config({ path: '/etc/zhensuan/knowledge.env', override: false, quiet: true });
 
 async function mergeConcept(session, item, type) {
+  const params = { element: null, yinYang: null, ...item, type };
   await session.run(
     `
       merge (c:Concept {key: $key})
       set c.label = $label, c.type = $type, c.element = $element, c.yinYang = $yinYang
     `,
-    { ...item, type },
+    params,
   );
 }
 
