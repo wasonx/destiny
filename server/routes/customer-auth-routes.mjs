@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { createLoginSession, createSessionToken } from '../auth/sessions.mjs';
+import { createWechatSessionProvider, WechatSessionError } from '../auth/wechat-session-provider.mjs';
 import { memory, nextId } from './memory-state.mjs';
 
 const mockCode = '246810';
@@ -8,28 +9,123 @@ function hashOtp(phone, code) {
   return createHash('sha256').update(`${phone}:${code}`).digest('hex');
 }
 
-export function mountCustomerAuthRoutes(app, { config, pool }) {
+function buildWechatSubject({ openid, unionid }) {
+  return unionid ? `unionid:${unionid}` : `openid:${openid}`;
+}
+
+async function findWechatUserId(client, { openid, unionid, subject }) {
+  const result = await client.query(
+    `
+      select user_id
+      from app.customer_identities
+      where provider = 'wechat'
+        and (
+          provider_subject = $1
+          or ($2::text is not null and unionid = $2)
+          or openid = $3
+        )
+      order by created_at asc
+      limit 1
+    `,
+    [subject, unionid, openid],
+  );
+  return result.rows[0]?.user_id || null;
+}
+
+async function upsertWechatIdentity(client, { userId, openid, unionid, subject, providerPayload }) {
+  const updated = await client.query(
+    `
+      update app.customer_identities
+      set provider_subject = $2,
+          openid = $3,
+          unionid = $4,
+          provider_payload = $5,
+          updated_at = now()
+      where provider = 'wechat'
+        and user_id = $1
+      returning id
+    `,
+    [userId, subject, openid, unionid, providerPayload],
+  );
+  if (updated.rowCount) {
+    return;
+  }
+  await client.query(
+    `
+      insert into app.customer_identities(user_id, provider, provider_subject, openid, unionid, provider_payload)
+      values ($1, 'wechat', $2, $3, $4, $5)
+    `,
+    [userId, subject, openid, unionid, providerPayload],
+  );
+}
+
+export function mountCustomerAuthRoutes(app, { config, pool, wechatSessionProvider = null }) {
+  const wechatProvider = wechatSessionProvider || createWechatSessionProvider({ config });
+
   app.post('/destiny-api/customer/login/wechat', async (req, res) => {
-    const code = req.body?.code || 'mock-code';
-    if (!pool) {
-      res.json({ token: memory.customerToken, customer: { id: 'dev-customer', provider: 'wechat', subject: `mock-wechat-${code}` } });
+    const code = String(req.body?.code || '').trim();
+    if (!code) {
+      res.status(400).json({ error: 'WECHAT_CODE_REQUIRED' });
       return;
     }
 
+    if (!pool) {
+      if (!config.wechatLoginMocksEnabled && !config.customerAuthMocksEnabled) {
+        res.status(503).json({ error: 'WECHAT_LOGIN_NOT_CONFIGURED' });
+        return;
+      }
+      const session = await wechatProvider.exchange(code);
+      res.json({
+        token: memory.customerToken,
+        customer: {
+          id: 'dev-customer',
+          provider: 'wechat',
+          openid: session.openid,
+          unionid: session.unionid,
+        },
+      });
+      return;
+    }
+
+    let wechatSession;
+    try {
+      wechatSession = await wechatProvider.exchange(code);
+    } catch (error) {
+      if (error instanceof WechatSessionError) {
+        const status = error.code === 'WECHAT_CODE_REQUIRED' ? 400 : 502;
+        res.status(status).json({ error: error.code });
+        return;
+      }
+      throw error;
+    }
+
+    const subject = buildWechatSubject(wechatSession);
     const client = await pool.connect();
     try {
       await client.query('begin');
-      const subject = `mock-wechat-${code}`;
-      let identity = await client.query("select user_id from app.customer_identities where provider = 'wechat' and provider_subject = $1", [subject]);
-      let userId = identity.rows[0]?.user_id;
+      let userId = await findWechatUserId(client, { ...wechatSession, subject });
       if (!userId) {
         const user = await client.query("insert into app.users(account_type, display_name) values ('customer', '微信客户') returning id");
         userId = user.rows[0].id;
-        await client.query("insert into app.customer_identities(user_id, provider, provider_subject) values ($1, 'wechat', $2)", [userId, subject]);
       }
+      await upsertWechatIdentity(client, {
+        userId,
+        openid: wechatSession.openid,
+        unionid: wechatSession.unionid,
+        subject,
+        providerPayload: wechatSession.providerPayload,
+      });
       const { token } = await createLoginSession(client, { config, userId, accountType: 'customer' });
       await client.query('commit');
-      res.json({ token, customer: { id: userId, provider: 'wechat', subject } });
+      res.json({
+        token,
+        customer: {
+          id: userId,
+          provider: 'wechat',
+          openid: wechatSession.openid,
+          unionid: wechatSession.unionid,
+        },
+      });
     } catch (error) {
       await client.query('rollback');
       throw error;

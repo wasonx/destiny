@@ -13,7 +13,7 @@ import { mountTemplateRoutes } from './routes/template-routes.mjs';
 import { mountTestBenchRoutes } from './routes/testbench-routes.mjs';
 import { requireSession } from './middleware/require-session.mjs';
 
-export function createApp({ config, pool = null, graphDriver = null } = {}) {
+export function createApp({ config, pool = null, graphDriver = null, wechatSessionProvider = null } = {}) {
   const app = express();
 
   app.use(express.json({ limit: '1mb' }));
@@ -23,7 +23,7 @@ export function createApp({ config, pool = null, graphDriver = null } = {}) {
   if (pool) {
     app.use('/destiny-api/admin', requireSession({ config, pool, accountTypes: ['editor', 'admin'] }));
   }
-  mountCustomerAuthRoutes(app, { config, pool });
+  mountCustomerAuthRoutes(app, { config, pool, wechatSessionProvider });
   mountKnowledgeRoutes(app, { pool });
   mountGraphRoutes(app, { config, graphDriver });
   mountTestBenchRoutes(app);
