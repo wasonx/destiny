@@ -45,6 +45,88 @@ export function createGraphQueryService({ graphDriver = null, database = 'neo4j'
       }
       return dedupeGraph({ focus, nodes, edges });
     },
+    async getRuleGraph(id, { pool } = {}) {
+      const result = await pool.query('select * from app.analysis_rules where id = $1', [id]);
+      const item = result.rows[0];
+      if (!item) {
+        throw new Error('RULE_NOT_FOUND');
+      }
+
+      const focus = node(`rule:${item.id}`, 'Rule', item.name, { riskBoundary: item.risk_boundary || '' });
+      const nodes = [focus];
+      const edges = [];
+      for (const knowledgeId of item.knowledge_entry_ids || []) {
+        const target = node(`knowledge:${knowledgeId}`, 'Knowledge', knowledgeId, {});
+        nodes.push(target);
+        edges.push(edge(focus.id, target.id, 'USES', '引用知识'));
+      }
+      for (const key of item.graph_node_keys || []) {
+        const concept = findConcept(key);
+        const target = node(conceptId(concept.key), 'Concept', concept.label, { conceptType: concept.conceptType });
+        nodes.push(target);
+        edges.push(edge(focus.id, target.id, 'REFERENCES_CONCEPT', '关联概念'));
+      }
+      if (item.risk_boundary) {
+        const risk = node(`risk:${item.id}`, 'RiskBoundary', item.risk_boundary, {});
+        nodes.push(risk);
+        edges.push(edge(risk.id, focus.id, 'CONSTRAINS', '约束'));
+      }
+      return dedupeGraph({ focus, nodes, edges });
+    },
+    async getTemplateGraph(id, { pool } = {}) {
+      const result = await pool.query('select * from app.report_templates where id = $1', [id]);
+      const item = result.rows[0];
+      if (!item) {
+        throw new Error('TEMPLATE_NOT_FOUND');
+      }
+
+      const focus = node(`template:${item.id}`, 'Template', item.name, { reportKind: item.report_kind });
+      const nodes = [focus];
+      const edges = [];
+      for (const ruleId of item.template_scope?.rule_ids || []) {
+        const target = node(`rule:${ruleId}`, 'Rule', ruleId, {});
+        nodes.push(target);
+        edges.push(edge(focus.id, target.id, 'TRIGGERS', '关联规则'));
+      }
+      if (item.risk_boundary) {
+        const risk = node(`risk:template:${item.id}`, 'RiskBoundary', item.risk_boundary, {});
+        nodes.push(risk);
+        edges.push(edge(focus.id, risk.id, 'USES_RISK_BOUNDARY', '使用风险边界'));
+      }
+      return dedupeGraph({ focus, nodes, edges });
+    },
+    async getReportGraph(id, { pool } = {}) {
+      const result = await pool.query(
+        `
+          select *
+          from app.report_provenance_records
+          where report_run_id = $1
+          order by created_at desc
+          limit 1
+        `,
+        [id],
+      );
+      const item = result.rows[0] || {};
+      const focus = node(`report:${id}`, 'Report', `报告 ${id}`, {});
+      const nodes = [focus, ...(item.graph_nodes || [])];
+      const edges = [...(item.graph_edges || [])];
+      for (const rule of item.rule_hits || []) {
+        const target = node(`rule:${rule.id}`, 'Rule', rule.name || rule.id, { versionNo: rule.version_no });
+        nodes.push(target);
+        edges.push(edge(focus.id, target.id, 'HIT_RULE', '命中规则'));
+      }
+      for (const knowledge of item.knowledge_sources || []) {
+        const target = node(`knowledge:${knowledge.id}`, 'Knowledge', knowledge.title || knowledge.id, { versionNo: knowledge.version_no });
+        nodes.push(target);
+        edges.push(edge(focus.id, target.id, 'USED_KNOWLEDGE', '使用知识'));
+      }
+      if (item.template_snapshot?.id) {
+        const target = node(`template:${item.template_snapshot.id}`, 'Template', item.template_snapshot.name || item.template_snapshot.id, { versionNo: item.template_snapshot.version_no });
+        nodes.push(target);
+        edges.push(edge(focus.id, target.id, 'USED_TEMPLATE', '使用模板'));
+      }
+      return dedupeGraph({ focus, nodes, edges });
+    },
   };
 }
 

@@ -25,7 +25,7 @@ export function createApp({ config, pool = null, graphDriver = null, wechatSessi
   }
   mountCustomerAuthRoutes(app, { config, pool, wechatSessionProvider });
   mountKnowledgeRoutes(app, { pool });
-  mountGraphRoutes(app, { config, graphDriver });
+  mountGraphRoutes(app, { config, graphDriver, pool });
   mountTestBenchRoutes(app);
   mountRuleRoutes(app, { pool });
   mountTemplateRoutes(app, { pool });
