@@ -8,3 +8,6 @@ __pycache__/
 *.log
 .env*
 !.env.example
+.workbuddy/
+源码--o2o_hysz.dazhongbanben.com/
+源码--o2o_hysz.dazhongbanben.com.zip

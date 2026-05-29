@@ -22,5 +22,21 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "include": [
+    "src",
+    "vite.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    "docs",
+    "server",
+    "tests",
+    "miniprogram",
+    ".workbuddy",
+    "源码--o2o_hysz.dazhongbanben.com"
+  ]
 }
