@@ -13,6 +13,7 @@
     "graph:seed": "node server/graph/seed-bazi-ontology.mjs",
     "test:server": "node --test server/tests/*.test.mjs",
     "test:py": "python -m unittest tests.test_branding tests.test_miniprogram_scaffold tests.test_phase_admin_scaffold tests.test_phase6_online_integration_scaffold",
+    "test:miniprogram": "node scripts/validate-miniprogram.mjs",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit"
   },

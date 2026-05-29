@@ -5,6 +5,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MINI = ROOT / "miniprogram"
+PACKAGE_JSON = ROOT / "package.json"
+VALIDATOR = ROOT / "scripts" / "validate-miniprogram.mjs"
 
 
 class MiniprogramScaffoldTests(unittest.TestCase):
@@ -81,6 +83,15 @@ class MiniprogramScaffoldTests(unittest.TestCase):
         self.assertIn("wx.request", combined)
         self.assertNotIn("元启东方", combined)
         self.assertNotIn("Digital Zen", combined)
+
+    def test_miniprogram_static_validator_is_wired(self):
+        package_json = json.loads(PACKAGE_JSON.read_text(encoding="utf-8"))
+
+        self.assertEqual(
+            package_json["scripts"]["test:miniprogram"],
+            "node scripts/validate-miniprogram.mjs",
+        )
+        self.assertTrue(VALIDATOR.exists(), "missing scripts/validate-miniprogram.mjs")
 
 
 if __name__ == "__main__":

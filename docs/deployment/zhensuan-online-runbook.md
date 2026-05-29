@@ -37,6 +37,7 @@ git pull
 npm install
 npm run db:migrate
 npm run graph:seed
+npm run test:miniprogram
 npm run build
 pm2 restart destiny-api --update-env
 nginx -t
@@ -109,7 +110,8 @@ curl https://www.goye.cc/destiny-api/health
 - 订单页面访问客户订单接口，并可提交退款申请。
 - 罗盘页面调用 `wx.startCompass`、`wx.onCompassChange` 和 `wx.stopCompass`。
 - 罗盘可显示方位角、方向文字，并记录房屋朝向。
-- 当前本机已完成 JS 语法检查和 JSON 配置解析；微信开发者工具 CLI 如果未登录或 HTTP 服务未启动，`islogin/open/preview` 可能无法自动返回，需要在工具内人工登录后再预览。
+- 本地可执行 `npm run test:miniprogram` 检查原生页面文件、AppID、正式 API 域名、JS 语法、JSON 配置、罗盘 API 和商城页面。
+- 当前本机已开启微信开发者工具服务端口，CLI `islogin`、`preview` 和 `upload` 均已验证通过；开发版本 `0.1.0` 已上传到微信后台。
 
 ## 回滚和备份
 
