@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
+import { buildReportProvenance, saveReportProvenance } from '../graph/report-provenance-service.mjs';
 
 test('report provenance migration adds provenance storage', () => {
   const sql = readFileSync(new URL('../db/migrations/009_phase9_report_provenance.sql', import.meta.url), 'utf8');
@@ -12,4 +13,46 @@ test('report provenance migration adds provenance storage', () => {
   assert.match(sql, /graph_edges jsonb/i);
   assert.match(sql, /rule_hits jsonb/i);
   assert.match(sql, /knowledge_sources jsonb/i);
+});
+
+test('buildReportProvenance extracts graph nodes edges and published sources', () => {
+  const provenance = buildReportProvenance({
+    graph: { nodes: [{ id: 'concept:wood' }], edges: [{ id: 'a->b' }] },
+    context: {
+      rules: [{ id: 'rule-1', version_no: 1 }],
+      knowledge: [{ id: 'knowledge-1', version_no: 2 }],
+      template: { id: 'template-1', version_no: 3 },
+    },
+    safety: { passed: true, flags: [] },
+  });
+
+  assert.equal(provenance.graphNodes.length, 1);
+  assert.equal(provenance.graphEdges.length, 1);
+  assert.equal(provenance.ruleHits[0].id, 'rule-1');
+  assert.equal(provenance.knowledgeSources[0].id, 'knowledge-1');
+  assert.equal(provenance.templateSnapshot.id, 'template-1');
+  assert.equal(provenance.safetySnapshot.passed, true);
+});
+
+test('saveReportProvenance inserts detail row and updates report run summary', async () => {
+  const queries = [];
+  const client = {
+    async query(sql, params = []) {
+      const normalized = sql.replace(/\s+/g, ' ').trim();
+      queries.push({ sql: normalized, params });
+      if (normalized.includes('insert into app.report_provenance_records')) return { rows: [], rowCount: 1 };
+      if (normalized.includes('update app.report_runs set provenance')) return { rows: [], rowCount: 1 };
+      throw new Error(`Unexpected query: ${normalized}`);
+    },
+  };
+  const provenance = buildReportProvenance({
+    graph: { nodes: [{ id: 'concept:wood' }], edges: [] },
+    context: { rules: [], knowledge: [], template: null },
+    safety: { passed: true },
+  });
+
+  await saveReportProvenance(client, { reportRunId: 'report-1', provenance });
+
+  assert.ok(queries.some((query) => query.sql.includes('insert into app.report_provenance_records')));
+  assert.ok(queries.some((query) => query.sql.includes('update app.report_runs set provenance')));
 });

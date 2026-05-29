@@ -1,5 +1,6 @@
 import { loadPublishedReportContent } from '../content/published-content-service.mjs';
 import { spendReportQuota } from '../entitlements/ledger-service.mjs';
+import { buildReportProvenance, saveReportProvenance } from '../graph/report-provenance-service.mjs';
 import { findSession, getBearerToken } from '../middleware/require-session.mjs';
 import { buildReportContext } from '../reports/context-builder.mjs';
 import { reviewReportSafety } from '../reports/safety-review.mjs';
@@ -165,11 +166,11 @@ export function mountReportRoutes(app, { config, pool }) {
         }
         const run = await client.query(
           `
-            insert into app.report_runs(customer_id, report_kind, input_params, structured_context, final_report, source)
-            values ($1, $2, $3, $4, $5, $6)
+            insert into app.report_runs(customer_id, report_kind, input_params, structured_context, final_report, source, provenance)
+            values ($1, $2, $3, $4, $5, $6, $7)
             returning id
           `,
-          [session?.user_id || null, kind, payload, context, report, report.source || 'fallback'],
+          [session?.user_id || null, kind, payload, context, report, report.source || 'fallback', {}],
         );
         await client.query(
           `
@@ -178,6 +179,12 @@ export function mountReportRoutes(app, { config, pool }) {
           `,
           [run.rows[0]?.id || null, safety.passed, safety.flags || [], JSON.stringify(safety)],
         );
+        const provenance = buildReportProvenance({
+          graph: { nodes: [], edges: [] },
+          context,
+          safety,
+        });
+        await saveReportProvenance(client, { reportRunId: run.rows[0]?.id || null, provenance });
         await client.query('commit');
       } catch (error) {
         await client.query('rollback');

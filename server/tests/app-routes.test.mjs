@@ -112,6 +112,12 @@ test('generate route with customer session spends report quota and records custo
       if (sql.includes('insert into app.safety_reviews')) {
         return { rows: [], rowCount: 1 };
       }
+      if (sql.includes('insert into app.report_provenance_records')) {
+        return { rows: [], rowCount: 1 };
+      }
+      if (sql.includes('update app.report_runs set provenance')) {
+        return { rows: [], rowCount: 1 };
+      }
       if (['begin', 'commit', 'rollback'].includes(sql)) {
         return { rows: [], rowCount: 0 };
       }
