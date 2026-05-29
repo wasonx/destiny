@@ -1,0 +1,19 @@
+{
+  "pages": [
+    "pages/home/index",
+    "pages/life/index",
+    "pages/relationship/index",
+    "pages/question/index",
+    "pages/space/index",
+    "pages/compass/index",
+    "pages/report/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "甄算",
+    "navigationBarBackgroundColor": "#FDFCF8",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#FDFCF8"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

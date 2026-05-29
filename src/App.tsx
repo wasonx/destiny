@@ -11,7 +11,10 @@ import Report from './components/Report';
 import Relationship from './components/Relationship';
 import Questions from './components/Questions';
 import Anju from './components/Anju';
+import LoginPanel from './components/LoginPanel';
+import ValueState from './components/ValueState';
 import { generateInsight, InsightReport } from './lib/insights';
+import { getCustomerToken } from './lib/customerAuth';
 
 type ViewType = 'home' | 'input' | 'report' | 'relationship' | 'questions' | 'anju';
 
@@ -20,6 +23,7 @@ export default function App() {
   const [reportsView, setReportsView] = useState(false);
   const [currentReport, setCurrentReport] = useState<InsightReport | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
+  const [customerLoggedIn, setCustomerLoggedIn] = useState(Boolean(getCustomerToken()));
 
   const handleNavigate = (newView: string) => {
     setView(newView as ViewType);
@@ -42,7 +46,12 @@ export default function App() {
 
     switch (view) {
       case 'home':
-        return <Home onNavigate={handleNavigate} />;
+        return (
+          <div className="space-y-6">
+            {customerLoggedIn ? <ValueState /> : <LoginPanel onLoggedIn={() => setCustomerLoggedIn(true)} />}
+            <Home onNavigate={handleNavigate} />
+          </div>
+        );
       case 'input':
         return (
           <InputForm

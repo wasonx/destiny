@@ -1,0 +1,58 @@
+<view class="page">
+  <view class="hero">
+    <view class="brand">甄算 · 安居</view>
+    <view class="title">空间环境参考</view>
+    <view class="subtitle">填写空间信息与关注问题，生成居住或办公环境调整建议。</view>
+  </view>
+
+  <form bindsubmit="submit">
+    <view class="section">
+      <view class="field">
+        <text class="label">空间类型</text>
+        <view class="chips">
+          <block wx:for="{{spaceTypes}}" wx:key="*this">
+            <view class="chip {{spaceType === item ? 'active' : ''}}" data-value="{{item}}" bindtap="setSpaceType">{{item}}</view>
+          </block>
+        </view>
+      </view>
+      <view class="field">
+        <text class="label">城市或区域</text>
+        <input class="input" name="area" placeholder="例如：成都高新区" />
+      </view>
+      <view class="field">
+        <text class="label">房屋朝向</text>
+        <input class="input" name="direction" placeholder="例如：坐北朝南" />
+        <button class="secondary-button compass-link" type="default" bindtap="openCompass">打开电子罗盘</button>
+      </view>
+      <view class="field">
+        <text class="label">入户门位置</text>
+        <input class="input" name="entrance" placeholder="例如：西南侧" />
+      </view>
+      <view class="field">
+        <text class="label">当前最想改善的问题</text>
+        <textarea class="textarea" name="question" placeholder="例如：睡眠不好、客厅动线乱、办公室协作效率低" />
+      </view>
+    </view>
+
+    <view class="section">
+      <view class="field">
+        <text class="label">分析重点</text>
+        <view class="chips">
+          <block wx:for="{{focusOptions}}" wx:key="*this">
+            <view class="chip {{focus === item ? 'active' : ''}}" data-value="{{item}}" bindtap="setFocus">{{item}}</view>
+          </block>
+        </view>
+      </view>
+      <button class="secondary-button" type="default" bindtap="choosePhotos">
+        <block wx:if="{{photoCount}}">已选择 {{photoCount}} 张照片</block>
+        <block wx:else>选择环境照片</block>
+      </button>
+    </view>
+
+    <button class="primary-button" form-type="submit" loading="{{loading}}" disabled="{{loading}}">
+      {{loading ? '正在生成' : '生成环境参考报告'}}
+    </button>
+  </form>
+
+  <view class="notice">可隐藏详细门牌号，资料仅用于生成本次环境参考报告。</view>
+</view>

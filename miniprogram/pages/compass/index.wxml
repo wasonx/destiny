@@ -1,0 +1,38 @@
+<view class="page compass-page">
+  <view class="hero">
+    <view class="brand">甄算 · 罗盘</view>
+    <view class="title">房屋朝向</view>
+    <view class="subtitle">读取手机电子罗盘，记录当前空间朝向。</view>
+  </view>
+
+  <view class="compass-shell">
+    <view class="compass-ring" style="transform: rotate({{-degree}}deg);">
+      <view class="mark north">N</view>
+      <view class="mark east">E</view>
+      <view class="mark south">S</view>
+      <view class="mark west">W</view>
+      <view class="tick tick-1"></view>
+      <view class="tick tick-2"></view>
+      <view class="tick tick-3"></view>
+      <view class="tick tick-4"></view>
+    </view>
+    <view class="needle"></view>
+    <view class="center-cap"></view>
+  </view>
+
+  <view class="readout">
+    <view class="degree">{{degree}}°</view>
+    <view class="direction">{{direction}}</view>
+    <view class="status" wx:if="{{calibrating}}">校准中</view>
+  </view>
+
+  <button class="primary-button" bindtap="recordDirection">记录当前房屋朝向</button>
+  <button class="secondary-button" bindtap="calibrate">手动校准</button>
+
+  <view class="recorded" wx:if="{{recorded}}">
+    <text>已记录：</text>
+    <text>{{recorded}}</text>
+  </view>
+
+  <view class="notice">第一版用于测量房屋朝向，不包含专业盘层解释。</view>
+</view>

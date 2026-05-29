@@ -171,9 +171,13 @@ export function buildFallbackReport(kind: InsightKind, payload: Record<string, u
 
 export async function generateInsight(request: GenerateInsightRequest): Promise<InsightReport> {
   try {
+    const token = window.localStorage.getItem('zhensuan_customer_token') || '';
     const response = await fetch('/destiny-api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: token ? `Bearer ${token}` : '',
+      },
       body: JSON.stringify(request),
     });
 

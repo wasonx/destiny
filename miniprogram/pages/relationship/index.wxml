@@ -1,0 +1,60 @@
+<view class="page">
+  <view class="hero">
+    <view class="brand">甄算 · 合缘</view>
+    <view class="title">关系理解参考</view>
+    <view class="subtitle">填写双方基础信息，梳理吸引点、摩擦点与沟通节奏。</view>
+  </view>
+
+  <form bindsubmit="submit">
+    <view class="section">
+      <view class="section-title">我的信息</view>
+      <view class="field">
+        <text class="label">出生日期</text>
+        <input class="input" name="selfBirthdate" placeholder="例如：1990-01-01" />
+      </view>
+      <view class="field">
+        <text class="label">出生时间</text>
+        <input class="input" name="selfBirthtime" placeholder="例如：08:30，不确定可留空" />
+      </view>
+      <view class="field">
+        <text class="label">出生地点</text>
+        <input class="input" name="selfBirthplace" placeholder="城市/地区" />
+      </view>
+    </view>
+
+    <view class="section">
+      <view class="section-title">对方信息</view>
+      <view class="field">
+        <text class="label">出生日期</text>
+        <input class="input" name="otherBirthdate" placeholder="例如：1992-06-15" />
+      </view>
+      <view class="field">
+        <text class="label">出生时间</text>
+        <input class="input" name="otherBirthtime" placeholder="不确定可留空" />
+      </view>
+      <view class="field">
+        <text class="label">出生地点</text>
+        <input class="input" name="otherBirthplace" placeholder="城市/地区" />
+      </view>
+    </view>
+
+    <view class="section">
+      <view class="field">
+        <text class="label">关系类型</text>
+        <view class="chips">
+          <block wx:for="{{relationTypes}}" wx:key="*this">
+            <view class="chip {{relationType === item ? 'active' : ''}}" data-value="{{item}}" bindtap="setRelationType">{{item}}</view>
+          </block>
+        </view>
+      </view>
+      <view class="field">
+        <text class="label">当前最想了解的问题</text>
+        <textarea class="textarea" name="question" placeholder="例如：我们接下来适合继续推进关系吗？" />
+      </view>
+    </view>
+
+    <button class="primary-button" form-type="submit" loading="{{loading}}" disabled="{{loading}}">
+      {{loading ? '正在生成' : '生成关系参考报告'}}
+    </button>
+  </form>
+</view>

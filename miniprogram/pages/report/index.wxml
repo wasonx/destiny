@@ -1,0 +1,40 @@
+<view class="page report-page" wx:if="{{report}}">
+  <view class="section report-header">
+    <view class="report-title">{{report.title}}</view>
+    <view class="report-subtitle">{{report.subtitle}}</view>
+    <view class="report-date">生成于 {{report.generatedAt}}</view>
+    <view class="source" wx:if="{{report.source === 'fallback'}}">离线示例结果</view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">核心摘要</view>
+    <view class="tags">
+      <block wx:for="{{report.keywords}}" wx:key="*this">
+        <view class="tag">{{item}}</view>
+      </block>
+    </view>
+    <view class="summary">{{report.summary}}</view>
+  </view>
+
+  <block wx:for="{{report.sections}}" wx:key="title">
+    <view class="section">
+      <view class="section-title">{{item.title}}</view>
+      <view class="summary">{{item.content}}</view>
+      <view class="point-list" wx:if="{{item.points && item.points.length}}">
+        <block wx:for="{{item.points}}" wx:for-item="point" wx:key="*this">
+          <view class="point">· {{point}}</view>
+        </block>
+      </view>
+    </view>
+  </block>
+
+  <view class="section">
+    <view class="section-title">接下来可以优先做的事</view>
+    <block wx:for="{{report.actions}}" wx:key="*this">
+      <view class="action-item">{{index + 1}}. {{item}}</view>
+    </block>
+    <view class="disclaimer">{{report.disclaimer}}</view>
+  </view>
+
+  <button class="primary-button" bindtap="goHome">返回首页</button>
+</view>

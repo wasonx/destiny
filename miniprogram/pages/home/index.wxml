@@ -1,0 +1,22 @@
+<view class="page home-page">
+  <view class="hero">
+    <view class="brand">甄算</view>
+    <view class="title">整理当下信息，获得清晰参考</view>
+    <view class="subtitle">基于东方传统文化与 AI，生成个人、关系、事项与空间环境参考报告。</view>
+  </view>
+
+  <view class="entry-list">
+    <block wx:for="{{entries}}" wx:key="id">
+      <view class="entry-card" data-url="{{item.view}}" bindtap="goTo">
+        <view class="entry-top">
+          <view class="entry-title">{{item.title}}</view>
+          <view class="entry-tag">{{item.subtitle}}</view>
+        </view>
+        <view class="entry-desc">{{item.description}}</view>
+        <view class="entry-action">开启参考</view>
+      </view>
+    </block>
+  </view>
+
+  <view class="notice">内容仅作自我探索与生活参考，不构成医疗、投资、法律或重大人生决策建议。</view>
+</view>

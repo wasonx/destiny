@@ -1,0 +1,101 @@
+.compass-page {
+  padding-bottom: 48rpx;
+}
+
+.compass-shell {
+  position: relative;
+  width: 560rpx;
+  height: 560rpx;
+  margin: 36rpx auto 24rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 48%, #fdfcf8 0%, #f1eadc 48%, #b89150 100%);
+  box-shadow: 0 24rpx 60rpx rgba(26, 47, 75, 0.16), inset 0 0 0 18rpx rgba(74, 124, 119, 0.12);
+}
+
+.compass-ring {
+  position: absolute;
+  inset: 38rpx;
+  border-radius: 50%;
+  border: 4rpx solid rgba(26, 47, 75, 0.28);
+  transition: transform 0.18s linear;
+}
+
+.mark {
+  position: absolute;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #1a2f4b;
+}
+
+.north { top: 20rpx; left: 50%; transform: translateX(-50%); color: #c84b31; }
+.east { right: 24rpx; top: 50%; transform: translateY(-50%); }
+.south { bottom: 20rpx; left: 50%; transform: translateX(-50%); }
+.west { left: 24rpx; top: 50%; transform: translateY(-50%); }
+
+.tick {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4rpx;
+  height: 440rpx;
+  background: linear-gradient(to bottom, #1a2f4b 0 8rpx, transparent 8rpx 432rpx, #1a2f4b 432rpx 440rpx);
+  transform-origin: center;
+}
+
+.tick-1 { transform: translate(-50%, -50%) rotate(45deg); }
+.tick-2 { transform: translate(-50%, -50%) rotate(90deg); }
+.tick-3 { transform: translate(-50%, -50%) rotate(135deg); }
+.tick-4 { transform: translate(-50%, -50%) rotate(180deg); }
+
+.needle {
+  position: absolute;
+  left: 50%;
+  top: 82rpx;
+  width: 18rpx;
+  height: 224rpx;
+  border-radius: 999rpx 999rpx 24rpx 24rpx;
+  background: linear-gradient(to bottom, #c84b31, #b89150);
+  transform: translateX(-50%);
+  box-shadow: 0 8rpx 20rpx rgba(200, 75, 49, 0.28);
+}
+
+.center-cap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  background: #1a2f4b;
+  border: 8rpx solid #fdfcf8;
+  transform: translate(-50%, -50%);
+}
+
+.readout {
+  text-align: center;
+  margin: 24rpx 0;
+}
+
+.degree {
+  font-size: 64rpx;
+  color: #1a2f4b;
+  font-weight: 700;
+}
+
+.direction {
+  margin-top: 6rpx;
+  color: #4a7c77;
+  font-size: 36rpx;
+}
+
+.status,
+.recorded {
+  margin-top: 20rpx;
+  text-align: center;
+  color: #b89150;
+  font-size: 26rpx;
+}
+
+.compass-link {
+  margin-top: 16rpx;
+}

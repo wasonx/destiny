@@ -1,0 +1,47 @@
+.entry-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.entry-card {
+  background: #ffffff;
+  border: 1rpx solid #e5e7eb;
+  border-left: 8rpx solid #4a7c77;
+  border-radius: 16rpx;
+  padding: 30rpx;
+}
+
+.entry-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18rpx;
+}
+
+.entry-title {
+  color: #1a2f4b;
+  font-size: 38rpx;
+  font-weight: 700;
+}
+
+.entry-tag {
+  color: #ffffff;
+  background: #b89150;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  padding: 8rpx 18rpx;
+}
+
+.entry-desc {
+  color: #6b7280;
+  font-size: 28rpx;
+  line-height: 1.7;
+}
+
+.entry-action {
+  color: #4a7c77;
+  font-size: 28rpx;
+  font-weight: 600;
+  margin-top: 24rpx;
+}
