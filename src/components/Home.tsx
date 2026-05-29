@@ -12,7 +12,7 @@ export default function Home({ onNavigate }: HomeProps) {
       id: 'zhaojian',
       title: '照见',
       subtitle: '人生全景',
-      description: '通过生辰排盘，深度解析您的先天禀赋、性格特质与人生轨迹。如对镜自照，明心见性。',
+      description: '结合基础信息与关注方向，梳理个人节奏、性格倾向与阶段重点，形成可阅读的参考报告。',
       icon: <Compass className="w-6 h-6 text-serene-teal" />,
       color: 'bg-serene-teal',
       view: 'input'
@@ -54,16 +54,16 @@ export default function Home({ onNavigate }: HomeProps) {
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col items-center text-center mt-4 mb-2"
       >
-        <p className="font-mono text-xs text-wisdom-gold mb-3 uppercase tracking-widest">Digital Zen</p>
-        <h2 className="font-serif text-2xl md:text-3xl text-ink-blue mb-4">看见人生节奏，理解当下选择</h2>
+        <p className="font-mono text-xs text-wisdom-gold mb-3 uppercase tracking-widest">甄算</p>
+        <h2 className="font-serif text-2xl md:text-3xl text-ink-blue mb-4">整理当下信息，获得清晰参考</h2>
         <p className="text-secondary-fixed-dim text-sm md:text-base max-w-md mx-auto mb-8">
-          基于东方传统文化与 AI 生成个人、关系、问事与空间环境报告
+          基于东方传统文化与 AI，生成个人、关系、事项与空间环境参考报告
         </p>
         <button 
           onClick={() => onNavigate('input')}
           className="bg-serene-teal hover:bg-serene-teal/90 text-white font-medium px-8 py-3 rounded-lg transition-colors active:scale-95 flex items-center gap-2 shadow-sm"
         >
-          <span>开始生成报告</span>
+          <span>开始生成参考</span>
           <ArrowRight className="w-4 h-4" />
         </button>
       </motion.div>
