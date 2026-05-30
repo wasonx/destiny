@@ -5,6 +5,7 @@ import { createApp } from '../app.mjs';
 import { createOrder, createPaymentIntent, markPaymentPaid } from '../commerce/order-service.mjs';
 import { buildEntitlementPayload } from '../commerce/product-mapping-service.mjs';
 import { assertPaymentTransition } from '../commerce/payment-state-machine.mjs';
+import { createRefundRequest, reviewRefundRequest } from '../commerce/refund-service.mjs';
 import { loadConfig } from '../config.mjs';
 
 function normalizeSql(sql) {
@@ -40,6 +41,7 @@ function createCommerceClient({ cardInventory = 2 } = {}) {
     inventory: { 'CARD-001': cardInventory },
     orders: [],
     payments: [],
+    refunds: [],
     entitlementDeliveries: [],
     quotaBalance: 0,
     pointsBalance: 0,
@@ -83,6 +85,31 @@ function createCommerceClient({ cardInventory = 2 } = {}) {
         };
         state.payments.push(payment);
         return { rows: [payment], rowCount: 1 };
+      }
+
+      if (text.startsWith('insert into app.refund_requests')) {
+        const refund = {
+          id: `refund-${state.refunds.length + 1}`,
+          order_id: params[0],
+          customer_id: params[1],
+          reason: params[2],
+          amount_cents: params[3],
+          status: 'requested',
+        };
+        state.refunds.push(refund);
+        return { rows: [refund], rowCount: 1 };
+      }
+
+      if (text.includes('select * from app.refund_requests') && text.includes('for update')) {
+        return { rows: state.refunds.filter((refund) => refund.id === params[0]) };
+      }
+
+      if (text.startsWith('update app.refund_requests')) {
+        const refund = state.refunds.find((item) => item.id === params[0]);
+        refund.status = params[1];
+        refund.reviewer_id = params[2];
+        refund.review_note = params[3];
+        return { rows: [refund], rowCount: 1 };
       }
 
       if (text.includes('select * from app.payment_intents') && text.includes('for update')) {
@@ -267,6 +294,55 @@ test('insufficient physical inventory blocks paid transition before virtual enti
   assert.equal(client.state.inventory['CARD-001'], 1);
   assert.equal(client.state.quotaBalance, 0);
   assert.equal(client.state.entitlementDeliveries.length, 0);
+});
+
+test('refund request is rejected before payment is confirmed', async () => {
+  const client = createCommerceClient();
+  const order = await createOrder(client, {
+    customerId: 'customer-1',
+    items: [{ sku: 'REPORT-3', quantity: 1 }],
+  });
+
+  await assert.rejects(
+    () => createRefundRequest(client, {
+      orderId: order.id,
+      customerId: 'customer-1',
+      reason: '未支付订单退款',
+      amountCents: order.amount_cents,
+    }),
+    /INVALID_REFUND_ORDER_STATUS/,
+  );
+  assert.equal(client.state.refunds.length, 0);
+});
+
+test('approved refund review marks the order refunded', async () => {
+  const client = createCommerceClient();
+  const order = await createOrder(client, {
+    customerId: 'customer-1',
+    items: [{ sku: 'REPORT-3', quantity: 1 }],
+  });
+  const payment = await createPaymentIntent(client, {
+    orderId: order.id,
+    amountCents: order.amount_cents,
+    provider: 'manual',
+  });
+  await markPaymentPaid(client, { paymentIntentId: payment.id, actorUserId: 'admin-1' });
+  const refund = await createRefundRequest(client, {
+    orderId: order.id,
+    customerId: 'customer-1',
+    reason: '已支付订单退款',
+    amountCents: order.amount_cents,
+  });
+
+  await reviewRefundRequest(client, {
+    refundRequestId: refund.id,
+    status: 'approved',
+    reviewerId: 'admin-1',
+    note: '人工审核通过',
+  });
+
+  assert.equal(client.state.refunds[0].status, 'approved');
+  assert.equal(client.state.orders[0].status, 'refunded');
 });
 
 test('commerce admin product route requires session and reads database products when pool is configured', async () => {

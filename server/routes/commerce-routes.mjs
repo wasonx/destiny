@@ -10,9 +10,10 @@ function asyncRoute(handler) {
 }
 
 function knownCommerceStatus(error) {
-  if (['INVALID_ORDER', 'ADDRESS_REQUIRED', 'PRODUCT_NOT_AVAILABLE', 'INSUFFICIENT_INVENTORY', 'INVALID_ORDER_STATUS'].includes(error.code)) {
+  if (['INVALID_ORDER', 'ADDRESS_REQUIRED', 'PRODUCT_NOT_AVAILABLE', 'INSUFFICIENT_INVENTORY', 'INVALID_ORDER_STATUS', 'INVALID_REFUND_ORDER_STATUS'].includes(error.code)) {
     return 400;
   }
+  if (error.code === 'REFUND_NOT_FOUND') return 404;
   if (error.message?.startsWith('INVALID_PAYMENT_TRANSITION')) return 400;
   if (error.message === 'PAYMENT_NOT_FOUND' || error.message === 'ORDER_NOT_FOUND') return 404;
   return 500;
@@ -170,7 +171,7 @@ function mountDatabaseCommerceRoutes(app, { pool, config }) {
       res.status(201).json({ refundRequest: refund });
     } catch (error) {
       await client.query('rollback');
-      throw error;
+      res.status(knownCommerceStatus(error)).json({ error: error.code || error.message });
     } finally {
       client.release();
     }
@@ -316,13 +317,23 @@ function mountDatabaseCommerceRoutes(app, { pool, config }) {
   }));
 
   app.post('/destiny-api/admin/refund-requests/:id/review', adminOnly, asyncRoute(async (req, res) => {
-    const refund = await reviewRefundRequest(pool, {
-      refundRequestId: req.params.id,
-      status: req.body?.status || 'approved',
-      reviewerId: req.session.user_id,
-      note: req.body?.note || '',
-    });
-    res.json({ refundRequest: refund });
+    const client = await pool.connect();
+    try {
+      await client.query('begin');
+      const refund = await reviewRefundRequest(client, {
+        refundRequestId: req.params.id,
+        status: req.body?.status || 'approved',
+        reviewerId: req.session.user_id,
+        note: req.body?.note || '',
+      });
+      await client.query('commit');
+      res.json({ refundRequest: refund });
+    } catch (error) {
+      await client.query('rollback');
+      res.status(knownCommerceStatus(error)).json({ error: error.code || error.message });
+    } finally {
+      client.release();
+    }
   }));
 
   app.get('/destiny-api/admin/delivery-logs', adminOnly, asyncRoute(async (_req, res) => {
@@ -377,8 +388,14 @@ function mountMemoryCommerceRoutes(app) {
   app.get('/destiny-api/customer/orders/:id', (req, res) => res.json({ order: memory.orders.find((item) => item.id === req.params.id) || null }));
 
   app.post('/destiny-api/customer/orders/:id/refund-requests', (req, res) => {
+    const order = memory.orders.find((item) => item.id === req.params.id);
+    if (!order || !['paid', 'pending_fulfillment', 'shipped', 'completed'].includes(order.status)) {
+      res.status(400).json({ error: 'INVALID_REFUND_ORDER_STATUS' });
+      return;
+    }
     const refund = { id: nextId('refund'), order_id: req.params.id, status: 'requested', ...req.body };
     memory.refunds.unshift(refund);
+    order.status = 'refund_requested';
     res.status(201).json({ refundRequest: refund });
   });
 
@@ -433,7 +450,17 @@ function mountMemoryCommerceRoutes(app) {
   app.get('/destiny-api/admin/refund-requests', (_req, res) => res.json({ refundRequests: memory.refunds }));
   app.post('/destiny-api/admin/refund-requests/:id/review', (req, res) => {
     const refund = memory.refunds.find((item) => item.id === req.params.id);
+    if (!refund) {
+      res.status(404).json({ error: 'REFUND_NOT_FOUND' });
+      return;
+    }
     Object.assign(refund, { status: req.body?.status || 'approved', review_note: req.body?.note || '' });
+    const order = memory.orders.find((item) => item.id === refund?.order_id);
+    if (order) {
+      order.status = refund.status === 'approved' || refund.status === 'processed'
+        ? 'refunded'
+        : (order.items || []).some((item) => item.requires_shipping || item.product_type === 'physical_goods') ? 'pending_fulfillment' : 'paid';
+    }
     res.json({ refundRequest: refund });
   });
   app.get('/destiny-api/admin/delivery-logs', (_req, res) => res.json({ deliveryLogs: [] }));
