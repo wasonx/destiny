@@ -44,6 +44,13 @@
   margin-top: 22rpx;
 }
 
+.shipment {
+  color: #4b5563;
+  font-size: 24rpx;
+  line-height: 1.6;
+  margin-top: 12rpx;
+}
+
 .refund-button {
   margin-top: 20rpx;
   min-height: 78rpx;

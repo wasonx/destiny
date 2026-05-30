@@ -29,6 +29,12 @@ function orderAmount(order: CustomerOrder) {
   return Number(order.amount_cents || 0) + Number(order.freight_cents || 0);
 }
 
+function shipmentText(order: CustomerOrder) {
+  const shipment = order.shipment;
+  if (!shipment) return '';
+  return [shipment.carrier, shipment.tracking_no].filter(Boolean).join(' ');
+}
+
 function addressLabel(address: CustomerAddress) {
   return [
     address.receiver_name || address.receiverName,
@@ -253,6 +259,7 @@ export default function CustomerCenter() {
                 <div>
                   <h4 className="font-serif text-lg text-ink-blue">{order.order_no || order.id}</h4>
                   <p className="mt-1 text-sm text-on-surface-variant">{(order.items || []).map((item) => `${item.name || item.sku} x${item.quantity || 1}`).join('，') || '订单明细待同步'}</p>
+                  {shipmentText(order) ? <p className="mt-2 text-xs text-on-surface-variant">物流：{shipmentText(order)}</p> : null}
                 </div>
                 <div className="md:text-right">
                   <p className="font-serif text-lg text-ink-blue">¥{money(orderAmount(order))}</p>

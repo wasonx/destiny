@@ -37,6 +37,12 @@ export interface CustomerOrder {
   amount_cents?: number;
   freight_cents?: number;
   items?: Array<{ sku?: string; name?: string; quantity?: number }>;
+  shipment?: {
+    id?: string;
+    carrier?: string;
+    tracking_no?: string;
+    shipped_at?: string;
+  } | null;
   created_at?: string;
 }
 

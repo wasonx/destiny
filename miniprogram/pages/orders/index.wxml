@@ -16,6 +16,7 @@
           <view class="order-status">{{item.statusText}}</view>
         </view>
         <view class="order-amount">合计 ¥{{item.amountText}}</view>
+        <view wx:if="{{item.shipmentText}}" class="shipment">物流：{{item.shipmentText}}</view>
         <button
           wx:if="{{item.status !== 'refund_requested' && item.status !== 'refunded' && item.status !== 'closed'}}"
           class="secondary-button refund-button"

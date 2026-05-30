@@ -129,13 +129,29 @@ function mountDatabaseCommerceRoutes(app, { pool, config }) {
     }
   }));
 
+  const customerOrderSelect = `
+    select o.*,
+      (
+        select jsonb_build_object(
+          'id', s.id,
+          'carrier', s.carrier,
+          'tracking_no', s.tracking_no,
+          'shipped_at', s.shipped_at
+        )
+        from app.shipments s
+        where s.order_id = o.id
+        order by s.shipped_at desc
+        limit 1
+      ) as shipment
+    from app.commerce_orders o
+  `;
+
   app.get('/destiny-api/customer/orders', customerOnly, asyncRoute(async (req, res) => {
     const result = await pool.query(
       `
-        select *
-        from app.commerce_orders
-        where customer_id = $1
-        order by created_at desc
+        ${customerOrderSelect}
+        where o.customer_id = $1
+        order by o.created_at desc
       `,
       [req.session.user_id],
     );
@@ -144,7 +160,10 @@ function mountDatabaseCommerceRoutes(app, { pool, config }) {
 
   app.get('/destiny-api/customer/orders/:id', customerOnly, asyncRoute(async (req, res) => {
     const result = await pool.query(
-      'select * from app.commerce_orders where id = $1 and customer_id = $2',
+      `
+        ${customerOrderSelect}
+        where o.id = $1 and o.customer_id = $2
+      `,
       [req.params.id, req.session.user_id],
     );
     res.json({ order: result.rows[0] || null });
@@ -443,7 +462,10 @@ function mountMemoryCommerceRoutes(app) {
     const shipment = { id: nextId('shipment'), order_id: req.params.id, carrier: req.body?.carrier, tracking_no: req.body?.trackingNo, shipped_at: new Date().toISOString() };
     memory.shipments.unshift(shipment);
     const order = memory.orders.find((item) => item.id === req.params.id);
-    if (order) order.status = 'shipped';
+    if (order) {
+      order.status = 'shipped';
+      order.shipment = shipment;
+    }
     res.json({ shipment, order });
   });
 

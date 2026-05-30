@@ -19,6 +19,11 @@ function statusText(status) {
   return labels[status] || status;
 }
 
+function shipmentText(shipment) {
+  if (!shipment) return '';
+  return [shipment.carrier, shipment.tracking_no].filter(Boolean).join(' ');
+}
+
 Page({
   data: {
     orders: [],
@@ -43,6 +48,7 @@ Page({
         statusText: statusText(order.status),
         amountText: money(Number(order.amount_cents || 0) + Number(order.freight_cents || 0)),
         itemText: (order.items || []).map((item) => `${item.name || item.sku} x${item.quantity}`).join('，'),
+        shipmentText: shipmentText(order.shipment),
       }));
       this.setData({ orders });
     }).catch(() => {

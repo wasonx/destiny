@@ -390,6 +390,67 @@ test('commerce admin product route requires session and reads database products 
   }
 });
 
+test('customer order routes include latest shipment details', async () => {
+  const pool = {
+    async query(sql, params = []) {
+      const text = normalizeSql(sql);
+      if (text.includes('from app.login_sessions')) {
+        return { rows: [{ session_id: 'session-1', account_type: 'customer', user_id: 'customer-1', status: 'active', display_name: '瀹㈡埛' }] };
+      }
+      if (text.includes('from app.commerce_orders') && text.includes('id = $1') && text.includes('customer_id = $2')) {
+        assert.match(text, /shipments/);
+        assert.deepEqual(params, ['order-1', 'customer-1']);
+        return {
+          rows: [
+            {
+              id: 'order-1',
+              customer_id: 'customer-1',
+              status: 'shipped',
+              shipment: { carrier: 'SF Express', tracking_no: 'SF123456', shipped_at: '2026-05-30T08:00:00.000Z' },
+            },
+          ],
+        };
+      }
+      if (text.includes('from app.commerce_orders') && text.includes('order by o.created_at')) {
+        assert.match(text, /shipments/);
+        assert.deepEqual(params, ['customer-1']);
+        return {
+          rows: [
+            {
+              id: 'order-1',
+              customer_id: 'customer-1',
+              status: 'shipped',
+              shipment: { carrier: 'SF Express', tracking_no: 'SF123456', shipped_at: '2026-05-30T08:00:00.000Z' },
+            },
+          ],
+        };
+      }
+      throw new Error(`Unexpected pool query: ${text}`);
+    },
+  };
+  const app = createApp({ config: loadConfig({ SESSION_SECRET: 'test-secret' }), pool });
+  const server = app.listen(0);
+  const { port } = server.address();
+
+  try {
+    const listResponse = await fetch(`http://127.0.0.1:${port}/destiny-api/customer/orders`, {
+      headers: { Authorization: 'Bearer customer-token' },
+    });
+    const listData = await listResponse.json();
+    assert.equal(listResponse.status, 200);
+    assert.equal(listData.orders[0].shipment.tracking_no, 'SF123456');
+
+    const detailResponse = await fetch(`http://127.0.0.1:${port}/destiny-api/customer/orders/order-1`, {
+      headers: { Authorization: 'Bearer customer-token' },
+    });
+    const detailData = await detailResponse.json();
+    assert.equal(detailResponse.status, 200);
+    assert.equal(detailData.order.shipment.carrier, 'SF Express');
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
 test('editor sessions cannot access commerce admin operations', async () => {
   const queries = [];
   const pool = {
