@@ -118,3 +118,74 @@ test('admin entitlement grant routes require platform admin and write audit logs
     await new Promise((resolve) => server.close(resolve));
   }
 });
+
+test('admin membership expiry route requires platform admin and writes audit logs', async () => {
+  const queries = [];
+  let sessionRole = 'editor';
+  const expiredRows = [
+    {
+      id: 'membership-expired-1',
+      customer_id: 'customer-1',
+      plan_code: 'monthly',
+      expires_at: '2026-05-01T00:00:00.000Z',
+      status: 'expired',
+    },
+  ];
+  const client = {
+    async query(sql, params = []) {
+      const text = normalizeSql(sql);
+      queries.push({ sql: text, params });
+      if (['begin', 'commit', 'rollback'].includes(text)) {
+        return { rows: [], rowCount: 0 };
+      }
+      if (text.startsWith('update app.customer_memberships')) {
+        return { rows: expiredRows, rowCount: expiredRows.length };
+      }
+      if (text.startsWith('insert into app.audit_logs')) {
+        return { rows: [], rowCount: 1 };
+      }
+      throw new Error(`Unexpected client query: ${text}`);
+    },
+    release() {},
+  };
+  const pool = {
+    async query(sql) {
+      const text = normalizeSql(sql);
+      queries.push({ sql: text, params: [] });
+      if (text.includes('from app.login_sessions')) {
+        return { rows: [{ session_id: 'session-1', account_type: sessionRole, user_id: 'admin-1', status: 'active', display_name: '管理员' }] };
+      }
+      throw new Error(`Unexpected pool query: ${text}`);
+    },
+    async connect() {
+      return client;
+    },
+  };
+  const app = createApp({ config: loadConfig({ SESSION_SECRET: 'test-secret' }), pool });
+  const server = app.listen(0);
+  const { port } = server.address();
+
+  try {
+    const editorResponse = await fetch(`http://127.0.0.1:${port}/destiny-api/admin/memberships/expire-overdue`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer admin-token' },
+    });
+    assert.equal(editorResponse.status, 403);
+
+    sessionRole = 'admin';
+    const response = await fetch(`http://127.0.0.1:${port}/destiny-api/admin/memberships/expire-overdue`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer admin-token' },
+    });
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.deepEqual(body, { ok: true, expiredMemberships: expiredRows });
+
+    assert.ok(queries.some((query) => query.sql.includes('expires_at <= now()')));
+    assert.ok(queries.some((query) => query.sql.includes("status = 'active'")));
+    assert.ok(queries.some((query) => query.sql.includes("status = 'expired'")));
+    assert.ok(queries.some((query) => query.sql.startsWith('insert into app.audit_logs') && query.params[1] === 'membership.expire_overdue'));
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});

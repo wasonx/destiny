@@ -168,4 +168,44 @@ export function mountEntitlementRoutes(app, { config, pool }) {
       client.release();
     }
   });
+
+  app.post('/destiny-api/admin/memberships/expire-overdue', async (req, res) => {
+    if (pool && !requirePlatformAdmin(req, res)) {
+      return;
+    }
+    if (!pool) {
+      res.json({ ok: true, expiredMemberships: [] });
+      return;
+    }
+    const client = await pool.connect();
+    try {
+      await client.query('begin');
+      const expired = await client.query(
+        `
+          update app.customer_memberships
+          set status = 'expired'
+          where status = 'active'
+            and expires_at <= now()
+          returning id, customer_id, plan_code, expires_at, status
+        `,
+      );
+      await writeAudit(client, {
+        actorUserId: req.session.user_id,
+        action: 'membership.expire_overdue',
+        targetType: 'membership',
+        targetId: 'bulk-expire-overdue',
+        metadata: {
+          expiredCount: expired.rowCount || 0,
+          membershipIds: expired.rows.map((row) => row.id),
+        },
+      });
+      await client.query('commit');
+      res.json({ ok: true, expiredMemberships: expired.rows });
+    } catch (error) {
+      await client.query('rollback');
+      throw error;
+    } finally {
+      client.release();
+    }
+  });
 }

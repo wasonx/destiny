@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RefreshCcw, Search, Send } from 'lucide-react';
+import { Clock, RefreshCcw, Search, Send } from 'lucide-react';
 import { adminRequest } from '../api';
 
 type ValueState = {
@@ -62,15 +62,37 @@ export default function MembershipPage() {
     }
   }
 
+  async function expireOverdueMemberships() {
+    setError('');
+    setMessage('');
+    try {
+      const data = await adminRequest<{ expiredMemberships: Array<{ id: string }> }>('/memberships/expire-overdue', {
+        method: 'POST',
+      });
+      if (customerId.trim()) {
+        await loadValueState();
+      }
+      setMessage(`过期处理完成，更新 ${data.expiredMemberships.length} 条会员记录`);
+    } catch {
+      setError('会员过期处理失败');
+    }
+  }
+
   return (
     <div className="space-y-4">
       <section className="rounded-lg border border-shadow-gray bg-white p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-serif text-2xl">会员管理</h2>
-          <button onClick={() => void loadValueState()} className="inline-flex items-center gap-2 rounded-md border border-shadow-gray px-3 py-2 text-sm">
-            <RefreshCcw className="h-4 w-4" />
-            刷新
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => void expireOverdueMemberships()} className="inline-flex items-center gap-2 rounded-md border border-shadow-gray px-3 py-2 text-sm">
+              <Clock className="h-4 w-4" />
+              过期处理
+            </button>
+            <button onClick={() => void loadValueState()} className="inline-flex items-center gap-2 rounded-md border border-shadow-gray px-3 py-2 text-sm">
+              <RefreshCcw className="h-4 w-4" />
+              刷新
+            </button>
+          </div>
         </div>
 
         <div className="grid gap-3 md:grid-cols-[1fr_auto]">
