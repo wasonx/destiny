@@ -6,9 +6,14 @@ Page({
     spaceType: '居家环境',
     focus: '整体格局',
     photoCount: 0,
+    reportTier: 'free',
     loading: false,
     spaceTypes: ['居家环境', '办公环境'],
     focusOptions: ['整体格局', '睡眠休息', '亲子学习', '财富动线', '办公效率', '装修前评估'],
+    reportTiers: [
+      { value: 'free', label: '免费体验版' },
+      { value: 'full', label: '完整版' },
+    ],
   },
 
   setSpaceType(event) {
@@ -17,6 +22,10 @@ Page({
 
   setFocus(event) {
     this.setData({ focus: event.currentTarget.dataset.value });
+  },
+
+  setReportTier(event) {
+    this.setData({ reportTier: event.currentTarget.dataset.value });
   },
 
   choosePhotos() {
@@ -50,8 +59,8 @@ Page({
 
   createReport(kind, payload) {
     this.setData({ loading: true });
-    generateInsight(kind, payload)
-      .catch(() => buildFallbackReport(kind, payload))
+    generateInsight(kind, payload, this.data.reportTier)
+      .catch(() => buildFallbackReport(kind, payload, this.data.reportTier))
       .then((report) => {
         const app = getApp();
         app.globalData.currentReport = report;

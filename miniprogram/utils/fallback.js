@@ -12,10 +12,15 @@ function text(value, fallback) {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback;
 }
 
-function buildFallbackReport(kind, payload = {}) {
+function buildFallbackReport(kind, payload = {}, tier = 'free') {
   const focus = text(payload.concern || payload.category || payload.focus, '整体');
+  const isPreview = tier !== 'full';
   const common = {
     kind,
+    tier,
+    reportTier: tier,
+    isPreview,
+    upgradePrompt: isPreview ? '当前为免费体验版，解锁完整版可查看完整结构、规则解释、风险边界和更多行动建议。' : '',
     generatedAt: today(),
     disclaimer,
     source: 'fallback',

@@ -21,6 +21,18 @@
       </view>
     </view>
 
+    <view class="section">
+      <view class="field">
+        <text class="label">报告版本</text>
+        <view class="chips">
+          <block wx:for="{{reportTiers}}" wx:key="value">
+            <view class="chip {{reportTier === item.value ? 'active' : ''}}" data-value="{{item.value}}" bindtap="setReportTier">{{item.label}}</view>
+          </block>
+        </view>
+        <view class="notice">免费体验版先看摘要，完整版会校验并消耗报告权益。</view>
+      </view>
+    </view>
+
     <button class="primary-button" form-type="submit" loading="{{loading}}" disabled="{{loading}}">
       {{loading ? '正在生成' : '提交并生成分析'}}
     </button>

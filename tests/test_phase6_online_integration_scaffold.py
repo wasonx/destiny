@@ -107,6 +107,19 @@ class OnlineIntegrationScaffoldTests(unittest.TestCase):
         self.assertIn('bindchange="selectAddress"', store_wxml)
         self.assertIn('range="{{addressOptions}}"', store_wxml)
 
+    def test_miniprogram_generation_pages_can_request_full_reports(self):
+        for page in ["life", "relationship", "question", "space"]:
+            with self.subTest(page=page):
+                page_js = (MINI / "pages" / page / "index.js").read_text(encoding="utf-8")
+                page_wxml = (MINI / "pages" / page / "index.wxml").read_text(encoding="utf-8")
+
+                self.assertIn("reportTier", page_js)
+                self.assertIn("setReportTier", page_js)
+                self.assertIn("generateInsight(kind, payload, this.data.reportTier)", page_js)
+                self.assertIn("免费体验版", page_wxml)
+                self.assertIn("完整版", page_wxml)
+                self.assertIn('bindtap="setReportTier"', page_wxml)
+
 
 if __name__ == "__main__":
     unittest.main()
