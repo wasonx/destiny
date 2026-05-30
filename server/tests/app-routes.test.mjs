@@ -125,6 +125,7 @@ test('generate route sends published knowledge and graph context to ai and prove
     status: 'published',
     knowledge_entry_ids: ['knowledge-graph-1'],
     graph_node_keys: ['wood'],
+    condition: { field: 'focus', operator: 'eq', value: 'career' },
     risk_boundary: 'reference only',
   };
   const template = {
@@ -269,6 +270,114 @@ test('generate route sends published knowledge and graph context to ai and prove
   } finally {
     await new Promise((resolve) => server.close(resolve));
     await new Promise((resolve) => aiServer.close(resolve));
+  }
+});
+
+test('generate route records only matching published rules and related knowledge', async () => {
+  const knowledgeHit = {
+    id: 'knowledge-hit',
+    title: 'Career knowledge',
+    concept_keys: ['wood'],
+    source_note: 'career source',
+  };
+  const knowledgeMiss = {
+    id: 'knowledge-miss',
+    title: 'Relationship knowledge',
+    concept_keys: ['fire'],
+    source_note: 'relationship source',
+  };
+  const ruleHit = {
+    id: 'rule-hit',
+    name: 'Career rule',
+    priority: 10,
+    weight: 5,
+    condition: { field: 'concern', operator: 'eq', value: 'career' },
+    knowledge_entry_ids: ['knowledge-hit'],
+    graph_node_keys: ['wood'],
+    risk_boundary: 'reference only',
+  };
+  const ruleMiss = {
+    id: 'rule-miss',
+    name: 'Relationship rule',
+    priority: 1,
+    weight: 100,
+    condition: { field: 'concern', operator: 'eq', value: 'relationship' },
+    knowledge_entry_ids: ['knowledge-miss'],
+    graph_node_keys: ['fire'],
+    risk_boundary: 'reference only',
+  };
+  const storedContexts = [];
+  const storedProvenances = [];
+  const client = {
+    async query(sql, params = []) {
+      if (sql.includes('from app.knowledge_entries') && sql.includes("status = 'published'")) {
+        return { rows: [knowledgeHit, knowledgeMiss] };
+      }
+      if (sql.includes('from app.analysis_rules') && sql.includes("status = 'published'")) {
+        return { rows: [ruleMiss, ruleHit] };
+      }
+      if (sql.includes('from app.report_templates') && sql.includes("status = 'published'")) {
+        return { rows: [] };
+      }
+      if (sql.includes('from app.analysis_rules') && sql.includes('id = $1')) {
+        assert.deepEqual(params, ['rule-hit']);
+        return { rows: [ruleHit] };
+      }
+      if (sql.includes('from app.knowledge_entries') && sql.includes('id = $1')) {
+        assert.deepEqual(params, ['knowledge-hit']);
+        return { rows: [knowledgeHit] };
+      }
+      if (sql.includes('insert into app.report_runs')) {
+        storedContexts.push(params[3]);
+        return { rows: [{ id: 'report-run-rule-hit' }], rowCount: 1 };
+      }
+      if (sql.includes('insert into app.safety_reviews')) {
+        return { rows: [], rowCount: 1 };
+      }
+      if (sql.includes('insert into app.report_provenance_records')) {
+        storedProvenances.push({ ruleHits: params[3], knowledgeSources: params[4], graphNodes: params[1] });
+        return { rows: [], rowCount: 1 };
+      }
+      if (sql.includes('update app.report_runs set provenance')) {
+        storedProvenances.push(params[1]);
+        return { rows: [], rowCount: 1 };
+      }
+      if (['begin', 'commit', 'rollback'].includes(sql)) {
+        return { rows: [], rowCount: 0 };
+      }
+      throw new Error(`Unexpected query: ${sql}`);
+    },
+    release() {},
+  };
+  const pool = {
+    async query(sql, params = []) {
+      return client.query(sql, params);
+    },
+    async connect() {
+      return client;
+    },
+  };
+  const app = createApp({ config: loadConfig({ SESSION_SECRET: 'test-secret' }), pool });
+  const server = app.listen(0);
+  const { port } = server.address();
+
+  try {
+    const response = await fetch(`http://127.0.0.1:${port}/destiny-api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind: 'life', payload: { concern: 'career' } }),
+    });
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(storedContexts[0].rules.map((rule) => rule.id), ['rule-hit']);
+    assert.deepEqual(storedContexts[0].knowledge.map((item) => item.id), ['knowledge-hit']);
+    assert.equal(storedContexts[0].features.concern, 'career');
+    assert.ok(storedContexts[0].graph.nodes.some((node) => node.id === 'rule:rule-hit'));
+    assert.ok(!storedContexts[0].graph.nodes.some((node) => node.id === 'rule:rule-miss'));
+    assert.ok(storedProvenances.some((provenance) => provenance.ruleHits?.every((rule) => rule.id === 'rule-hit')));
+    assert.ok(storedProvenances.some((provenance) => provenance.knowledgeSources?.every((item) => item.id === 'knowledge-hit')));
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
   }
 });
 

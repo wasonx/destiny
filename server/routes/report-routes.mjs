@@ -5,6 +5,8 @@ import { buildReportProvenance, saveReportProvenance } from '../graph/report-pro
 import { findSession, getBearerToken } from '../middleware/require-session.mjs';
 import { buildReportContext } from '../reports/context-builder.mjs';
 import { reviewReportSafety } from '../reports/safety-review.mjs';
+import { summarizeFourPillars } from '../rules/bazi-features.mjs';
+import { runRules } from '../rules/rule-engine.mjs';
 import { memory, nextId } from './memory-state.mjs';
 
 const disclaimer = '内容仅作自我探索与生活参考，不构成医疗、投资、法律或重大人生决策建议。';
@@ -175,6 +177,103 @@ function collectConceptKeys(publishedContent = {}) {
   return [...keys].filter(Boolean).slice(0, 12);
 }
 
+function buildReportFacts(kind, payload = {}) {
+  const baziInput = payload.fourPillars || payload.pillars || payload;
+  const baziFacts = kind === 'life' ? summarizeFourPillars(baziInput) : {};
+  const tags = [
+    kind,
+    payload.concern,
+    payload.category,
+    payload.focus,
+    payload.relationType,
+    payload.spaceType,
+  ].filter(Boolean);
+
+  return {
+    ...baziFacts,
+    kind,
+    reportKind: kind,
+    concern: payload.concern || '',
+    category: payload.category || '',
+    focus: payload.focus || '',
+    relationType: payload.relationType || '',
+    spaceType: payload.spaceType || '',
+    gender: payload.gender || '',
+    tags,
+    input: payload,
+  };
+}
+
+function selectKnowledgeForRules(knowledge = [], rules = []) {
+  const ids = new Set();
+  for (const rule of rules) {
+    for (const id of rule.knowledge_entry_ids || []) {
+      ids.add(id);
+    }
+  }
+  return knowledge.filter((item) => ids.has(item.id));
+}
+
+function filterTemplateForRules(template, rules = []) {
+  if (!template?.template_scope?.rule_ids) {
+    return template || null;
+  }
+  const ruleIds = new Set(rules.map((rule) => rule.id));
+  return {
+    ...template,
+    template_scope: {
+      ...template.template_scope,
+      rule_ids: template.template_scope.rule_ids.filter((id) => ruleIds.has(id)),
+    },
+  };
+}
+
+function buildTemplateSnapshotGraph(template, rules = []) {
+  if (!template?.id) {
+    return null;
+  }
+  const templateId = `template:${template.id}`;
+  const nodes = [
+    {
+      id: templateId,
+      type: 'Template',
+      label: template.name || template.id,
+      metadata: { versionNo: template.version_no, reportKind: template.report_kind },
+    },
+  ];
+  const edges = [];
+  for (const rule of rules) {
+    const ruleId = `rule:${rule.id}`;
+    nodes.push({
+      id: ruleId,
+      type: 'Rule',
+      label: rule.name || rule.id,
+      metadata: { versionNo: rule.version_no, priority: rule.priority, weight: rule.weight },
+    });
+    edges.push({
+      id: `${templateId}->${ruleId}:TRIGGERS`,
+      source: templateId,
+      target: ruleId,
+      type: 'TRIGGERS',
+      label: '关联规则',
+      metadata: {},
+    });
+  }
+  if (template.risk_boundary) {
+    const riskId = `risk:template:${template.id}`;
+    nodes.push({ id: riskId, type: 'RiskBoundary', label: template.risk_boundary, metadata: {} });
+    edges.push({
+      id: `${templateId}->${riskId}:USES_RISK_BOUNDARY`,
+      source: templateId,
+      target: riskId,
+      type: 'USES_RISK_BOUNDARY',
+      label: '使用风险边界',
+      metadata: {},
+    });
+  }
+  return { focus: nodes[0], nodes, edges };
+}
+
 function mergeGraphs(graphs) {
   const nodes = new Map();
   const edges = new Map();
@@ -212,11 +311,12 @@ async function buildReportGraphContext({ pool, graphService, publishedContent = 
 
   const graphs = [];
   if (publishedContent.template?.id) {
-    graphs.push(await tryGraph(() => graphService.getTemplateGraph(publishedContent.template.id, { pool })));
-  } else {
-    for (const item of takeArray(publishedContent.rules, 12)) {
-      graphs.push(await tryGraph(() => graphService.getRuleGraph(item.id, { pool })));
-    }
+    graphs.push(buildTemplateSnapshotGraph(publishedContent.template, publishedContent.rules || []));
+  }
+  for (const item of takeArray(publishedContent.rules, 12)) {
+    graphs.push(await tryGraph(() => graphService.getRuleGraph(item.id, { pool })));
+  }
+  if (!(publishedContent.rules || []).length) {
     for (const item of takeArray(publishedContent.knowledge, 12)) {
       graphs.push(await tryGraph(() => graphService.getKnowledgeGraph(item.id, { pool })));
     }
@@ -259,13 +359,20 @@ export function mountReportRoutes(app, { config, pool, graphDriver = null }) {
       reportKind: kind,
       module: kind === 'life' ? 'bazi' : kind,
     });
-    const reportGraph = await buildReportGraphContext({ pool, graphService, publishedContent });
+    const facts = buildReportFacts(kind, payload);
+    const ruleHits = runRules(publishedContent.rules, facts);
+    const reportContent = {
+      rules: ruleHits,
+      knowledge: selectKnowledgeForRules(publishedContent.knowledge, ruleHits),
+      template: filterTemplateForRules(publishedContent.template, ruleHits),
+    };
+    const reportGraph = await buildReportGraphContext({ pool, graphService, publishedContent: reportContent });
     const context = buildReportContext({
       input: payload,
-      features: { reportTier: tier, isPreview: tier === 'free' },
-      rules: publishedContent.rules,
-      knowledge: publishedContent.knowledge,
-      template: publishedContent.template,
+      features: { ...facts, reportTier: tier, isPreview: tier === 'free' },
+      rules: reportContent.rules,
+      knowledge: reportContent.knowledge,
+      template: reportContent.template,
       graph: reportGraph,
     });
 
