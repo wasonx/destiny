@@ -128,6 +128,16 @@ class AdminScaffoldTests(unittest.TestCase):
         for text in ["保存草稿", "发布", "停用", "变更摘要"]:
             self.assertIn(text, combined)
 
+    def test_report_runs_page_calls_report_history_endpoints(self):
+        page = (ROOT / "src" / "admin" / "pages" / "ReportRunsPage.tsx").read_text(encoding="utf-8")
+
+        self.assertIn("adminRequest", page)
+        self.assertIn("/report-runs", page)
+        self.assertIn("命中规则", page)
+        self.assertIn("知识来源", page)
+        self.assertIn("图谱路径", page)
+        self.assertIn("安全审查", page)
+
     def test_ontology_page_exposes_graph_visualization_workbench(self):
         ontology = (ROOT / "src" / "admin" / "pages" / "OntologyPage.tsx").read_text(encoding="utf-8")
 
