@@ -35,6 +35,11 @@ class OnlineIntegrationScaffoldTests(unittest.TestCase):
         self.assertIn("code: loginRes.code", mini_auth)
         self.assertNotIn("mock-code", mini_auth)
         self.assertNotIn("loginRes.code ||", mini_auth)
+        self.assertIn("handleUnauthorized", mini_api)
+        self.assertIn("wx.removeStorageSync('customer_token')", mini_api)
+        self.assertIn("登录已失效，请重新登录", mini_api)
+        self.assertIn("url: '/pages/login/index'", mini_api)
+        self.assertIn("skipUnauthorizedRedirect", mini_auth)
 
     def test_h5_and_miniprogram_expose_report_tiers(self):
         h5_insights = (ROOT / "src" / "lib" / "insights.ts").read_text(encoding="utf-8")

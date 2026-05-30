@@ -1,5 +1,35 @@
 const API_BASE = 'https://www.goye.cc/destiny-api';
 
+function handleUnauthorized(options = {}) {
+  if (options.skipUnauthorizedRedirect) {
+    return;
+  }
+  try {
+    wx.removeStorageSync('customer_token');
+  } catch (error) {
+    // Ignore storage cleanup failures; the next login will overwrite the token.
+  }
+  try {
+    wx.showToast({
+      title: '登录已失效，请重新登录',
+      icon: 'none',
+    });
+  } catch (error) {
+    // Toast can fail in tests or unusual runtimes.
+  }
+  try {
+    const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : [];
+    const currentRoute = pages.length ? pages[pages.length - 1].route : '';
+    if (currentRoute !== 'pages/login/index') {
+      wx.navigateTo({
+        url: '/pages/login/index',
+      });
+    }
+  } catch (error) {
+    // Navigation is best-effort; callers still receive the failed request.
+  }
+}
+
 function request(path, options = {}) {
   let token = '';
   try {
@@ -24,6 +54,9 @@ function request(path, options = {}) {
           return;
         }
 
+        if (res.statusCode === 401) {
+          handleUnauthorized(options);
+        }
         reject(new Error(`HTTP ${res.statusCode}`));
       },
       fail(error) {
@@ -141,6 +174,7 @@ function generateInsight(kind, payload, tier = 'free') {
 module.exports = {
   API_BASE,
   request,
+  handleUnauthorized,
   checkHealth,
   fetchValueState,
   listProducts,

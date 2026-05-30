@@ -20,6 +20,7 @@ function loginWithWechatCode() {
         }
         api.request('/customer/login/wechat', {
           method: 'POST',
+          skipUnauthorizedRedirect: true,
           data: {
             code: loginRes.code,
           },
@@ -40,6 +41,7 @@ function loginWithWechatCode() {
 function sendPhoneOtp(phone) {
   return api.request('/customer/otp/send', {
     method: 'POST',
+    skipUnauthorizedRedirect: true,
     data: {
       phone,
     },
@@ -49,6 +51,7 @@ function sendPhoneOtp(phone) {
 function verifyPhoneOtp(phone, code) {
   return api.request('/customer/otp/verify', {
     method: 'POST',
+    skipUnauthorizedRedirect: true,
     data: {
       phone,
       code,
