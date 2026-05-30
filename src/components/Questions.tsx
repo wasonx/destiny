@@ -37,6 +37,7 @@ function getCurrentHourName() {
 export default function Questions() {
   const [question, setQuestion] = useState('');
   const [category, setCategory] = useState('感情');
+  const [reportTier, setReportTier] = useState<'free' | 'full'>('free');
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<InsightReport | null>(null);
   const currentTime = useMemo(() => {
@@ -84,6 +85,7 @@ export default function Questions() {
           const nextReport = await generateInsight({
             kind: 'question',
             payload: { category, question, askedAt: new Date().toISOString(), hourName: currentHourName },
+            tier: reportTier,
           });
           setReport(nextReport);
           setLoading(false);
@@ -128,6 +130,27 @@ export default function Questions() {
               </p>
             </div>
           )}
+
+          <div>
+            <p className="font-mono text-[10px] text-on-surface-variant mb-3 uppercase tracking-wider">报告版本</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setReportTier('free')}
+                className={`rounded-xl border px-4 py-3 text-sm transition-colors ${reportTier === 'free' ? 'border-serene-teal bg-serene-teal text-white' : 'border-shadow-gray text-ink-blue hover:bg-surface'}`}
+              >
+                免费体验版
+              </button>
+              <button
+                type="button"
+                onClick={() => setReportTier('full')}
+                className={`rounded-xl border px-4 py-3 text-sm transition-colors ${reportTier === 'full' ? 'border-serene-teal bg-serene-teal text-white' : 'border-shadow-gray text-ink-blue hover:bg-surface'}`}
+              >
+                完整版
+              </button>
+            </div>
+            <p className="mt-3 text-xs leading-relaxed text-on-surface-variant">免费体验版先看摘要，完整版会校验并消耗报告权益。</p>
+          </div>
 
           <button className="bg-ink-blue text-white font-mono text-sm px-8 py-3 rounded-full hover:bg-ink-blue/90 transition-all active:scale-95 shadow-sm flex items-center justify-center gap-2 w-full md:w-auto">
             <span>提交并生成分析</span>

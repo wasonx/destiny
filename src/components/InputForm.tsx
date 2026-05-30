@@ -8,6 +8,7 @@ interface LifeFormData {
   birthplace: string;
   gender: string;
   concern: string;
+  tier?: 'free' | 'full';
 }
 
 interface InputFormProps {
@@ -19,6 +20,7 @@ const concerns = ['整体', '感情', '事业', '财富', '学业', '家庭', '�
 export default function InputForm({ onSubmit }: InputFormProps) {
   const [gender, setGender] = useState('male');
   const [concern, setConcern] = useState('整体');
+  const [reportTier, setReportTier] = useState<'free' | 'full'>('free');
 
   return (
     <motion.div
@@ -44,6 +46,7 @@ export default function InputForm({ onSubmit }: InputFormProps) {
             birthplace: String(form.get('birthplace') || ''),
             gender,
             concern,
+            tier: reportTier,
           });
         }}
       >
@@ -128,6 +131,27 @@ export default function InputForm({ onSubmit }: InputFormProps) {
               <span className="font-mono text-[10px] opacity-80 uppercase">女</span>
             </button>
           </div>
+        </div>
+
+        <div className="pt-4">
+          <label className="block font-mono text-[10px] text-on-surface-variant mb-4 ml-1 uppercase tracking-wider">报告版本</label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setReportTier('free')}
+              className={`rounded-xl border px-4 py-3 text-sm transition-colors ${reportTier === 'free' ? 'border-serene-teal bg-serene-teal text-white' : 'border-shadow-gray text-ink-blue hover:bg-surface'}`}
+            >
+              免费体验版
+            </button>
+            <button
+              type="button"
+              onClick={() => setReportTier('full')}
+              className={`rounded-xl border px-4 py-3 text-sm transition-colors ${reportTier === 'full' ? 'border-serene-teal bg-serene-teal text-white' : 'border-shadow-gray text-ink-blue hover:bg-surface'}`}
+            >
+              完整版
+            </button>
+          </div>
+          <p className="mt-3 text-xs leading-relaxed text-on-surface-variant">免费体验版先看摘要，完整版会校验并消耗报告权益。</p>
         </div>
 
         <div className="mt-12 flex items-start gap-2 justify-center opacity-50">

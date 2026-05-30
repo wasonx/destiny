@@ -120,6 +120,25 @@ class OnlineIntegrationScaffoldTests(unittest.TestCase):
                 self.assertIn("完整版", page_wxml)
                 self.assertIn('bindtap="setReportTier"', page_wxml)
 
+    def test_h5_generation_pages_can_request_full_reports(self):
+        app_tsx = (ROOT / "src" / "App.tsx").read_text(encoding="utf-8")
+        input_form = (ROOT / "src" / "components" / "InputForm.tsx").read_text(encoding="utf-8")
+
+        self.assertIn("reportTier", input_form)
+        self.assertIn("setReportTier", input_form)
+        self.assertIn("免费体验版", input_form)
+        self.assertIn("完整版", input_form)
+        self.assertIn("tier: payload.tier", app_tsx)
+
+        for component in ["Relationship", "Questions", "Anju"]:
+            with self.subTest(component=component):
+                source = (ROOT / "src" / "components" / f"{component}.tsx").read_text(encoding="utf-8")
+                self.assertIn("reportTier", source)
+                self.assertIn("setReportTier", source)
+                self.assertIn("免费体验版", source)
+                self.assertIn("完整版", source)
+                self.assertIn("tier: reportTier", source)
+
 
 if __name__ == "__main__":
     unittest.main()

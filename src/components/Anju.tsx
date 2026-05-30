@@ -9,6 +9,7 @@ const focusOptions = ['整体格局', '睡眠休息', '亲子学习', '财富动
 export default function Anju() {
   const [spaceType, setSpaceType] = useState('居家环境');
   const [focus, setFocus] = useState('整体格局');
+  const [reportTier, setReportTier] = useState<'free' | 'full'>('free');
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<InsightReport | null>(null);
 
@@ -39,6 +40,7 @@ export default function Anju() {
           const nextReport = await generateInsight({
             kind: 'space',
             payload: { ...payload, spaceType, focus },
+            tier: reportTier,
           });
           setReport(nextReport);
           setLoading(false);
@@ -131,6 +133,27 @@ export default function Anju() {
               ))}
             </div>
           </div>
+        </section>
+
+        <section className="bg-white border border-shadow-gray rounded-xl p-6 shadow-sm">
+          <p className="font-mono text-[10px] text-on-surface-variant mb-3 uppercase tracking-wider">报告版本</p>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setReportTier('free')}
+              className={`rounded-xl border px-4 py-3 text-sm transition-colors ${reportTier === 'free' ? 'border-serene-teal bg-serene-teal text-white' : 'border-shadow-gray text-ink-blue hover:bg-surface'}`}
+            >
+              免费体验版
+            </button>
+            <button
+              type="button"
+              onClick={() => setReportTier('full')}
+              className={`rounded-xl border px-4 py-3 text-sm transition-colors ${reportTier === 'full' ? 'border-serene-teal bg-serene-teal text-white' : 'border-shadow-gray text-ink-blue hover:bg-surface'}`}
+            >
+              完整版
+            </button>
+          </div>
+          <p className="mt-3 text-xs leading-relaxed text-on-surface-variant">免费体验版先看摘要，完整版会校验并消耗报告权益。</p>
         </section>
 
         <div className="flex items-center justify-center gap-2 text-xs text-on-surface-variant opacity-70">

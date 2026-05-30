@@ -63,7 +63,9 @@ export default function App() {
             onSubmit={async (payload) => {
               setReportLoading(true);
               setView('report');
-              const report = await generateInsight({ kind: 'life', payload: { ...payload } });
+              const inputPayload = { ...payload };
+              delete inputPayload.tier;
+              const report = await generateInsight({ kind: 'life', payload: inputPayload, tier: payload.tier });
               setCurrentReport(report);
               setReportLoading(false);
             }}
