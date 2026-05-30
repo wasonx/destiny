@@ -5,9 +5,31 @@ function formatMoney(cents) {
   return (Number(cents || 0) / 100).toFixed(2);
 }
 
+function isPhysicalProduct(product) {
+  return Boolean(product && (product.requires_shipping || product.product_type === 'physical_goods'));
+}
+
+function formatAddress(address) {
+  if (!address) return '';
+  return [
+    address.receiver_name || address.receiverName,
+    address.phone,
+    address.province,
+    address.city,
+    address.district,
+    address.detail_address || address.detailAddress,
+  ].filter(Boolean).join(' ');
+}
+
 Page({
   data: {
     products: [],
+    addresses: [],
+    addressOptions: [],
+    selectedAddressId: '',
+    selectedAddress: null,
+    selectedAddressLabel: '',
+    selectedAddressDetail: '',
     valueState: null,
     loading: false,
     creating: false,
@@ -31,15 +53,48 @@ Page({
     Promise.all([
       api.listProducts(),
       api.fetchValueState().catch(() => null),
-    ]).then(([productData, valueState]) => {
+      api.listAddresses().catch(() => ({ addresses: [] })),
+    ]).then(([productData, valueState, addressData]) => {
       const products = (productData.products || []).map((product) => ({
         ...product,
         priceText: formatMoney(product.price_cents),
-        typeText: product.requires_shipping || product.product_type === 'physical_goods' ? '实物商品' : '虚拟权益',
+        typeText: isPhysicalProduct(product) ? '实物商品' : '虚拟权益',
       }));
-      this.setData({ products, valueState });
+      const addresses = addressData.addresses || [];
+      const selectedAddress = this.pickSelectedAddress(addresses);
+      this.setData({
+        products,
+        valueState,
+        addresses,
+        addressOptions: addresses.map((address) => ({
+          id: address.id,
+          label: formatAddress(address),
+        })),
+        selectedAddressId: selectedAddress ? selectedAddress.id : '',
+        selectedAddress,
+        selectedAddressLabel: selectedAddress ? `${selectedAddress.receiver_name || selectedAddress.receiverName || ''} · ${selectedAddress.phone || ''}` : '',
+        selectedAddressDetail: selectedAddress ? formatAddress(selectedAddress) : '',
+      });
     }).finally(() => {
       this.setData({ loading: false });
+    });
+  },
+
+  pickSelectedAddress(addresses) {
+    return addresses.find((item) => item.id === this.data.selectedAddressId)
+      || addresses.find((item) => item.is_default)
+      || addresses[0]
+      || null;
+  },
+
+  selectAddress(event) {
+    const index = Number(event.detail.value);
+    const selectedAddress = this.data.addresses[index] || null;
+    this.setData({
+      selectedAddress,
+      selectedAddressId: selectedAddress ? selectedAddress.id : '',
+      selectedAddressLabel: selectedAddress ? `${selectedAddress.receiver_name || selectedAddress.receiverName || ''} · ${selectedAddress.phone || ''}` : '',
+      selectedAddressDetail: selectedAddress ? formatAddress(selectedAddress) : '',
     });
   },
 
@@ -55,15 +110,18 @@ Page({
       address,
     });
 
-    const orderTask = product.requires_shipping || product.product_type === 'physical_goods'
-      ? api.listAddresses().then((data) => {
-        const address = (data.addresses || []).find((item) => item.is_default) || (data.addresses || [])[0];
+    const orderTask = isPhysicalProduct(product)
+      ? Promise.resolve().then(() => {
+        const address = this.data.selectedAddress;
         if (!address) {
           wx.showToast({ title: '请先填写收货地址', icon: 'none' });
           wx.navigateTo({ url: '/pages/address/index' });
           throw new Error('ADDRESS_REQUIRED');
         }
-        return create(address);
+        return create({
+          ...address,
+          address_snapshot: formatAddress(address),
+        });
       })
       : create(null);
 

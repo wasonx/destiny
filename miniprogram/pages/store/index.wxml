@@ -25,6 +25,23 @@
     <button class="secondary-button quick-button" type="default" bindtap="openOrders">订单记录</button>
   </view>
 
+  <view class="section address-panel">
+    <view class="address-head">
+      <view>
+        <view class="address-title">选择收货地址</view>
+        <view class="address-desc">实物商品下单会使用这里选中的地址。</view>
+      </view>
+      <button class="secondary-button address-button" type="default" bindtap="openAddress">管理</button>
+    </view>
+    <picker wx:if="{{addressOptions.length}}" mode="selector" range="{{addressOptions}}" range-key="label" bindchange="selectAddress">
+      <view class="address-picker">
+        <view class="address-label">{{selectedAddressLabel || '请选择地址'}}</view>
+        <view class="address-detail">{{selectedAddressDetail || '暂无地址'}}</view>
+      </view>
+    </picker>
+    <view wx:else class="address-empty" bindtap="openAddress">还没有收货地址，点这里去填写。</view>
+  </view>
+
   <view class="product-list">
     <block wx:for="{{products}}" wx:key="sku">
       <view class="product-card">

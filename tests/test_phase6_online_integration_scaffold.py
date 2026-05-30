@@ -92,6 +92,21 @@ class OnlineIntegrationScaffoldTests(unittest.TestCase):
         self.assertIn("CustomerCenter", app_tsx)
         self.assertIn("view === 'profile'", app_tsx)
 
+    def test_miniprogram_store_selects_address_for_physical_orders(self):
+        store_js = (MINI / "pages" / "store" / "index.js").read_text(encoding="utf-8")
+        store_wxml = (MINI / "pages" / "store" / "index.wxml").read_text(encoding="utf-8")
+
+        self.assertIn("api.listAddresses", store_js)
+        self.assertIn("selectedAddressId", store_js)
+        self.assertIn("selectedAddress", store_js)
+        self.assertIn("addressOptions", store_js)
+        self.assertIn("selectAddress", store_js)
+        self.assertIn("address_snapshot", store_js)
+        self.assertIn("requires_shipping", store_js)
+        self.assertIn("选择收货地址", store_wxml)
+        self.assertIn('bindchange="selectAddress"', store_wxml)
+        self.assertIn('range="{{addressOptions}}"', store_wxml)
+
 
 if __name__ == "__main__":
     unittest.main()
