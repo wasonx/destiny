@@ -160,6 +160,22 @@ class AdminScaffoldTests(unittest.TestCase):
         for text in ["微信登录", "短信", "支付", "退款", "快递", "模拟发送", "人工确认"]:
             self.assertIn(text, page)
 
+    def test_testbench_page_uses_authenticated_admin_request(self):
+        page = (ROOT / "src" / "admin" / "pages" / "TestBenchPage.tsx").read_text(encoding="utf-8")
+
+        self.assertIn("adminRequest", page)
+        self.assertIn("/testbench/four-pillars", page)
+        self.assertIn("运行四柱分析", page)
+
+    def test_ops_page_calls_health_and_error_endpoints(self):
+        page = (ROOT / "src" / "admin" / "pages" / "OpsPage.tsx").read_text(encoding="utf-8")
+
+        self.assertIn("adminRequest", page)
+        self.assertIn("/ops/health", page)
+        self.assertIn("/ops/recent-errors", page)
+        for text in ["Node/Express API", "PostgreSQL", "Neo4j", "商城服务", "最近错误"]:
+            self.assertIn(text, page)
+
     def test_ontology_page_exposes_graph_visualization_workbench(self):
         ontology = (ROOT / "src" / "admin" / "pages" / "OntologyPage.tsx").read_text(encoding="utf-8")
 
