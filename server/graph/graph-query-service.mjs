@@ -65,24 +65,7 @@ export function createGraphQueryService({ graphDriver = null, database = 'neo4j'
       const nodes = [focus];
       const edges = [];
       for (const knowledgeId of item.knowledge_entry_ids || []) {
-        const knowledgeResult = await pool.query('select * from app.knowledge_entries where id = $1', [knowledgeId]);
-        const knowledge = knowledgeResult.rows[0];
-        const target = knowledge
-          ? node(`knowledge:${knowledge.id}`, 'Knowledge', knowledge.title, { tags: knowledge.tags || [], sourceNote: knowledge.source_note || '' })
-          : node(`knowledge:${knowledgeId}`, 'Knowledge', knowledgeId, {});
-        nodes.push(target);
-        edges.push(edge(focus.id, target.id, 'USES', '引用知识'));
-        for (const key of knowledge?.concept_keys || []) {
-          const concept = findConcept(key);
-          const conceptNode = node(conceptId(concept.key), 'Concept', concept.label, { conceptType: concept.conceptType });
-          nodes.push(conceptNode);
-          edges.push(edge(target.id, conceptNode.id, 'EXPLAINS', '解释'));
-        }
-        if (knowledge?.source_note) {
-          const source = node(`source:${knowledge.id}`, 'Source', knowledge.source_note, { sourceNote: knowledge.source_note });
-          nodes.push(source);
-          edges.push(edge(target.id, source.id, 'HAS_SOURCE', '来源'));
-        }
+        await appendKnowledgeExpansion(pool, knowledgeId, focus.id, nodes, edges);
       }
       for (const key of item.graph_node_keys || []) {
         const concept = findConcept(key);
@@ -108,9 +91,27 @@ export function createGraphQueryService({ graphDriver = null, database = 'neo4j'
       const nodes = [focus];
       const edges = [];
       for (const ruleId of item.template_scope?.rule_ids || []) {
-        const target = node(`rule:${ruleId}`, 'Rule', ruleId, {});
+        const ruleResult = await pool.query('select * from app.analysis_rules where id = $1', [ruleId]);
+        const rule = ruleResult.rows[0];
+        const target = rule
+          ? node(`rule:${rule.id}`, 'Rule', rule.name, { riskBoundary: rule.risk_boundary || '' })
+          : node(`rule:${ruleId}`, 'Rule', ruleId, {});
         nodes.push(target);
         edges.push(edge(focus.id, target.id, 'TRIGGERS', '关联规则'));
+        for (const knowledgeId of rule?.knowledge_entry_ids || []) {
+          await appendKnowledgeExpansion(pool, knowledgeId, target.id, nodes, edges);
+        }
+        for (const key of rule?.graph_node_keys || []) {
+          const concept = findConcept(key);
+          const conceptNode = node(conceptId(concept.key), 'Concept', concept.label, { conceptType: concept.conceptType });
+          nodes.push(conceptNode);
+          edges.push(edge(target.id, conceptNode.id, 'REFERENCES_CONCEPT', '关联概念'));
+        }
+        if (rule?.risk_boundary) {
+          const risk = node(`risk:${rule.id}`, 'RiskBoundary', rule.risk_boundary, {});
+          nodes.push(risk);
+          edges.push(edge(risk.id, target.id, 'CONSTRAINS', '约束'));
+        }
       }
       if (item.risk_boundary) {
         const risk = node(`risk:template:${item.id}`, 'RiskBoundary', item.risk_boundary, {});
@@ -152,6 +153,27 @@ export function createGraphQueryService({ graphDriver = null, database = 'neo4j'
       return dedupeGraph({ focus, nodes, edges });
     },
   };
+}
+
+async function appendKnowledgeExpansion(pool, knowledgeId, parentId, nodes, edges) {
+  const knowledgeResult = await pool.query('select * from app.knowledge_entries where id = $1', [knowledgeId]);
+  const knowledge = knowledgeResult.rows[0];
+  const target = knowledge
+    ? node(`knowledge:${knowledge.id}`, 'Knowledge', knowledge.title, { tags: knowledge.tags || [], sourceNote: knowledge.source_note || '' })
+    : node(`knowledge:${knowledgeId}`, 'Knowledge', knowledgeId, {});
+  nodes.push(target);
+  edges.push(edge(parentId, target.id, 'USES', '引用知识'));
+  for (const key of knowledge?.concept_keys || []) {
+    const concept = findConcept(key);
+    const conceptNode = node(conceptId(concept.key), 'Concept', concept.label, { conceptType: concept.conceptType });
+    nodes.push(conceptNode);
+    edges.push(edge(target.id, conceptNode.id, 'EXPLAINS', '解释'));
+  }
+  if (knowledge?.source_note) {
+    const source = node(`source:${knowledge.id}`, 'Source', knowledge.source_note, { sourceNote: knowledge.source_note });
+    nodes.push(source);
+    edges.push(edge(target.id, source.id, 'HAS_SOURCE', '来源'));
+  }
 }
 
 function findConcept(keyOrLabel) {

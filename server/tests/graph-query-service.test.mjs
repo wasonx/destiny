@@ -213,19 +213,35 @@ test('rule graph expands cited knowledge into concepts and sources', async () =>
 test('template graph exposes risk boundary and scoped rule nodes', async () => {
   const pool = {
     async query(sql, params = []) {
-      assert.match(sql, /from app\.report_templates/i);
-      assert.deepEqual(params, ['template-1']);
-      return {
-        rows: [
-          {
-            id: 'template-1',
-            name: '完整报告模板',
-            report_kind: 'life',
-            risk_boundary: '不做医疗投资承诺',
-            template_scope: { rule_ids: ['rule-1'] },
-          },
-        ],
-      };
+      if (sql.includes('from app.report_templates')) {
+        assert.deepEqual(params, ['template-1']);
+        return {
+          rows: [
+            {
+              id: 'template-1',
+              name: '完整报告模板',
+              report_kind: 'life',
+              risk_boundary: '不做医疗投资承诺',
+              template_scope: { rule_ids: ['rule-1'] },
+            },
+          ],
+        };
+      }
+      if (sql.includes('from app.analysis_rules')) {
+        assert.deepEqual(params, ['rule-1']);
+        return {
+          rows: [
+            {
+              id: 'rule-1',
+              name: '木旺规则',
+              knowledge_entry_ids: [],
+              graph_node_keys: [],
+              risk_boundary: '',
+            },
+          ],
+        };
+      }
+      throw new Error(`Unexpected query: ${sql}`);
     },
   };
   const service = createGraphQueryService({ graphDriver: null, database: 'neo4j' });
@@ -236,6 +252,68 @@ test('template graph exposes risk boundary and scoped rule nodes', async () => {
   assert.ok(graph.nodes.some((node) => node.type === 'RiskBoundary'));
   assert.ok(graph.nodes.some((node) => node.id === 'rule:rule-1'));
   assert.ok(graph.edges.some((edge) => edge.type === 'USES_RISK_BOUNDARY'));
+});
+
+test('template graph expands scoped rules into knowledge and concept paths', async () => {
+  const pool = {
+    async query(sql, params = []) {
+      if (sql.includes('from app.report_templates')) {
+        assert.deepEqual(params, ['template-expand-1']);
+        return {
+          rows: [
+            {
+              id: 'template-expand-1',
+              name: '完整报告模板',
+              report_kind: 'life',
+              risk_boundary: '仅供参考',
+              template_scope: { rule_ids: ['rule-expand-1'] },
+            },
+          ],
+        };
+      }
+      if (sql.includes('from app.analysis_rules')) {
+        assert.deepEqual(params, ['rule-expand-1']);
+        return {
+          rows: [
+            {
+              id: 'rule-expand-1',
+              name: '木旺规则',
+              knowledge_entry_ids: ['knowledge-expand-1'],
+              graph_node_keys: [],
+              risk_boundary: '避免绝对化',
+            },
+          ],
+        };
+      }
+      if (sql.includes('from app.knowledge_entries')) {
+        assert.deepEqual(params, ['knowledge-expand-1']);
+        return {
+          rows: [
+            {
+              id: 'knowledge-expand-1',
+              title: '木旺知识',
+              concept_keys: ['wood'],
+              tags: ['五行'],
+              source_note: '内部知识库整理',
+            },
+          ],
+        };
+      }
+      throw new Error(`Unexpected query: ${sql}`);
+    },
+  };
+  const service = createGraphQueryService({ graphDriver: null, database: 'neo4j' });
+
+  const graph = await service.getTemplateGraph('template-expand-1', { pool });
+
+  assert.ok(graph.nodes.some((node) => node.id === 'rule:rule-expand-1' && node.label === '木旺规则'));
+  assert.ok(graph.nodes.some((node) => node.id === 'knowledge:knowledge-expand-1' && node.label === '木旺知识'));
+  assert.ok(graph.nodes.some((node) => node.id === 'concept:wood'));
+  assert.ok(graph.nodes.some((node) => node.id === 'source:knowledge-expand-1'));
+  assert.ok(graph.edges.some((edge) => edge.source === 'template:template-expand-1' && edge.target === 'rule:rule-expand-1' && edge.type === 'TRIGGERS'));
+  assert.ok(graph.edges.some((edge) => edge.source === 'rule:rule-expand-1' && edge.target === 'knowledge:knowledge-expand-1' && edge.type === 'USES'));
+  assert.ok(graph.edges.some((edge) => edge.source === 'knowledge:knowledge-expand-1' && edge.target === 'concept:wood' && edge.type === 'EXPLAINS'));
+  assert.ok(graph.edges.some((edge) => edge.source === 'knowledge:knowledge-expand-1' && edge.target === 'source:knowledge-expand-1' && edge.type === 'HAS_SOURCE'));
 });
 
 test('report graph returns stored provenance graph and report focus', async () => {
