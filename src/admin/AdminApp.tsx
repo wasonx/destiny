@@ -20,6 +20,7 @@ import ReportRunsPage from './pages/ReportRunsPage';
 import RulesPage from './pages/RulesPage';
 import SettingsPage from './pages/SettingsPage';
 import ShipmentsPage from './pages/ShipmentsPage';
+import SmsLogsPage from './pages/SmsLogsPage';
 import TemplatesPage from './pages/TemplatesPage';
 import TestBenchPage from './pages/TestBenchPage';
 import UsersPage from './pages/UsersPage';
@@ -43,6 +44,7 @@ const adminViews: AdminView[] = [
   'shipments',
   'refunds',
   'deliveryLogs',
+  'smsLogs',
   'auditLogs',
   'ops',
   'settings',
@@ -89,6 +91,7 @@ export default function AdminApp() {
       shipments: <ShipmentsPage />,
       refunds: <RefundsPage />,
       deliveryLogs: <DeliveryLogsPage />,
+      smsLogs: <SmsLogsPage />,
       auditLogs: <AuditLogsPage />,
       ops: <OpsPage />,
       settings: <SettingsPage />,

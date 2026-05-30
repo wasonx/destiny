@@ -56,4 +56,41 @@ export function mountSettingsRoutes(app, { config, pool = null } = {}) {
     }
     res.json(buildIntegrationStatus(config));
   });
+
+  app.get('/destiny-api/admin/sms-delivery-logs', async (req, res) => {
+    if (!requirePlatformAdmin(req, res, pool)) {
+      return;
+    }
+    if (!pool) {
+      res.json({ smsLogs: [] });
+      return;
+    }
+
+    const phone = String(req.query.phone || '').trim() || null;
+    const status = String(req.query.status || '').trim() || null;
+    const provider = String(req.query.provider || '').trim() || null;
+    const result = await pool.query(
+      `
+        select
+          id,
+          challenge_id,
+          phone,
+          purpose,
+          provider,
+          status,
+          template_id,
+          sign_name,
+          provider_payload,
+          created_at
+        from app.sms_delivery_logs
+        where ($1::text is null or phone = $1)
+          and ($2::text is null or status = $2)
+          and ($3::text is null or provider = $3)
+        order by created_at desc
+        limit 200
+      `,
+      [phone, status, provider],
+    );
+    res.json({ smsLogs: result.rows });
+  });
 }

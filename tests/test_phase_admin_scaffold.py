@@ -188,6 +188,22 @@ class AdminScaffoldTests(unittest.TestCase):
         for text in ["微信登录", "短信", "支付", "退款", "快递", "模拟发送", "人工确认"]:
             self.assertIn(text, page)
 
+    def test_sms_logs_page_calls_sms_delivery_log_endpoint(self):
+        app = (ROOT / "src" / "admin" / "AdminApp.tsx").read_text(encoding="utf-8")
+        layout = (ROOT / "src" / "admin" / "components" / "AdminLayout.tsx").read_text(encoding="utf-8")
+        page_path = ROOT / "src" / "admin" / "pages" / "SmsLogsPage.tsx"
+
+        self.assertTrue(page_path.exists())
+        page = page_path.read_text(encoding="utf-8")
+        self.assertIn("smsLogs", app)
+        self.assertIn("SmsLogsPage", app)
+        self.assertIn("smsLogs", layout)
+        self.assertIn("短信日志", layout)
+        self.assertIn("adminRequest", page)
+        self.assertIn("/sms-delivery-logs", page)
+        for text in ["手机号", "模拟发送", "provider", "template_id", "sign_name"]:
+            self.assertIn(text, page)
+
     def test_testbench_page_uses_authenticated_admin_request(self):
         page = (ROOT / "src" / "admin" / "pages" / "TestBenchPage.tsx").read_text(encoding="utf-8")
 
