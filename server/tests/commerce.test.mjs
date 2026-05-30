@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { createApp } from '../app.mjs';
+import * as orderService from '../commerce/order-service.mjs';
 import { createOrder, createPaymentIntent, markOrderShipped, markPaymentPaid } from '../commerce/order-service.mjs';
 import { buildEntitlementPayload } from '../commerce/product-mapping-service.mjs';
 import { assertPaymentTransition } from '../commerce/payment-state-machine.mjs';
@@ -134,6 +135,11 @@ function createCommerceClient({ cardInventory = 2 } = {}) {
       }
 
       if (text.startsWith('update app.payment_intents')) {
+        if (text.includes('where order_id = $1')) {
+          const rows = state.payments.filter((item) => item.order_id === params[0] && ['created', 'pending'].includes(item.status));
+          rows.forEach((payment) => { payment.status = 'cancelled'; });
+          return { rows, rowCount: rows.length };
+        }
         const payment = state.payments.find((item) => item.id === params[0]);
         payment.status = 'paid';
         return { rows: [payment], rowCount: 1 };
@@ -356,6 +362,57 @@ test('approved refund review marks the order refunded', async () => {
 
   assert.equal(client.state.refunds[0].status, 'approved');
   assert.equal(client.state.orders[0].status, 'refunded');
+});
+
+test('pending payment orders can be closed with audit log', async () => {
+  const client = createCommerceClient();
+  const order = await createOrder(client, {
+    customerId: 'customer-1',
+    items: [{ sku: 'REPORT-3', quantity: 1 }],
+  });
+  await createPaymentIntent(client, {
+    orderId: order.id,
+    amountCents: order.amount_cents,
+    provider: 'manual',
+  });
+
+  const closed = await orderService.closeOrder(client, {
+    orderId: order.id,
+    actorUserId: 'admin-1',
+    reason: '客户取消支付',
+  });
+
+  assert.equal(closed.status, 'closed');
+  assert.equal(client.state.payments[0].status, 'cancelled');
+  const audit = client.state.auditLogs.at(-1);
+  assert.equal(audit.action, 'order.close');
+  assert.equal(audit.target_type, 'commerce_order');
+  assert.equal(audit.target_id, order.id);
+  assert.equal(audit.metadata.reason, '客户取消支付');
+});
+
+test('paid orders cannot be closed directly', async () => {
+  const client = createCommerceClient();
+  const order = await createOrder(client, {
+    customerId: 'customer-1',
+    items: [{ sku: 'REPORT-3', quantity: 1 }],
+  });
+  const payment = await createPaymentIntent(client, {
+    orderId: order.id,
+    amountCents: order.amount_cents,
+    provider: 'manual',
+  });
+  await markPaymentPaid(client, { paymentIntentId: payment.id, actorUserId: 'admin-1' });
+
+  await assert.rejects(
+    () => orderService.closeOrder(client, {
+      orderId: order.id,
+      actorUserId: 'admin-1',
+      reason: '误关已支付订单',
+    }),
+    /INVALID_ORDER_STATUS/,
+  );
+  assert.equal(client.state.orders[0].status, 'paid');
 });
 
 test('refund review writes audit log with status and note', async () => {

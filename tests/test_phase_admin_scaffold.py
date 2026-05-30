@@ -82,6 +82,12 @@ class AdminScaffoldTests(unittest.TestCase):
         for text in ["请填写快递公司和单号", "发货成功", "发货失败", "setMessage", "setError"]:
             self.assertIn(text, page)
 
+    def test_orders_page_exposes_close_order_workflow(self):
+        page = (ROOT / "src" / "admin" / "pages" / "OrdersPage.tsx").read_text(encoding="utf-8")
+
+        for text in ["/orders/${orderId}/close", "关闭订单", "订单已关闭", "关闭订单失败", "closeOrder"]:
+            self.assertIn(text, page)
+
     def test_refunds_page_exposes_review_feedback(self):
         page = (ROOT / "src" / "admin" / "pages" / "RefundsPage.tsx").read_text(encoding="utf-8")
 

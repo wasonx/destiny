@@ -197,3 +197,40 @@ export async function markOrderShipped(client, { orderId, carrier, trackingNo, a
   );
   return shipment.rows[0];
 }
+
+export async function closeOrder(client, { orderId, actorUserId, reason = '' }) {
+  const orderResult = await client.query('select * from app.commerce_orders where id = $1 for update', [orderId]);
+  const order = orderResult.rows[0];
+  if (!order) throw new Error('ORDER_NOT_FOUND');
+  if (order.status !== 'pending_payment') {
+    const error = new Error(`INVALID_ORDER_STATUS:${order.status}`);
+    error.code = 'INVALID_ORDER_STATUS';
+    throw error;
+  }
+
+  const result = await client.query(
+    `
+      update app.commerce_orders
+      set status = $2, updated_at = now()
+      where id = $1
+      returning *
+    `,
+    [orderId, 'closed'],
+  );
+  await client.query(
+    `
+      update app.payment_intents
+      set status = 'cancelled', updated_at = now()
+      where order_id = $1 and status in ('created', 'pending')
+    `,
+    [orderId],
+  );
+  await client.query(
+    `
+      insert into app.audit_logs(actor_user_id, action, target_type, target_id, metadata)
+      values ($1, $2, $3, $4, $5)
+    `,
+    [actorUserId, 'order.close', 'commerce_order', orderId, { reason: reason || '后台关闭未支付订单' }],
+  );
+  return result.rows[0];
+}

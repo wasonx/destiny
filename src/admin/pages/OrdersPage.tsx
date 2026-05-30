@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { RefreshCcw } from 'lucide-react';
+import { RefreshCcw, XCircle } from 'lucide-react';
 import { adminRequest } from '../api';
 
 type Order = {
@@ -20,8 +20,12 @@ function money(value: number) {
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [closeNotes, setCloseNotes] = useState<Record<string, string>>({});
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
   async function loadOrders() {
+    setError('');
     const data = await adminRequest<{ orders: Order[] }>('/orders');
     setOrders(data.orders || []);
   }
@@ -30,10 +34,29 @@ export default function OrdersPage() {
     void loadOrders();
   }, []);
 
+  async function closeOrder(orderId: string) {
+    setMessage('');
+    setError('');
+    try {
+      await adminRequest(`/orders/${orderId}/close`, {
+        method: 'POST',
+        body: JSON.stringify({ reason: closeNotes[orderId] || '后台关闭未支付订单' }),
+      });
+      setMessage('订单已关闭');
+      await loadOrders();
+    } catch {
+      setError('关闭订单失败');
+    }
+  }
+
   return (
     <section className="overflow-x-auto rounded-lg border border-shadow-gray bg-white">
       <div className="flex items-center justify-between border-b border-shadow-gray p-5">
-        <h2 className="font-serif text-2xl">订单管理</h2>
+        <div>
+          <h2 className="font-serif text-2xl">订单管理</h2>
+          {message && <p className="mt-3 rounded-md bg-surface px-3 py-2 text-sm text-serene-teal">{message}</p>}
+          {error && <p className="mt-3 rounded-md bg-surface px-3 py-2 text-sm text-red-600">{error}</p>}
+        </div>
         <button onClick={() => void loadOrders()} className="inline-flex items-center gap-2 rounded-md border border-shadow-gray px-3 py-2 text-sm">
           <RefreshCcw className="h-4 w-4" />
           刷新
@@ -49,6 +72,7 @@ export default function OrdersPage() {
             <th>运费</th>
             <th>商品</th>
             <th>收货</th>
+            <th>操作</th>
           </tr>
         </thead>
         <tbody>
@@ -61,6 +85,17 @@ export default function OrdersPage() {
               <td>{money(order.freight_cents)}</td>
               <td className="max-w-[260px] truncate">{(order.items || []).map((item) => `${item.name || item.sku} x${item.quantity}`).join('，')}</td>
               <td className="max-w-[220px] truncate">{order.address_snapshot ? JSON.stringify(order.address_snapshot) : '-'}</td>
+              <td>
+                {order.status === 'pending_payment' ? (
+                  <div className="flex min-w-[260px] items-center gap-2">
+                    <input value={closeNotes[order.id] || ''} onChange={(event) => setCloseNotes({ ...closeNotes, [order.id]: event.target.value })} placeholder="关闭原因" className="w-36 rounded-md border border-shadow-gray px-3 py-2" />
+                    <button type="button" onClick={() => void closeOrder(order.id)} className="inline-flex items-center gap-1 rounded-md border border-shadow-gray px-3 py-2 text-cinnabar">
+                      <XCircle className="h-4 w-4" />
+                      关闭订单
+                    </button>
+                  </div>
+                ) : '-'}
+              </td>
             </tr>
           ))}
         </tbody>

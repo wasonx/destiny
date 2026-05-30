@@ -1,4 +1,4 @@
-import { createOrder, createPaymentIntent, markOrderShipped, markPaymentPaid } from '../commerce/order-service.mjs';
+import { closeOrder, createOrder, createPaymentIntent, markOrderShipped, markPaymentPaid } from '../commerce/order-service.mjs';
 import { buildEntitlementPayload } from '../commerce/product-mapping-service.mjs';
 import { createRefundRequest, reviewRefundRequest } from '../commerce/refund-service.mjs';
 import { requireSession } from '../middleware/require-session.mjs';
@@ -330,6 +330,25 @@ function mountDatabaseCommerceRoutes(app, { pool, config }) {
     }
   }));
 
+  app.post('/destiny-api/admin/orders/:id/close', adminOnly, asyncRoute(async (req, res) => {
+    const client = await pool.connect();
+    try {
+      await client.query('begin');
+      const order = await closeOrder(client, {
+        orderId: req.params.id,
+        actorUserId: req.session.user_id,
+        reason: req.body?.reason || '',
+      });
+      await client.query('commit');
+      res.json({ order });
+    } catch (error) {
+      await client.query('rollback');
+      res.status(knownCommerceStatus(error)).json({ error: error.code || error.message });
+    } finally {
+      client.release();
+    }
+  }));
+
   app.get('/destiny-api/admin/refund-requests', adminOnly, asyncRoute(async (_req, res) => {
     const result = await pool.query('select * from app.refund_requests order by created_at desc');
     res.json({ refundRequests: result.rows });
@@ -475,6 +494,17 @@ function mountMemoryCommerceRoutes(app) {
     order.status = 'shipped';
     order.shipment = shipment;
     res.json({ shipment, order });
+  });
+
+  app.post('/destiny-api/admin/orders/:id/close', (req, res) => {
+    const order = memory.orders.find((item) => item.id === req.params.id);
+    if (!order || order.status !== 'pending_payment') {
+      res.status(order ? 400 : 404).json({ error: order ? 'INVALID_ORDER_STATUS' : 'ORDER_NOT_FOUND' });
+      return;
+    }
+    order.status = 'closed';
+    order.close_reason = req.body?.reason || '后台关闭未支付订单';
+    res.json({ order });
   });
 
   app.get('/destiny-api/admin/refund-requests', (_req, res) => res.json({ refundRequests: memory.refunds }));
