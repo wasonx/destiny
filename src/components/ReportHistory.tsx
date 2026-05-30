@@ -26,6 +26,25 @@ function asArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
 }
 
+function asObjectArray(value: unknown): Array<Record<string, unknown>> {
+  return Array.isArray(value) ? value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object') : [];
+}
+
+function textOf(value: unknown) {
+  return typeof value === 'string' && value.trim() ? value.trim() : '';
+}
+
+function titleOf(item: Record<string, unknown>, fallback: string) {
+  return textOf(item.title) || textOf(item.name) || textOf(item.label) || textOf(item.conclusion) || textOf(item.id) || fallback;
+}
+
+function edgeText(edge: Record<string, unknown>) {
+  const from = textOf(edge.source) || textOf(edge.from) || '节点';
+  const to = textOf(edge.target) || textOf(edge.to) || '节点';
+  const type = textOf(edge.type) || textOf(edge.label) || '关联';
+  return `${from} -${type}-> ${to}`;
+}
+
 function getReport(run: CustomerReportRun | null) {
   return (run?.final_report || {}) as {
     title?: string;
@@ -83,6 +102,9 @@ export default function ReportHistory() {
   const actions = asArray(activeReport.actions);
   const tier = selected?.report_tier === 'full' ? '完整版' : '免费体验版';
   const kind = selected?.report_kind ? kindLabels[selected.report_kind] || selected.report_kind : '报告';
+  const ruleHits = asObjectArray(selected?.provenance?.ruleHits || selected?.structured_context?.rules);
+  const knowledgeSources = asObjectArray(selected?.provenance?.knowledgeSources || selected?.structured_context?.knowledge);
+  const graphEdges = asObjectArray(selected?.provenance?.graphEdges || selected?.structured_context?.graphEdges);
 
   return (
     <div className="space-y-6 py-4">
@@ -188,6 +210,39 @@ export default function ReportHistory() {
                 </div>
               </div>
             ) : null}
+
+            <div className="grid gap-4 border-t border-shadow-gray pt-4 md:grid-cols-3">
+              <div>
+                <h4 className="font-serif text-lg text-ink-blue">命中规则</h4>
+                {ruleHits.length ? (
+                  <div className="mt-3 space-y-2">
+                    {ruleHits.slice(0, 5).map((rule, index) => (
+                      <p key={`${titleOf(rule, '规则')}-${index}`} className="rounded-md bg-report-bg px-3 py-2 text-xs text-on-surface-variant">{titleOf(rule, `规则 ${index + 1}`)}</p>
+                    ))}
+                  </div>
+                ) : <p className="mt-2 text-xs text-on-surface-variant">暂无规则命中记录。</p>}
+              </div>
+              <div>
+                <h4 className="font-serif text-lg text-ink-blue">知识来源</h4>
+                {knowledgeSources.length ? (
+                  <div className="mt-3 space-y-2">
+                    {knowledgeSources.slice(0, 5).map((knowledge, index) => (
+                      <p key={`${titleOf(knowledge, '知识')}-${index}`} className="rounded-md bg-report-bg px-3 py-2 text-xs text-on-surface-variant">{titleOf(knowledge, `知识 ${index + 1}`)}</p>
+                    ))}
+                  </div>
+                ) : <p className="mt-2 text-xs text-on-surface-variant">暂无知识来源记录。</p>}
+              </div>
+              <div>
+                <h4 className="font-serif text-lg text-ink-blue">图谱路径</h4>
+                {graphEdges.length ? (
+                  <div className="mt-3 space-y-2">
+                    {graphEdges.slice(0, 5).map((edge, index) => (
+                      <p key={`${edgeText(edge)}-${index}`} className="rounded-md bg-report-bg px-3 py-2 text-xs text-on-surface-variant">{edgeText(edge)}</p>
+                    ))}
+                  </div>
+                ) : <p className="mt-2 text-xs text-on-surface-variant">暂无图谱路径记录。</p>}
+              </div>
+            </div>
 
             <div className="flex items-start gap-2 border-t border-shadow-gray pt-4 text-xs leading-relaxed text-outline">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-serene-teal" />

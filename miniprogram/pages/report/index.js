@@ -8,6 +8,47 @@ const kindLabels = {
   space: '安居',
 };
 
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function textOf(value) {
+  return typeof value === 'string' && value.trim() ? value.trim() : '';
+}
+
+function titleOf(item, fallback) {
+  if (!item || typeof item !== 'object') return fallback;
+  return textOf(item.title) || textOf(item.name) || textOf(item.label) || textOf(item.conclusion) || textOf(item.id) || fallback;
+}
+
+function edgeText(edge) {
+  if (!edge || typeof edge !== 'object') return '暂无路径';
+  const from = textOf(edge.source) || textOf(edge.from) || '节点';
+  const to = textOf(edge.target) || textOf(edge.to) || '节点';
+  const type = textOf(edge.type) || textOf(edge.label) || '关联';
+  return `${from} -${type}-> ${to}`;
+}
+
+function formatProvenance(run) {
+  const provenance = (run && run.provenance) || {};
+  const context = (run && run.structured_context) || {};
+  const rules = asArray(provenance.ruleHits || context.rules)
+    .slice(0, 5)
+    .map((rule, index) => titleOf(rule, `规则 ${index + 1}`));
+  const knowledge = asArray(provenance.knowledgeSources || context.knowledge)
+    .slice(0, 5)
+    .map((item, index) => titleOf(item, `知识 ${index + 1}`));
+  const paths = asArray(provenance.graphEdges || context.graphEdges)
+    .slice(0, 5)
+    .map(edgeText);
+
+  return {
+    rules,
+    knowledge,
+    paths,
+  };
+}
+
 function formatReportRun(run) {
   const report = run && run.final_report ? run.final_report : null;
   if (!report) return null;
@@ -19,6 +60,7 @@ function formatReportRun(run) {
     source: report.source || run.source,
     reportRunId: run.id,
     createdAt: run.created_at,
+    provenanceSummary: formatProvenance(run),
   };
 }
 

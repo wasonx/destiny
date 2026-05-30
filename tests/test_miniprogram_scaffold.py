@@ -111,6 +111,11 @@ class MiniprogramScaffoldTests(unittest.TestCase):
         self.assertIn("historyRuns", report_wxml)
         self.assertIn("report_tier", report_wxml)
         self.assertIn("final_report", report_js)
+        self.assertIn("formatProvenance", report_js)
+        self.assertIn("命中规则", report_wxml)
+        self.assertIn("知识来源", report_wxml)
+        self.assertIn("图谱路径", report_wxml)
+        self.assertIn("provenanceSummary", report_wxml)
 
     def test_backend_api_and_branding_are_consistent(self):
         combined = "\n".join(

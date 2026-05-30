@@ -59,5 +59,30 @@
     <view class="disclaimer">{{report.disclaimer}}</view>
   </view>
 
+  <view class="section provenance-section" wx:if="{{report.provenanceSummary}}">
+    <view class="section-title">报告溯源</view>
+    <view class="provenance-group">
+      <view class="provenance-title">命中规则</view>
+      <block wx:if="{{report.provenanceSummary.rules.length}}" wx:for="{{report.provenanceSummary.rules}}" wx:key="*this">
+        <view class="provenance-item">{{item}}</view>
+      </block>
+      <view wx:else class="provenance-empty">暂无规则命中记录</view>
+    </view>
+    <view class="provenance-group">
+      <view class="provenance-title">知识来源</view>
+      <block wx:if="{{report.provenanceSummary.knowledge.length}}" wx:for="{{report.provenanceSummary.knowledge}}" wx:key="*this">
+        <view class="provenance-item">{{item}}</view>
+      </block>
+      <view wx:else class="provenance-empty">暂无知识来源记录</view>
+    </view>
+    <view class="provenance-group">
+      <view class="provenance-title">图谱路径</view>
+      <block wx:if="{{report.provenanceSummary.paths.length}}" wx:for="{{report.provenanceSummary.paths}}" wx:key="*this">
+        <view class="provenance-item">{{item}}</view>
+      </block>
+      <view wx:else class="provenance-empty">暂无图谱路径记录</view>
+    </view>
+  </view>
+
   <button class="primary-button" bindtap="goHome">返回首页</button>
 </view>

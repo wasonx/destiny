@@ -63,6 +63,12 @@ class OnlineIntegrationScaffoldTests(unittest.TestCase):
         self.assertIn("报告历史", history)
         self.assertIn("report_tier", history)
         self.assertIn("final_report", history)
+        self.assertIn("命中规则", history)
+        self.assertIn("知识来源", history)
+        self.assertIn("图谱路径", history)
+        self.assertIn("selected?.provenance?.ruleHits", history)
+        self.assertIn("selected?.provenance?.knowledgeSources", history)
+        self.assertIn("selected?.provenance?.graphEdges", history)
 
     def test_h5_desktop_navigation_exposes_report_history(self):
         layout = (ROOT / "src" / "components" / "Layout.tsx").read_text(encoding="utf-8")

@@ -128,3 +128,36 @@
   line-height: 1.6;
   margin-top: 24rpx;
 }
+
+.provenance-section {
+  display: flex;
+  flex-direction: column;
+  gap: 22rpx;
+}
+
+.provenance-group {
+  border-top: 1rpx solid #e5e7eb;
+  padding-top: 18rpx;
+}
+
+.provenance-title {
+  color: #1a2f4b;
+  font-size: 28rpx;
+  font-weight: 700;
+  margin-bottom: 12rpx;
+}
+
+.provenance-item,
+.provenance-empty {
+  background: #f9fafb;
+  border-radius: 12rpx;
+  color: #4b5563;
+  font-size: 24rpx;
+  line-height: 1.6;
+  margin-top: 10rpx;
+  padding: 14rpx 18rpx;
+}
+
+.provenance-empty {
+  color: #9ca3af;
+}
