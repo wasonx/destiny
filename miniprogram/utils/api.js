@@ -89,6 +89,14 @@ function createRefundRequest(orderId, payload) {
   });
 }
 
+function listReportRuns() {
+  return request('/customer/report-runs');
+}
+
+function getReportRun(id) {
+  return request(`/customer/report-runs/${id}`);
+}
+
 function applyReportTier(report, tier) {
   const isPreview = report.isPreview !== undefined ? report.isPreview : tier === 'free';
   const next = {
@@ -139,5 +147,7 @@ module.exports = {
   listOrders,
   getOrder,
   createRefundRequest,
+  listReportRuns,
+  getReportRun,
   generateInsight,
 };

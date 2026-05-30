@@ -66,6 +66,8 @@ class MiniprogramScaffoldTests(unittest.TestCase):
             "listOrders",
             "createRefundRequest",
             "fetchValueState",
+            "listReportRuns",
+            "getReportRun",
         ]:
             self.assertIn(helper, api_js)
 
@@ -92,6 +94,23 @@ class MiniprogramScaffoldTests(unittest.TestCase):
         self.assertIn("verifyPhoneOtp", login_js)
         self.assertIn("微信登录", login_wxml)
         self.assertIn("手机验证码登录", login_wxml)
+
+    def test_native_report_page_loads_customer_report_history(self):
+        api_js = (MINI / "utils" / "api.js").read_text(encoding="utf-8")
+        report_js = (MINI / "pages" / "report" / "index.js").read_text(encoding="utf-8")
+        report_wxml = (MINI / "pages" / "report" / "index.wxml").read_text(encoding="utf-8")
+
+        self.assertIn("/customer/report-runs", api_js)
+        self.assertIn("listReportRuns", api_js)
+        self.assertIn("getReportRun", api_js)
+        self.assertIn("listReportRuns", report_js)
+        self.assertIn("getReportRun", report_js)
+        self.assertIn("loadHistory", report_js)
+        self.assertIn("openReportRun", report_js)
+        self.assertIn("报告历史", report_wxml)
+        self.assertIn("historyRuns", report_wxml)
+        self.assertIn("report_tier", report_wxml)
+        self.assertIn("final_report", report_js)
 
     def test_backend_api_and_branding_are_consistent(self):
         combined = "\n".join(

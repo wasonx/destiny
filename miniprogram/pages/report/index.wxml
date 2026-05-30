@@ -1,4 +1,21 @@
 <view class="page report-page" wx:if="{{report}}">
+  <view class="section history-section">
+    <view class="section-title">报告历史</view>
+    <view class="history-loading" wx:if="{{loadingHistory}}">正在读取历史报告</view>
+    <view class="history-empty" wx:if="{{!loadingHistory && !historyRuns.length}}">暂无历史报告，当前显示本次报告。</view>
+    <scroll-view wx:if="{{historyRuns.length}}" scroll-x class="history-scroll">
+      <view class="history-list">
+        <block wx:for="{{historyRuns}}" wx:key="id">
+          <view class="history-card {{selectedRunId === item.id ? 'active' : ''}}" data-id="{{item.id}}" bindtap="openReportRun">
+            <view class="history-title">{{item.title}}</view>
+            <view class="history-meta">{{item.kindText}} · {{item.report_tier === 'full' ? '完整版' : '免费版'}}</view>
+            <view class="history-time">{{item.timeText}}</view>
+          </view>
+        </block>
+      </view>
+    </scroll-view>
+  </view>
+
   <view class="section report-header">
     <view class="report-title">{{report.title}}</view>
     <view class="report-subtitle">{{report.subtitle}}</view>

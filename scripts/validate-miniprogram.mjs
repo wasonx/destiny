@@ -105,9 +105,14 @@ for (const file of jsFiles) {
 const apiJs = readText(path.join(MINI, 'utils', 'api.js'));
 const authJs = readText(path.join(MINI, 'utils', 'auth.js'));
 const loginWxml = readText(path.join(MINI, 'pages', 'login', 'index.wxml'));
+const reportJs = readText(path.join(MINI, 'pages', 'report', 'index.js'));
+const reportWxml = readText(path.join(MINI, 'pages', 'report', 'index.wxml'));
 assert(apiJs.includes(EXPECTED_API_BASE), `utils/api.js must use ${EXPECTED_API_BASE}`);
 assert(apiJs.includes('wx.request'), 'utils/api.js must use wx.request');
 assert(apiJs.includes('Authorization'), 'utils/api.js must attach customer token authorization');
+assert(apiJs.includes('listReportRuns'), 'utils/api.js must include report history list helper');
+assert(apiJs.includes('getReportRun'), 'utils/api.js must include report history detail helper');
+assert(apiJs.includes('/customer/report-runs'), 'utils/api.js must call customer report history endpoint');
 assert(authJs.includes('loginWithWechatCode'), 'auth.js must keep native WeChat login');
 assert(authJs.includes('sendPhoneOtp'), 'auth.js must include mock phone OTP send helper');
 assert(authJs.includes('verifyPhoneOtp'), 'auth.js must include mock phone OTP verify helper');
@@ -115,6 +120,11 @@ assert(authJs.includes('/customer/otp/send'), 'auth.js must call mock OTP send e
 assert(authJs.includes('/customer/otp/verify'), 'auth.js must call mock OTP verify endpoint');
 assert(loginWxml.includes('微信登录'), 'login page must show WeChat login entry');
 assert(loginWxml.includes('手机验证码登录'), 'login page must show phone OTP login entry');
+assert(reportJs.includes('loadHistory'), 'report page must load customer report history');
+assert(reportJs.includes('openReportRun'), 'report page must open a report history detail');
+assert(reportJs.includes('final_report'), 'report page must map stored final_report payloads');
+assert(reportWxml.includes('报告历史'), 'report page must show report history section');
+assert(reportWxml.includes('historyRuns'), 'report page must render report history runs');
 
 const compassJs = readText(path.join(MINI, 'pages', 'compass', 'index.js'));
 assert(compassJs.includes('wx.startCompass'), 'compass page must call wx.startCompass');

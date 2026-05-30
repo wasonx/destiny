@@ -2,6 +2,58 @@
   text-align: left;
 }
 
+.history-section {
+  padding-bottom: 20rpx;
+}
+
+.history-loading,
+.history-empty {
+  color: #6b7280;
+  font-size: 26rpx;
+  line-height: 1.6;
+}
+
+.history-scroll {
+  width: 100%;
+  white-space: nowrap;
+}
+
+.history-list {
+  display: inline-flex;
+  gap: 16rpx;
+  padding: 4rpx 0 8rpx;
+}
+
+.history-card {
+  width: 300rpx;
+  white-space: normal;
+  border: 1rpx solid #e5e7eb;
+  border-radius: 14rpx;
+  background: #f9fafb;
+  padding: 20rpx;
+  box-sizing: border-box;
+}
+
+.history-card.active {
+  border-color: #4a7c77;
+  background: #edf7f5;
+}
+
+.history-title {
+  color: #1a2f4b;
+  font-size: 28rpx;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.history-meta,
+.history-time {
+  color: #6b7280;
+  font-size: 23rpx;
+  line-height: 1.5;
+  margin-top: 8rpx;
+}
+
 .report-title {
   color: #1a2f4b;
   font-size: 44rpx;
