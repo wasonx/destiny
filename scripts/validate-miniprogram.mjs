@@ -98,6 +98,12 @@ const allSource = allFiles
 
 for (const file of jsonFiles) readJson(file);
 
+for (const file of wxmlFiles) {
+  const text = readText(file);
+  const ifForElsePattern = /<([\w-]+)\b(?=[^>]*\bwx:if=)(?=[^>]*\bwx:for=)[^>]*>[\s\S]*?<\/\1>\s*<[\w-]+\b[^>]*\bwx:else\b/;
+  assert(!ifForElsePattern.test(text), `${rel(file)} must not place wx:if and wx:for on the same element before wx:else`);
+}
+
 for (const file of jsFiles) {
   const result = spawnSync(process.execPath, ['--check', file], { encoding: 'utf8' });
   assert(result.status === 0, `JS syntax check failed for ${rel(file)}\n${result.stderr || result.stdout}`);
