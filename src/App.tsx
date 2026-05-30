@@ -14,10 +14,11 @@ import Anju from './components/Anju';
 import LoginPanel from './components/LoginPanel';
 import ValueState from './components/ValueState';
 import ReportHistory from './components/ReportHistory';
+import CustomerCenter from './components/CustomerCenter';
 import { generateInsight, InsightReport } from './lib/insights';
 import { getCustomerToken } from './lib/customerAuth';
 
-type ViewType = 'home' | 'input' | 'report' | 'relationship' | 'questions' | 'anju';
+type ViewType = 'home' | 'input' | 'report' | 'relationship' | 'questions' | 'anju' | 'profile';
 
 export default function App() {
   const [view, setView] = useState<ViewType>('home');
@@ -37,6 +38,9 @@ export default function App() {
       setReportsView(false);
     } else if (tab === 'reports') {
       setReportsView(true);
+    } else if (tab === 'profile') {
+      setView('profile');
+      setReportsView(false);
     }
   };
 
@@ -73,6 +77,8 @@ export default function App() {
         return <Questions />;
       case 'anju':
         return <Anju />;
+      case 'profile':
+        return customerLoggedIn ? <CustomerCenter /> : <LoginPanel onLoggedIn={() => setCustomerLoggedIn(true)} />;
       default:
         return <Home onNavigate={handleNavigate} />;
     }
@@ -86,21 +92,24 @@ export default function App() {
       case 'relationship': return "甄算 · 合缘";
       case 'questions': return "甄算 · 问时";
       case 'anju': return "甄算 · 安居";
+      case 'profile': return "甄算 · 我";
       default: return "甄算";
     }
   };
 
+  const isTopLevel = view === 'home' || view === 'profile' || reportsView;
+
   return (
     <Layout 
-      activeTab={reportsView ? 'reports' : (view === 'home' || view === 'input' ? 'home' : 'profile')} 
+      activeTab={reportsView ? 'reports' : (view === 'profile' ? 'profile' : 'home')} 
       onTabChange={handleTabChange}
       title={getTitle()}
-      showBack={view !== 'home' || reportsView}
+      showBack={!isTopLevel}
       onBack={() => {
         if (reportsView) setReportsView(false);
         else setView('home');
       }}
-      hideBottomNav={view !== 'home' || reportsView}
+      hideBottomNav={!isTopLevel}
     >
       {renderContent()}
     </Layout>

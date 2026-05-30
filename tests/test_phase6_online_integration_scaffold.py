@@ -71,6 +71,25 @@ class OnlineIntegrationScaffoldTests(unittest.TestCase):
         self.assertIn("onTabChange('reports')", layout)
         self.assertIn("报告", layout)
 
+    def test_h5_exposes_customer_commerce_center(self):
+        app_tsx = (ROOT / "src" / "App.tsx").read_text(encoding="utf-8")
+        commerce_path = ROOT / "src" / "lib" / "customerCommerce.ts"
+        center_path = ROOT / "src" / "components" / "CustomerCenter.tsx"
+
+        self.assertTrue(commerce_path.exists(), "missing H5 customer commerce API helpers")
+        self.assertTrue(center_path.exists(), "missing H5 customer center component")
+        commerce = commerce_path.read_text(encoding="utf-8")
+        center = center_path.read_text(encoding="utf-8")
+
+        for helper in ["listProducts", "createOrder", "listOrders", "createRefundRequest"]:
+            self.assertIn(helper, commerce)
+        for endpoint in ["/customer/products", "/customer/orders", "/refund-requests"]:
+            self.assertIn(endpoint, commerce)
+        for text in ["客户中心", "会员状态", "积分余额", "商城", "订单", "申请退款"]:
+            self.assertIn(text, center)
+        self.assertIn("CustomerCenter", app_tsx)
+        self.assertIn("view === 'profile'", app_tsx)
+
 
 if __name__ == "__main__":
     unittest.main()
