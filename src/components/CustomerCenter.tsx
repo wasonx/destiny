@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { MapPin, PackageCheck, ReceiptText, RefreshCw, ShoppingBag, Sparkles } from 'lucide-react';
 import { fetchValueState } from '../lib/customerAuth';
 import { createAddress, createOrder, createRefundRequest, CustomerAddress, CustomerOrder, CustomerProduct, listAddresses, listOrders, listProducts } from '../lib/customerCommerce';
+import { fetchLegalDocuments, LegalDocumentsResponse } from '../lib/legal';
 
 function money(cents?: number) {
   return (Number(cents || 0) / 100).toFixed(2);
@@ -65,21 +66,24 @@ export default function CustomerCenter() {
   const [savingAddress, setSavingAddress] = useState(false);
   const [refundingId, setRefundingId] = useState('');
   const [message, setMessage] = useState('');
+  const [legal, setLegal] = useState<LegalDocumentsResponse | null>(null);
 
   async function loadCenter() {
     setLoading(true);
     setMessage('');
     try {
-      const [stateData, productData, orderData, addressData] = await Promise.all([
+      const [stateData, productData, orderData, addressData, legalData] = await Promise.all([
         fetchValueState().catch(() => null),
         listProducts().catch(() => ({ products: [] })),
         listOrders().catch(() => ({ orders: [] })),
         listAddresses().catch(() => ({ addresses: [] })),
+        fetchLegalDocuments().catch(() => null),
       ]);
       setValueState(stateData);
       setProducts(productData.products || []);
       setOrders(orderData.orders || []);
       setAddresses(addressData.addresses || []);
+      setLegal(legalData);
       if (!selectedAddressId && addressData.addresses?.[0]?.id) {
         setSelectedAddressId(addressData.addresses[0].id);
       }
@@ -278,6 +282,35 @@ export default function CustomerCenter() {
           ))}
         </div>
         {!orders.length && !loading ? <p className="rounded-lg border border-shadow-gray bg-white p-5 text-sm text-on-surface-variant">暂无订单。</p> : null}
+      </section>
+
+      <section className="space-y-4">
+        <div>
+          <h3 className="font-serif text-xl text-ink-blue">用户协议、隐私政策与报告分层与风险边界说明</h3>
+          <p className="mt-1 text-sm text-on-surface-variant">查看甄算服务性质、信息使用范围、免费体验版与完整版边界。</p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          {legal ? [
+            legal.documents.userAgreement,
+            legal.documents.privacyPolicy,
+            legal.documents.reportCompliance,
+          ].map((document) => (
+            <article key={document.title} className="rounded-lg border border-shadow-gray bg-white p-5">
+              <h4 className="font-serif text-lg text-ink-blue">{document.title}</h4>
+              <p className="mt-1 text-xs text-on-surface-variant">更新日期：{document.updatedAt}</p>
+              <div className="mt-4 space-y-3 text-sm leading-relaxed text-on-surface-variant">
+                {document.sections.map((section) => (
+                  <div key={section.heading}>
+                    <div className="font-medium text-ink-blue">{section.heading}</div>
+                    <p className="mt-1">{section.content}</p>
+                  </div>
+                ))}
+              </div>
+            </article>
+          )) : (
+            <p className="rounded-lg border border-shadow-gray bg-white p-5 text-sm text-on-surface-variant md:col-span-3">合规文案加载中。</p>
+          )}
+        </div>
       </section>
     </div>
   );

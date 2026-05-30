@@ -40,6 +40,7 @@ class MiniprogramScaffoldTests(unittest.TestCase):
                 "pages/address/index",
                 "pages/orders/index",
                 "pages/report/index",
+                "pages/legal/index",
             ],
         )
         self.assertEqual(app_json["window"]["navigationBarTitleText"], "甄算")

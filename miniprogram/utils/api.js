@@ -97,6 +97,10 @@ function getReportRun(id) {
   return request(`/customer/report-runs/${id}`);
 }
 
+function getLegalDocuments() {
+  return request('/legal');
+}
+
 function applyReportTier(report, tier) {
   const isPreview = report.isPreview !== undefined ? report.isPreview : tier === 'free';
   const next = {
@@ -149,5 +153,6 @@ module.exports = {
   createRefundRequest,
   listReportRuns,
   getReportRun,
+  getLegalDocuments,
   generateInsight,
 };

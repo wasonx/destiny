@@ -6,6 +6,7 @@ import { mountCustomerAuthRoutes } from './routes/customer-auth-routes.mjs';
 import { mountEntitlementRoutes } from './routes/entitlement-routes.mjs';
 import { mountGraphRoutes } from './routes/graph-routes.mjs';
 import { mountKnowledgeRoutes } from './routes/knowledge-routes.mjs';
+import { mountLegalRoutes } from './routes/legal-routes.mjs';
 import { mountOpsRoutes } from './routes/ops-routes.mjs';
 import { mountReportHistoryRoutes } from './routes/report-history-routes.mjs';
 import { mountReportRoutes } from './routes/report-routes.mjs';
@@ -24,6 +25,7 @@ export function createApp({ config, pool = null, graphDriver = null, wechatSessi
   app.use(express.json({ limit: '1mb' }));
 
   mountReportRoutes(app, { config, pool, graphDriver });
+  mountLegalRoutes(app);
   mountAdminAuthRoutes(app, { config, pool });
   if (pool) {
     app.use('/destiny-api/admin', requireSession({ config, pool, accountTypes: ['editor', 'admin'] }));

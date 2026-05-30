@@ -21,6 +21,7 @@ pages/store/index         商城：报告次数包和实物产品
 pages/address/index       收货地址：实物商品地址维护
 pages/orders/index        订单：订单记录和退款申请
 pages/report/index        报告页
+pages/legal/index         协议与隐私：用户协议、隐私政策和报告分层说明
 ```
 
 后端接口统一使用：
@@ -78,6 +79,7 @@ D:\Projects\destiny\miniprogram
 8. 进入「收货地址」，能填写实物商品收货信息。
 9. 进入「订单」，能查看订单并提交退款申请。
 10. 报告页免责声明正常展示。
+11. 进入「合规」，能查看用户协议、隐私政策和报告分层说明。
 
 ## 命令行验收
 

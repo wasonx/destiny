@@ -20,6 +20,7 @@ const REQUIRED_PAGES = [
   'pages/address/index',
   'pages/orders/index',
   'pages/report/index',
+  'pages/legal/index',
 ];
 
 const errors = [];
@@ -125,6 +126,16 @@ assert(reportJs.includes('openReportRun'), 'report page must open a report histo
 assert(reportJs.includes('final_report'), 'report page must map stored final_report payloads');
 assert(reportWxml.includes('报告历史'), 'report page must show report history section');
 assert(reportWxml.includes('historyRuns'), 'report page must render report history runs');
+assert(apiJs.includes('getLegalDocuments'), 'utils/api.js must include legal documents helper');
+assert(apiJs.includes('/legal'), 'utils/api.js must call legal documents endpoint');
+
+const legalJs = readText(path.join(MINI, 'pages', 'legal', 'index.js'));
+const legalWxml = readText(path.join(MINI, 'pages', 'legal', 'index.wxml'));
+assert(legalJs.includes('getLegalDocuments'), 'legal page must load legal documents from API');
+assert(legalWxml.includes('用户协议'), 'legal page must show user agreement');
+assert(legalWxml.includes('隐私政策'), 'legal page must show privacy policy');
+assert(legalWxml.includes('报告分层与风险边界说明'), 'legal page must show report compliance');
+assert(legalWxml.includes('不提供医疗、投资、法律等确定性建议'), 'legal page must show high-risk disclaimer');
 
 const compassJs = readText(path.join(MINI, 'pages', 'compass', 'index.js'));
 assert(compassJs.includes('wx.startCompass'), 'compass page must call wx.startCompass');

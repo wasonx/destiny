@@ -46,6 +46,13 @@ Page({
         description: '购买报告次数包或实物产品，查看订单和退款进度。',
         view: '/pages/store/index',
       },
+      {
+        id: 'legal',
+        title: '合规',
+        subtitle: '协议与隐私',
+        description: '查看用户协议、隐私政策、报告分层和风险边界说明。',
+        view: '/pages/legal/index',
+      },
     ],
   },
 

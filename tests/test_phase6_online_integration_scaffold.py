@@ -167,6 +167,35 @@ class OnlineIntegrationScaffoldTests(unittest.TestCase):
                 self.assertIn("完整版", source)
                 self.assertIn("tier: reportTier", source)
 
+    def test_h5_and_miniprogram_expose_legal_documents(self):
+        h5_center = (ROOT / "src" / "components" / "CustomerCenter.tsx").read_text(encoding="utf-8")
+        h5_legal = ROOT / "src" / "lib" / "legal.ts"
+        app_json = json.loads((MINI / "app.json").read_text(encoding="utf-8"))
+        mini_api = (MINI / "utils" / "api.js").read_text(encoding="utf-8")
+
+        self.assertTrue(h5_legal.exists(), "missing H5 legal API helper")
+        legal_source = h5_legal.read_text(encoding="utf-8")
+        self.assertIn("/legal", legal_source)
+        self.assertIn("fetchLegalDocuments", legal_source)
+        self.assertIn("用户协议", h5_center)
+        self.assertIn("隐私政策", h5_center)
+        self.assertIn("报告分层与风险边界说明", h5_center)
+        self.assertIn("fetchLegalDocuments", h5_center)
+
+        self.assertIn("pages/legal/index", app_json["pages"])
+        for suffix in ["js", "wxml", "wxss", "json"]:
+            self.assertTrue((MINI / "pages" / "legal" / f"index.{suffix}").exists())
+        self.assertIn("getLegalDocuments", mini_api)
+        self.assertIn("/legal", mini_api)
+
+        mini_legal_js = (MINI / "pages" / "legal" / "index.js").read_text(encoding="utf-8")
+        mini_legal_wxml = (MINI / "pages" / "legal" / "index.wxml").read_text(encoding="utf-8")
+        self.assertIn("getLegalDocuments", mini_legal_js)
+        self.assertIn("用户协议", mini_legal_wxml)
+        self.assertIn("隐私政策", mini_legal_wxml)
+        self.assertIn("报告分层与风险边界说明", mini_legal_wxml)
+        self.assertIn("不提供医疗、投资、法律等确定性建议", mini_legal_wxml)
+
 
 if __name__ == "__main__":
     unittest.main()

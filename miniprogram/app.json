@@ -10,7 +10,8 @@
     "pages/store/index",
     "pages/address/index",
     "pages/orders/index",
-    "pages/report/index"
+    "pages/report/index",
+    "pages/legal/index"
   ],
   "window": {
     "navigationBarTitleText": "甄算",
