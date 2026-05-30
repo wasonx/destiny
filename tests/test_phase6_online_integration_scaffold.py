@@ -81,12 +81,14 @@ class OnlineIntegrationScaffoldTests(unittest.TestCase):
         commerce = commerce_path.read_text(encoding="utf-8")
         center = center_path.read_text(encoding="utf-8")
 
-        for helper in ["listProducts", "createOrder", "listOrders", "createRefundRequest"]:
+        for helper in ["listProducts", "createOrder", "listOrders", "createRefundRequest", "listAddresses", "createAddress", "updateAddress"]:
             self.assertIn(helper, commerce)
-        for endpoint in ["/customer/products", "/customer/orders", "/refund-requests"]:
+        for endpoint in ["/customer/products", "/customer/orders", "/refund-requests", "/customer/addresses"]:
             self.assertIn(endpoint, commerce)
-        for text in ["客户中心", "会员状态", "积分余额", "商城", "订单", "申请退款"]:
+        for text in ["客户中心", "会员状态", "积分余额", "商城", "订单", "申请退款", "收货地址", "保存地址", "选择收货地址"]:
             self.assertIn(text, center)
+        self.assertIn("selectedAddressId", center)
+        self.assertIn("address_snapshot", center)
         self.assertIn("CustomerCenter", app_tsx)
         self.assertIn("view === 'profile'", app_tsx)
 

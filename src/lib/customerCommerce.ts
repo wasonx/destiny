@@ -40,8 +40,40 @@ export interface CustomerOrder {
   created_at?: string;
 }
 
+export interface CustomerAddress {
+  id?: string;
+  receiver_name?: string;
+  receiverName?: string;
+  phone?: string;
+  province?: string;
+  city?: string;
+  district?: string;
+  detail_address?: string;
+  detailAddress?: string;
+  is_default?: boolean;
+  isDefault?: boolean;
+}
+
 export function listProducts(): Promise<{ products: CustomerProduct[] }> {
   return customerRequest('/customer/products');
+}
+
+export function listAddresses(): Promise<{ addresses: CustomerAddress[] }> {
+  return customerRequest('/customer/addresses');
+}
+
+export function createAddress(address: CustomerAddress): Promise<{ address: CustomerAddress }> {
+  return customerRequest('/customer/addresses', {
+    method: 'POST',
+    body: JSON.stringify(address),
+  });
+}
+
+export function updateAddress(id: string, address: CustomerAddress): Promise<{ address: CustomerAddress }> {
+  return customerRequest(`/customer/addresses/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(address),
+  });
 }
 
 export function createOrder(payload: {
