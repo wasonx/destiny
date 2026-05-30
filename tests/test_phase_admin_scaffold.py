@@ -69,6 +69,28 @@ class AdminScaffoldTests(unittest.TestCase):
         ]:
             self.assertIn(endpoint, combined)
 
+    def test_value_admin_pages_call_entitlement_endpoints(self):
+        combined = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in [
+                ROOT / "src" / "admin" / "pages" / "MembershipPage.tsx",
+                ROOT / "src" / "admin" / "pages" / "EntitlementsPage.tsx",
+                ROOT / "src" / "admin" / "pages" / "PointsPage.tsx",
+            ]
+        )
+
+        self.assertIn("adminRequest", combined)
+        for endpoint in [
+            "/customers/",
+            "/value-state",
+            "/grant-quota",
+            "/grant-points",
+            "/grant-membership",
+        ]:
+            self.assertIn(endpoint, combined)
+        for text in ["客户 ID", "查询账户", "发放报告次数", "发放积分", "开通会员"]:
+            self.assertIn(text, combined)
+
     def test_knowledge_admin_pages_expose_publish_workflow(self):
         knowledge = (ROOT / "src" / "admin" / "pages" / "KnowledgePage.tsx").read_text(encoding="utf-8")
         rules = (ROOT / "src" / "admin" / "pages" / "RulesPage.tsx").read_text(encoding="utf-8")
