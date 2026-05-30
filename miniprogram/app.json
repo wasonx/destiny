@@ -1,6 +1,7 @@
 {
   "pages": [
     "pages/home/index",
+    "pages/login/index",
     "pages/life/index",
     "pages/relationship/index",
     "pages/question/index",

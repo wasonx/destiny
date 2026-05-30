@@ -2,6 +2,7 @@ const auth = require('../../utils/auth');
 
 Page({
   data: {
+    hasToken: false,
     entries: [
       {
         id: 'life',
@@ -49,14 +50,31 @@ Page({
   },
 
   onLoad() {
+    this.refreshLoginState();
     if (!auth.getToken()) {
-      auth.loginWithWechatCode().catch(() => {
+      auth.loginWithWechatCode().then(() => {
+        this.refreshLoginState();
+      }).catch(() => {
         wx.showToast({
           title: '登录稍后重试',
           icon: 'none',
         });
       });
     }
+  },
+
+  onShow() {
+    this.refreshLoginState();
+  },
+
+  refreshLoginState() {
+    this.setData({ hasToken: Boolean(auth.getToken()) });
+  },
+
+  openLogin() {
+    wx.navigateTo({
+      url: '/pages/login/index',
+    });
   },
 
   goTo(event) {

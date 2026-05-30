@@ -1,0 +1,38 @@
+.login-section {
+  display: flex;
+  flex-direction: column;
+  gap: 22rpx;
+}
+
+.login-copy {
+  color: #6b7280;
+  font-size: 26rpx;
+  line-height: 1.7;
+}
+
+.otp-row {
+  display: grid;
+  grid-template-columns: 1fr 220rpx;
+  gap: 18rpx;
+  align-items: end;
+}
+
+.otp-input {
+  min-width: 0;
+}
+
+.otp-button {
+  min-height: 84rpx;
+}
+
+.login-message {
+  color: #4a7c77;
+  background: #edf7f5;
+  border: 1rpx solid #c8e0dc;
+  border-radius: 14rpx;
+  font-size: 26rpx;
+  line-height: 1.6;
+  padding: 22rpx;
+  margin-top: 24rpx;
+  text-align: center;
+}

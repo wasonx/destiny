@@ -30,6 +30,7 @@ class MiniprogramScaffoldTests(unittest.TestCase):
             app_json["pages"],
             [
                 "pages/home/index",
+                "pages/login/index",
                 "pages/life/index",
                 "pages/relationship/index",
                 "pages/question/index",
@@ -70,6 +71,27 @@ class MiniprogramScaffoldTests(unittest.TestCase):
 
         for text in ["商城", "收货地址", "订单", "申请退款", "/customer/orders"]:
             self.assertIn(text, combined)
+
+    def test_native_login_page_supports_wechat_and_mock_phone_otp(self):
+        app_json = json.loads((MINI / "app.json").read_text(encoding="utf-8"))
+        auth_js = (MINI / "utils" / "auth.js").read_text(encoding="utf-8")
+        login_js = (MINI / "pages" / "login" / "index.js").read_text(encoding="utf-8")
+        login_wxml = (MINI / "pages" / "login" / "index.wxml").read_text(encoding="utf-8")
+
+        self.assertIn("pages/login/index", app_json["pages"])
+        for suffix in ["js", "wxml", "wxss", "json"]:
+            self.assertTrue((MINI / f"pages/login/index.{suffix}").exists())
+
+        self.assertIn("loginWithWechatCode", auth_js)
+        self.assertIn("sendPhoneOtp", auth_js)
+        self.assertIn("verifyPhoneOtp", auth_js)
+        self.assertIn("/customer/otp/send", auth_js)
+        self.assertIn("/customer/otp/verify", auth_js)
+        self.assertIn("loginWithWechatCode", login_js)
+        self.assertIn("sendPhoneOtp", login_js)
+        self.assertIn("verifyPhoneOtp", login_js)
+        self.assertIn("微信登录", login_wxml)
+        self.assertIn("手机验证码登录", login_wxml)
 
     def test_backend_api_and_branding_are_consistent(self):
         combined = "\n".join(

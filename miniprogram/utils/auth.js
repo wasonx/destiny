@@ -37,9 +37,35 @@ function loginWithWechatCode() {
   });
 }
 
+function sendPhoneOtp(phone) {
+  return api.request('/customer/otp/send', {
+    method: 'POST',
+    data: {
+      phone,
+    },
+  });
+}
+
+function verifyPhoneOtp(phone, code) {
+  return api.request('/customer/otp/verify', {
+    method: 'POST',
+    data: {
+      phone,
+      code,
+    },
+  }).then((data) => {
+    if (data && data.token) {
+      setToken(data.token);
+    }
+    return data;
+  });
+}
+
 module.exports = {
   TOKEN_KEY,
   getToken,
   setToken,
   loginWithWechatCode,
+  sendPhoneOtp,
+  verifyPhoneOtp,
 };
