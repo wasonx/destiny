@@ -31,7 +31,7 @@ export function createApp({ config, pool = null, graphDriver = null, wechatSessi
   mountTestBenchRoutes(app);
   mountRuleRoutes(app, { pool });
   mountTemplateRoutes(app, { pool });
-  mountReportHistoryRoutes(app, { pool });
+  mountReportHistoryRoutes(app, { config, pool });
   mountEntitlementRoutes(app, { config, pool });
   mountUserRoutes(app, { pool });
   mountSettingsRoutes(app, { config, pool });
