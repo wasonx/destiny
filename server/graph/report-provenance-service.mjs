@@ -102,13 +102,13 @@ export async function saveReportProvenance(client, { reportRunId, provenance }) 
     `,
     [
       reportRunId,
-      provenance.graphNodes,
-      provenance.graphEdges,
-      provenance.ruleHits,
-      provenance.knowledgeSources,
-      provenance.templateSnapshot,
-      provenance.safetySnapshot,
+      JSON.stringify(provenance.graphNodes || []),
+      JSON.stringify(provenance.graphEdges || []),
+      JSON.stringify(provenance.ruleHits || []),
+      JSON.stringify(provenance.knowledgeSources || []),
+      JSON.stringify(provenance.templateSnapshot || {}),
+      JSON.stringify(provenance.safetySnapshot || {}),
     ],
   );
-  await client.query('update app.report_runs set provenance = $2 where id = $1', [reportRunId, provenance]);
+  await client.query('update app.report_runs set provenance = $2 where id = $1', [reportRunId, JSON.stringify(provenance || {})]);
 }

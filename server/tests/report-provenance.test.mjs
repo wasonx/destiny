@@ -97,3 +97,29 @@ test('saveReportProvenance inserts detail row and updates report run summary', a
   assert.ok(queries.some((query) => query.sql.includes('insert into app.report_provenance_records')));
   assert.ok(queries.some((query) => query.sql.includes('update app.report_runs set provenance')));
 });
+
+test('saveReportProvenance serializes jsonb arrays as JSON strings for pg', async () => {
+  const queries = [];
+  const client = {
+    async query(sql, params = []) {
+      const normalized = sql.replace(/\s+/g, ' ').trim();
+      queries.push({ sql: normalized, params });
+      return { rows: [], rowCount: 1 };
+    },
+  };
+  const provenance = buildReportProvenance({
+    graph: { nodes: [], edges: [] },
+    context: { rules: [], knowledge: [], template: null },
+    safety: { passed: true },
+  });
+
+  await saveReportProvenance(client, { reportRunId: 'report-empty-arrays', provenance });
+
+  const insert = queries.find((query) => query.sql.includes('insert into app.report_provenance_records'));
+  assert.equal(insert.params[1], '[]');
+  assert.equal(insert.params[2], '[]');
+  assert.equal(insert.params[3], '[]');
+  assert.equal(insert.params[4], '[]');
+  assert.equal(insert.params[5], '{}');
+  assert.equal(insert.params[6], '{"passed":true}');
+});

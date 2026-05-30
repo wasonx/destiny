@@ -16,6 +16,10 @@ function publishedContentRows(sql) {
   return null;
 }
 
+function parseJsonbParam(value) {
+  return typeof value === 'string' ? JSON.parse(value) : value;
+}
+
 test('health route returns configured model state', async () => {
   const app = createApp({ config: loadConfig({ DEEPSEEK_API_KEY: '', DEEPSEEK_MODEL: 'deepseek-chat' }) });
   const server = app.listen(0);
@@ -170,11 +174,11 @@ test('generate route sends published knowledge and graph context to ai and prove
         return { rows: [], rowCount: 1 };
       }
       if (sql.includes('insert into app.report_provenance_records')) {
-        storedProvenances.push({ graphNodes: params[1], graphEdges: params[2] });
+        storedProvenances.push({ graphNodes: parseJsonbParam(params[1]), graphEdges: parseJsonbParam(params[2]) });
         return { rows: [], rowCount: 1 };
       }
       if (sql.includes('update app.report_runs set provenance')) {
-        storedProvenances.push(params[1]);
+        storedProvenances.push(parseJsonbParam(params[1]));
         return { rows: [], rowCount: 1 };
       }
       if (['begin', 'commit', 'rollback'].includes(sql)) {
@@ -335,11 +339,15 @@ test('generate route records only matching published rules and related knowledge
         return { rows: [], rowCount: 1 };
       }
       if (sql.includes('insert into app.report_provenance_records')) {
-        storedProvenances.push({ ruleHits: params[3], knowledgeSources: params[4], graphNodes: params[1] });
+        storedProvenances.push({
+          ruleHits: parseJsonbParam(params[3]),
+          knowledgeSources: parseJsonbParam(params[4]),
+          graphNodes: parseJsonbParam(params[1]),
+        });
         return { rows: [], rowCount: 1 };
       }
       if (sql.includes('update app.report_runs set provenance')) {
-        storedProvenances.push(params[1]);
+        storedProvenances.push(parseJsonbParam(params[1]));
         return { rows: [], rowCount: 1 };
       }
       if (['begin', 'commit', 'rollback'].includes(sql)) {

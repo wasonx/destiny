@@ -396,3 +396,30 @@ test('report graph derives explanation paths from provenance snapshots', async (
   assert.ok(graph.nodes.some((node) => node.id === 'risk:rule:rule-1'));
   assert.ok(graph.nodes.some((node) => node.id === 'risk:template:template-1'));
 });
+
+test('report graph tolerates legacy object values in provenance array columns', async () => {
+  const pool = {
+    async query(sql, params = []) {
+      assert.match(sql, /from app\.report_provenance_records/i);
+      assert.deepEqual(params, ['report-legacy-arrays']);
+      return {
+        rows: [
+          {
+            graph_nodes: {},
+            graph_edges: {},
+            rule_hits: {},
+            knowledge_sources: {},
+            template_snapshot: {},
+          },
+        ],
+      };
+    },
+  };
+  const service = createGraphQueryService({ graphDriver: null, database: 'neo4j' });
+
+  const graph = await service.getReportGraph('report-legacy-arrays', { pool });
+
+  assert.equal(graph.focus.id, 'report:report-legacy-arrays');
+  assert.deepEqual(graph.nodes, [graph.focus]);
+  assert.deepEqual(graph.edges, []);
+});

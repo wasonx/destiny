@@ -19,6 +19,14 @@ function edge(source, target, type, label = type, metadata = {}) {
   return { id: `${source}->${target}:${type}`, source, target, type, label, metadata };
 }
 
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function asObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
 export function createGraphQueryService({ graphDriver = null, database = 'neo4j' } = {}) {
   return {
     async getConceptGraph(key, { depth = 2 } = {}) {
@@ -133,32 +141,37 @@ export function createGraphQueryService({ graphDriver = null, database = 'neo4j'
       );
       const item = result.rows[0] || {};
       const focus = node(`report:${id}`, 'Report', `报告 ${id}`, {});
-      const nodes = [focus, ...(item.graph_nodes || [])];
-      const edges = [...(item.graph_edges || [])];
-      for (const rule of item.rule_hits || []) {
+      const graphNodes = asArray(item.graph_nodes);
+      const graphEdges = asArray(item.graph_edges);
+      const ruleHits = asArray(item.rule_hits);
+      const knowledgeSources = asArray(item.knowledge_sources);
+      const templateSnapshot = asObject(item.template_snapshot);
+      const nodes = [focus, ...graphNodes];
+      const edges = [...graphEdges];
+      for (const rule of ruleHits) {
         const target = node(`rule:${rule.id}`, 'Rule', rule.name || rule.id, { versionNo: rule.version_no });
         nodes.push(target);
         edges.push(edge(focus.id, target.id, 'HIT_RULE', '命中规则'));
-        appendRuleSnapshotExpansion(rule, item.knowledge_sources || [], target.id, nodes, edges);
+        appendRuleSnapshotExpansion(rule, knowledgeSources, target.id, nodes, edges);
       }
-      for (const knowledge of item.knowledge_sources || []) {
+      for (const knowledge of knowledgeSources) {
         const target = node(`knowledge:${knowledge.id}`, 'Knowledge', knowledge.title || knowledge.id, { versionNo: knowledge.version_no });
         nodes.push(target);
         edges.push(edge(focus.id, target.id, 'USED_KNOWLEDGE', '使用知识'));
         appendKnowledgeSnapshotExpansion(knowledge, target.id, nodes, edges, { linkSelf: false });
       }
-      if (item.template_snapshot?.id) {
-        const target = node(`template:${item.template_snapshot.id}`, 'Template', item.template_snapshot.name || item.template_snapshot.id, { versionNo: item.template_snapshot.version_no });
+      if (templateSnapshot.id) {
+        const target = node(`template:${templateSnapshot.id}`, 'Template', templateSnapshot.name || templateSnapshot.id, { versionNo: templateSnapshot.version_no });
         nodes.push(target);
         edges.push(edge(focus.id, target.id, 'USED_TEMPLATE', '使用模板'));
-        for (const ruleId of item.template_snapshot.template_scope?.rule_ids || []) {
-          const rule = (item.rule_hits || []).find((candidate) => candidate.id === ruleId);
+        for (const ruleId of templateSnapshot.template_scope?.rule_ids || []) {
+          const rule = ruleHits.find((candidate) => candidate.id === ruleId);
           const ruleNode = node(`rule:${ruleId}`, 'Rule', rule?.name || ruleId, { versionNo: rule?.version_no });
           nodes.push(ruleNode);
           edges.push(edge(target.id, ruleNode.id, 'TRIGGERS', '关联规则'));
         }
-        if (item.template_snapshot.risk_boundary) {
-          const risk = node(`risk:template:${item.template_snapshot.id}`, 'RiskBoundary', item.template_snapshot.risk_boundary, {});
+        if (templateSnapshot.risk_boundary) {
+          const risk = node(`risk:template:${templateSnapshot.id}`, 'RiskBoundary', templateSnapshot.risk_boundary, {});
           nodes.push(risk);
           edges.push(edge(target.id, risk.id, 'USES_RISK_BOUNDARY', '使用风险边界'));
         }
