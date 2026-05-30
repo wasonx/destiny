@@ -55,6 +55,24 @@ export function mountRuleRoutes(app, { pool, publishingGraphSync = null } = {}) 
     res.status(201).json({ rule: result.rows[0] });
   });
 
+  app.get('/destiny-api/admin/rules/:id/versions', async (req, res) => {
+    if (!pool) {
+      res.json({ versions: [] });
+      return;
+    }
+    const result = await pool.query(
+      `
+        select id, rule_id, version_no, name, change_summary, published_by, published_at
+        from app.analysis_rule_versions
+        where rule_id = $1
+        order by version_no desc
+        limit 50
+      `,
+      [req.params.id],
+    );
+    res.json({ versions: result.rows });
+  });
+
   app.patch('/destiny-api/admin/rules/:id', async (req, res) => {
     if (!pool) {
       const rule = memory.rules.find((item) => item.id === req.params.id);

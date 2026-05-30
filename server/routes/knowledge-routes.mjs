@@ -42,6 +42,24 @@ export function mountKnowledgeRoutes(app, { pool, publishingGraphSync = null }) 
     res.status(201).json({ entry: result.rows[0] });
   });
 
+  app.get('/destiny-api/admin/knowledge/:id/versions', async (req, res) => {
+    if (!pool) {
+      res.json({ versions: [] });
+      return;
+    }
+    const result = await pool.query(
+      `
+        select id, entry_id, version_no, title, change_summary, published_by, published_at
+        from app.knowledge_entry_versions
+        where entry_id = $1
+        order by version_no desc
+        limit 50
+      `,
+      [req.params.id],
+    );
+    res.json({ versions: result.rows });
+  });
+
   app.patch('/destiny-api/admin/knowledge/:id', async (req, res) => {
     if (!pool) {
       const entry = memory.knowledgeEntries.find((item) => item.id === req.params.id);

@@ -153,6 +153,15 @@ function createPublishingRoutePool({ sessionRole = 'admin' } = {}) {
     if (normalized.includes('select * from app.report_templates')) {
       return { rows: [{ id: 'template-1', module: 'bazi', name: '完整报告', report_kind: 'life', sections: [], tone: '亲民', disclaimer: '仅供参考', forbidden_expressions: [], risk_boundary: '仅供参考', template_scope: { rule_ids: ['rule-1'] }, version_no: 0 }], rowCount: 1 };
     }
+    if (normalized.includes('from app.knowledge_entry_versions')) {
+      return { rows: [{ id: 'version-knowledge-2', entry_id: 'knowledge-1', version_no: 2, title: '五行第二版', change_summary: '第二版发布', published_by: 'admin-user-1', published_at: '2026-05-30T10:00:00.000Z' }], rowCount: 1 };
+    }
+    if (normalized.includes('from app.analysis_rule_versions')) {
+      return { rows: [{ id: 'version-rule-2', rule_id: 'rule-1', version_no: 2, name: '木旺第二版', change_summary: '第二版发布', published_by: 'admin-user-1', published_at: '2026-05-30T10:00:00.000Z' }], rowCount: 1 };
+    }
+    if (normalized.includes('from app.report_template_versions')) {
+      return { rows: [{ id: 'version-template-2', template_id: 'template-1', version_no: 2, name: '完整报告第二版', change_summary: '第二版发布', published_by: 'admin-user-1', published_at: '2026-05-30T10:00:00.000Z' }], rowCount: 1 };
+    }
     if (normalized.includes('update app.knowledge_entries')) {
       return { rows: [{ id: 'knowledge-1', module: 'bazi', title: '五行', summary: '', body: '正文', tags: [], risk_note: '', applicable_scope: {}, concept_keys: ['wood'], source_note: '内部整理', status: 'published', version_no: 1 }], rowCount: 1 };
     }
@@ -217,6 +226,33 @@ test('admin publish routes write versions and audit logs', async () => {
     assert.ok(queries.some((query) => query.sql.includes('insert into app.report_template_versions')));
     assert.ok(queries.filter((query) => query.sql.includes('insert into app.audit_logs')).length >= 3);
     assert.ok(queries.some((query) => query.params.includes('admin-user-1')));
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test('admin version routes return publishing version history', async () => {
+  const { pool, queries } = createPublishingRoutePool();
+  const app = createApp({ config: loadConfig({ SESSION_SECRET: 'test-secret' }), pool });
+  const server = app.listen(0);
+  const { port } = server.address();
+
+  try {
+    for (const [path, key, table] of [
+      ['/destiny-api/admin/knowledge/knowledge-1/versions', 'versions', 'app.knowledge_entry_versions'],
+      ['/destiny-api/admin/rules/rule-1/versions', 'versions', 'app.analysis_rule_versions'],
+      ['/destiny-api/admin/templates/template-1/versions', 'versions', 'app.report_template_versions'],
+    ]) {
+      const response = await fetch(`http://127.0.0.1:${port}${path}`, {
+        headers: { Authorization: 'Bearer admin-token' },
+      });
+      const body = await response.json();
+
+      assert.equal(response.status, 200);
+      assert.equal(body[key][0].version_no, 2);
+      assert.equal(body[key][0].change_summary, '第二版发布');
+      assert.ok(queries.some((query) => query.sql.includes(`from ${table}`)));
+    }
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }

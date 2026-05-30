@@ -16,6 +16,15 @@ type ReportTemplate = {
   version_no?: number;
 };
 
+type PublishingVersion = {
+  id: string;
+  version_no: number;
+  name?: string;
+  change_summary?: string;
+  published_by?: string;
+  published_at?: string;
+};
+
 const emptyForm = {
   name: '',
   report_kind: 'life',
@@ -44,9 +53,15 @@ function safeJson(value: string, fallback: unknown) {
   }
 }
 
+function formatTime(value?: string) {
+  if (!value) return '未记录时间';
+  return new Date(value).toLocaleString('zh-CN', { hour12: false });
+}
+
 export default function TemplatesPage() {
   const [status, setStatus] = useState('draft');
   const [templates, setTemplates] = useState<ReportTemplate[]>([]);
+  const [versions, setVersions] = useState<PublishingVersion[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [form, setForm] = useState(emptyForm);
   const [preview, setPreview] = useState('等待预览');
@@ -56,6 +71,11 @@ export default function TemplatesPage() {
   async function loadTemplates(nextStatus = status) {
     const data = await adminRequest<{ templates: ReportTemplate[] }>(`/templates?status=${encodeURIComponent(nextStatus)}`);
     setTemplates(data.templates || []);
+  }
+
+  async function loadVersions(templateId: string) {
+    const data = await adminRequest<{ versions: PublishingVersion[] }>(`/templates/${encodeURIComponent(templateId)}/versions`);
+    setVersions(data.versions || []);
   }
 
   useEffect(() => {
@@ -75,10 +95,12 @@ export default function TemplatesPage() {
       template_scope: JSON.stringify(template.template_scope || {}, null, 2),
       changeSummary: `更新 ${template.name || '报告模板'}`,
     });
+    void loadVersions(template.id);
   }
 
   function newDraft() {
     setSelectedId('');
+    setVersions([]);
     setForm(emptyForm);
     setMessage('');
     setError('');
@@ -107,6 +129,7 @@ export default function TemplatesPage() {
       } else {
         const data = await adminRequest<{ template: ReportTemplate }>('/templates', { method: 'POST', body: JSON.stringify(buildPayload()) });
         setSelectedId(data.template.id);
+        await loadVersions(data.template.id);
       }
       setMessage('保存草稿成功');
       await loadTemplates();
@@ -124,6 +147,7 @@ export default function TemplatesPage() {
     await adminRequest(`/templates/${encodeURIComponent(selectedId)}/publish`, { method: 'POST', body: JSON.stringify({ changeSummary: form.changeSummary }) });
     setMessage('发布成功');
     await loadTemplates();
+    await loadVersions(selectedId);
   }
 
   async function disableTemplate() {
@@ -135,6 +159,7 @@ export default function TemplatesPage() {
     await adminRequest(`/templates/${encodeURIComponent(selectedId)}/disable`, { method: 'POST', body: JSON.stringify({ changeSummary: form.changeSummary }) });
     setMessage('停用成功');
     await loadTemplates();
+    await loadVersions(selectedId);
   }
 
   async function previewTemplate() {
@@ -210,6 +235,20 @@ export default function TemplatesPage() {
         <section className="rounded-lg border border-shadow-gray bg-white p-5">
           <h3 className="font-serif text-xl mb-4">模板预览</h3>
           <pre className="max-h-64 overflow-auto rounded-md bg-surface p-3 text-xs">{preview}</pre>
+        </section>
+        <section className="rounded-lg border border-shadow-gray bg-white p-5">
+          <h3 className="mb-3 font-serif text-xl">版本历史</h3>
+          {!selectedId && <p className="text-sm text-on-surface-variant">选择报告模板后查看发布版本。</p>}
+          {selectedId && versions.length === 0 && <p className="text-sm text-on-surface-variant">暂无发布版本。</p>}
+          <div className="grid gap-3">
+            {versions.map((version) => (
+              <div key={version.id || version.version_no} className="rounded-md border border-shadow-gray bg-surface p-3 text-sm">
+                <div className="font-medium">版本 {version.version_no} · {version.name || '报告模板'}</div>
+                <div className="mt-1 text-xs text-on-surface-variant"><span className="font-mono">change_summary</span>：{version.change_summary || '无变更摘要'}</div>
+                <div className="mt-1 text-xs text-on-surface-variant"><span className="font-mono">published_at</span>：{formatTime(version.published_at)}</div>
+              </div>
+            ))}
+          </div>
         </section>
       </section>
     </div>

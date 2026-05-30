@@ -52,6 +52,24 @@ export function mountTemplateRoutes(app, { pool, publishingGraphSync = null } = 
     res.status(201).json({ template: result.rows[0] });
   });
 
+  app.get('/destiny-api/admin/templates/:id/versions', async (req, res) => {
+    if (!pool) {
+      res.json({ versions: [] });
+      return;
+    }
+    const result = await pool.query(
+      `
+        select id, template_id, version_no, name, change_summary, published_by, published_at
+        from app.report_template_versions
+        where template_id = $1
+        order by version_no desc
+        limit 50
+      `,
+      [req.params.id],
+    );
+    res.json({ versions: result.rows });
+  });
+
   app.patch('/destiny-api/admin/templates/:id', async (req, res) => {
     if (!pool) {
       const template = memory.templates.find((item) => item.id === req.params.id);

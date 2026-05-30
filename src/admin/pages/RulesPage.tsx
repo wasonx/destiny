@@ -18,6 +18,15 @@ type AnalysisRule = {
   version_no?: number;
 };
 
+type PublishingVersion = {
+  id: string;
+  version_no: number;
+  name?: string;
+  change_summary?: string;
+  published_by?: string;
+  published_at?: string;
+};
+
 const emptyForm = {
   name: '',
   priority: '100',
@@ -48,9 +57,15 @@ function safeJson(value: string) {
   }
 }
 
+function formatTime(value?: string) {
+  if (!value) return '未记录时间';
+  return new Date(value).toLocaleString('zh-CN', { hour12: false });
+}
+
 export default function RulesPage() {
   const [status, setStatus] = useState('draft');
   const [rules, setRules] = useState<AnalysisRule[]>([]);
+  const [versions, setVersions] = useState<PublishingVersion[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [form, setForm] = useState(emptyForm);
   const [testResult, setTestResult] = useState('等待运行');
@@ -60,6 +75,11 @@ export default function RulesPage() {
   async function loadRules(nextStatus = status) {
     const data = await adminRequest<{ rules: AnalysisRule[] }>(`/rules?status=${encodeURIComponent(nextStatus)}`);
     setRules(data.rules || []);
+  }
+
+  async function loadVersions(ruleId: string) {
+    const data = await adminRequest<{ versions: PublishingVersion[] }>(`/rules/${encodeURIComponent(ruleId)}/versions`);
+    setVersions(data.versions || []);
   }
 
   useEffect(() => {
@@ -81,10 +101,12 @@ export default function RulesPage() {
       trigger_explanation: rule.trigger_explanation || '',
       changeSummary: `更新 ${rule.name || '分析规则'}`,
     });
+    void loadVersions(rule.id);
   }
 
   function newDraft() {
     setSelectedId('');
+    setVersions([]);
     setForm(emptyForm);
     setMessage('');
     setError('');
@@ -115,6 +137,7 @@ export default function RulesPage() {
       } else {
         const data = await adminRequest<{ rule: AnalysisRule }>('/rules', { method: 'POST', body: JSON.stringify(buildPayload()) });
         setSelectedId(data.rule.id);
+        await loadVersions(data.rule.id);
       }
       setMessage('保存草稿成功');
       await loadRules();
@@ -132,6 +155,7 @@ export default function RulesPage() {
     await adminRequest(`/rules/${encodeURIComponent(selectedId)}/publish`, { method: 'POST', body: JSON.stringify({ changeSummary: form.changeSummary }) });
     setMessage('发布成功');
     await loadRules();
+    await loadVersions(selectedId);
   }
 
   async function disableRule() {
@@ -143,6 +167,7 @@ export default function RulesPage() {
     await adminRequest(`/rules/${encodeURIComponent(selectedId)}/disable`, { method: 'POST', body: JSON.stringify({ changeSummary: form.changeSummary }) });
     setMessage('停用成功');
     await loadRules();
+    await loadVersions(selectedId);
   }
 
   async function runTest() {
@@ -217,6 +242,20 @@ export default function RulesPage() {
         <section className="rounded-lg border border-shadow-gray bg-white p-5">
           <h3 className="font-serif text-xl mb-4">规则测试</h3>
           <pre className="max-h-56 overflow-auto rounded-md bg-surface p-3 text-xs">{testResult}</pre>
+        </section>
+        <section className="rounded-lg border border-shadow-gray bg-white p-5">
+          <h3 className="mb-3 font-serif text-xl">版本历史</h3>
+          {!selectedId && <p className="text-sm text-on-surface-variant">选择分析规则后查看发布版本。</p>}
+          {selectedId && versions.length === 0 && <p className="text-sm text-on-surface-variant">暂无发布版本。</p>}
+          <div className="grid gap-3">
+            {versions.map((version) => (
+              <div key={version.id || version.version_no} className="rounded-md border border-shadow-gray bg-surface p-3 text-sm">
+                <div className="font-medium">版本 {version.version_no} · {version.name || '分析规则'}</div>
+                <div className="mt-1 text-xs text-on-surface-variant"><span className="font-mono">change_summary</span>：{version.change_summary || '无变更摘要'}</div>
+                <div className="mt-1 text-xs text-on-surface-variant"><span className="font-mono">published_at</span>：{formatTime(version.published_at)}</div>
+              </div>
+            ))}
+          </div>
         </section>
       </section>
     </div>

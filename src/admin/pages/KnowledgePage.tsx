@@ -16,6 +16,15 @@ type KnowledgeEntry = {
   version_no?: number;
 };
 
+type PublishingVersion = {
+  id: string;
+  version_no: number;
+  title?: string;
+  change_summary?: string;
+  published_by?: string;
+  published_at?: string;
+};
+
 const emptyForm = {
   title: '',
   summary: '',
@@ -44,9 +53,15 @@ function safeJson(value: string) {
   }
 }
 
+function formatTime(value?: string) {
+  if (!value) return '未记录时间';
+  return new Date(value).toLocaleString('zh-CN', { hour12: false });
+}
+
 export default function KnowledgePage() {
   const [status, setStatus] = useState('draft');
   const [entries, setEntries] = useState<KnowledgeEntry[]>([]);
+  const [versions, setVersions] = useState<PublishingVersion[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [form, setForm] = useState(emptyForm);
   const [message, setMessage] = useState('');
@@ -56,6 +71,11 @@ export default function KnowledgePage() {
     setError('');
     const data = await adminRequest<{ entries: KnowledgeEntry[] }>(`/knowledge?status=${encodeURIComponent(nextStatus)}`);
     setEntries(data.entries || []);
+  }
+
+  async function loadVersions(entryId: string) {
+    const data = await adminRequest<{ versions: PublishingVersion[] }>(`/knowledge/${encodeURIComponent(entryId)}/versions`);
+    setVersions(data.versions || []);
   }
 
   useEffect(() => {
@@ -75,10 +95,12 @@ export default function KnowledgePage() {
       source_note: entry.source_note || '',
       changeSummary: `更新 ${entry.title || '知识条目'}`,
     });
+    void loadVersions(entry.id);
   }
 
   function newDraft() {
     setSelectedId('');
+    setVersions([]);
     setForm(emptyForm);
     setMessage('');
     setError('');
@@ -104,6 +126,7 @@ export default function KnowledgePage() {
       } else {
         const data = await adminRequest<{ entry: KnowledgeEntry }>('/knowledge', { method: 'POST', body: JSON.stringify(payload) });
         setSelectedId(data.entry.id);
+        await loadVersions(data.entry.id);
       }
       setMessage('保存草稿成功');
       await loadEntries();
@@ -124,6 +147,7 @@ export default function KnowledgePage() {
     });
     setMessage('发布成功');
     await loadEntries();
+    await loadVersions(selectedId);
   }
 
   async function disableEntry() {
@@ -138,6 +162,7 @@ export default function KnowledgePage() {
     });
     setMessage('停用成功');
     await loadEntries();
+    await loadVersions(selectedId);
   }
 
   return (
@@ -196,6 +221,20 @@ export default function KnowledgePage() {
           {message && <p className="text-sm text-serene-teal">{message}</p>}
           {error && <p className="text-sm text-red-600">{error}</p>}
         </form>
+        <section className="mt-5 rounded-md border border-shadow-gray bg-surface p-4">
+          <h3 className="mb-3 font-serif text-xl">版本历史</h3>
+          {!selectedId && <p className="text-sm text-on-surface-variant">选择知识条目后查看发布版本。</p>}
+          {selectedId && versions.length === 0 && <p className="text-sm text-on-surface-variant">暂无发布版本。</p>}
+          <div className="grid gap-3">
+            {versions.map((version) => (
+              <div key={version.id || version.version_no} className="rounded-md border border-shadow-gray bg-white p-3 text-sm">
+                <div className="font-medium">版本 {version.version_no} · {version.title || '知识条目'}</div>
+                <div className="mt-1 text-xs text-on-surface-variant"><span className="font-mono">change_summary</span>：{version.change_summary || '无变更摘要'}</div>
+                <div className="mt-1 text-xs text-on-surface-variant"><span className="font-mono">published_at</span>：{formatTime(version.published_at)}</div>
+              </div>
+            ))}
+          </div>
+        </section>
       </section>
     </div>
   );

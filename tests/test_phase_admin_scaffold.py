@@ -137,6 +137,20 @@ class AdminScaffoldTests(unittest.TestCase):
         for text in ["保存草稿", "发布", "停用", "变更摘要"]:
             self.assertIn(text, combined)
 
+    def test_knowledge_admin_pages_show_publish_version_history(self):
+        combined = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in [
+                ROOT / "src" / "admin" / "pages" / "KnowledgePage.tsx",
+                ROOT / "src" / "admin" / "pages" / "RulesPage.tsx",
+                ROOT / "src" / "admin" / "pages" / "TemplatesPage.tsx",
+            ]
+        )
+
+        self.assertIn("/versions", combined)
+        for text in ["版本历史", "change_summary", "published_at"]:
+            self.assertIn(text, combined)
+
     def test_report_runs_page_calls_report_history_endpoints(self):
         page = (ROOT / "src" / "admin" / "pages" / "ReportRunsPage.tsx").read_text(encoding="utf-8")
 
