@@ -20,11 +20,15 @@ function edge(source, target, type, label = type, metadata = {}) {
 }
 
 export function createGraphQueryService({ graphDriver = null, database = 'neo4j' } = {}) {
-  void graphDriver;
-  void database;
-
   return {
     async getConceptGraph(key, { depth = 2 } = {}) {
+      if (graphDriver) {
+        try {
+          return await getNeo4jConceptGraph(graphDriver, database, key, { depth });
+        } catch {
+          return getFallbackConceptGraph(key, { depth });
+        }
+      }
       return getFallbackConceptGraph(key, { depth });
     },
     async getKnowledgeGraph(id, { pool } = {}) {
@@ -147,6 +151,44 @@ function getFallbackConceptGraph(keyOrLabel, { depth = 2 } = {}) {
   return limitGraphByDepth(dedupeGraph({ focus, nodes, edges }), depth);
 }
 
+async function getNeo4jConceptGraph(graphDriver, database, keyOrLabel, { depth = 2 } = {}) {
+  const safeDepth = normalizeDepth(depth);
+  const session = graphDriver.session({ database });
+  try {
+    const result = await session.run(
+      `
+        match (focus:Concept)
+        where focus.key = $key or focus.label = $key
+        optional match path=(focus)-[*1..${safeDepth}]-(related:Concept)
+        return focus, collect(path) as paths
+      `,
+      { key: keyOrLabel },
+    );
+    const record = result.records[0];
+    const focusNode = record?.get('focus');
+    if (!focusNode) {
+      return getFallbackConceptGraph(keyOrLabel, { depth });
+    }
+
+    const focus = graphNodeFromNeo4j(focusNode);
+    const nodes = [focus];
+    const edges = [];
+    for (const path of record.get('paths') || []) {
+      if (!path?.segments?.length) continue;
+      for (const segment of path.segments) {
+        const source = graphNodeFromNeo4j(segment.start);
+        const target = graphNodeFromNeo4j(segment.end);
+        nodes.push(source, target);
+        edges.push(edge(source.id, target.id, segment.relationship.type, relationshipLabel(segment.relationship.type), normalizeProperties(segment.relationship.properties)));
+      }
+    }
+
+    return dedupeGraph({ focus, nodes, edges });
+  } finally {
+    await session.close();
+  }
+}
+
 function dedupeGraph({ focus, nodes, edges }) {
   return {
     focus,
@@ -155,8 +197,49 @@ function dedupeGraph({ focus, nodes, edges }) {
   };
 }
 
+function graphNodeFromNeo4j(neo4jNode) {
+  const properties = normalizeProperties(neo4jNode.properties || {});
+  const idKey = properties.key || properties.label || neo4jNode.elementId || normalizeValue(neo4jNode.identity) || 'unknown';
+  return node(`concept:${idKey}`, 'Concept', properties.label || properties.key || String(idKey), {
+    conceptType: properties.type || properties.conceptType || '概念',
+    element: properties.element || null,
+    yinYang: properties.yinYang || null,
+    source: 'neo4j',
+  });
+}
+
+function relationshipLabel(type) {
+  return {
+    BELONGS_TO: '归属',
+    CONFLICTS_WITH: '相冲',
+    GENERATES: '相生',
+    RESTRAINS: '相克',
+  }[type] || type;
+}
+
+function normalizeProperties(properties) {
+  return Object.fromEntries(Object.entries(properties || {}).map(([key, value]) => [key, normalizeValue(value)]));
+}
+
+function normalizeValue(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeValue(item));
+  }
+  if (value && typeof value.toNumber === 'function') {
+    return value.toNumber();
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, normalizeValue(item)]));
+  }
+  return value;
+}
+
+function normalizeDepth(depth) {
+  return Math.max(1, Math.min(3, Number.parseInt(String(depth), 10) || 2));
+}
+
 function limitGraphByDepth(graph, depth) {
-  const maxDepth = Math.max(1, Math.min(3, Number.parseInt(String(depth), 10) || 2));
+  const maxDepth = normalizeDepth(depth);
   const adjacency = new Map();
   for (const edgeItem of graph.edges) {
     if (!adjacency.has(edgeItem.source)) adjacency.set(edgeItem.source, new Set());

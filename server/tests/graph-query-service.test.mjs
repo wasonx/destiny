@@ -21,6 +21,70 @@ test('fallback concept graph can be limited by one-hop depth', async () => {
   assert.ok(oneHop.edges.every((edge) => edge.source === 'concept:wood' || edge.target === 'concept:wood'));
 });
 
+test('concept graph queries Neo4j driver when configured', async () => {
+  const wood = {
+    labels: ['Concept'],
+    properties: { key: 'wood', label: '木', type: '五行', element: '木', yinYang: '阳' },
+    elementId: 'wood-node',
+  };
+  const fire = {
+    labels: ['Concept'],
+    properties: { key: 'fire', label: '火', type: '五行', element: '火', yinYang: '阳' },
+    elementId: 'fire-node',
+  };
+  const calls = [];
+  let sessionOptions = null;
+  let sessionClosed = false;
+  const graphDriver = {
+    session(options) {
+      sessionOptions = options;
+      return {
+        async run(cypher, params) {
+          calls.push({ cypher, params });
+          return {
+            records: [
+              {
+                get(name) {
+                  if (name === 'focus') return wood;
+                  if (name === 'paths') {
+                    return [
+                      {
+                        segments: [
+                          {
+                            start: wood,
+                            relationship: { type: 'GENERATES', properties: { source: 'seed' } },
+                            end: fire,
+                          },
+                        ],
+                      },
+                    ];
+                  }
+                  throw new Error(`Unexpected field: ${name}`);
+                },
+              },
+            ],
+          };
+        },
+        async close() {
+          sessionClosed = true;
+        },
+      };
+    },
+  };
+  const service = createGraphQueryService({ graphDriver, database: 'zhensuan' });
+
+  const graph = await service.getConceptGraph('wood', { depth: 1 });
+
+  assert.deepEqual(sessionOptions, { database: 'zhensuan' });
+  assert.equal(calls.length, 1);
+  assert.match(calls[0].cypher, /focus:Concept/);
+  assert.deepEqual(calls[0].params, { key: 'wood' });
+  assert.equal(sessionClosed, true);
+  assert.equal(graph.focus.id, 'concept:wood');
+  assert.ok(graph.nodes.some((node) => node.id === 'concept:fire' && node.metadata.source === 'neo4j'));
+  assert.ok(graph.edges.some((edge) => edge.source === 'concept:wood' && edge.target === 'concept:fire' && edge.type === 'GENERATES'));
+});
+
 test('knowledge graph links knowledge to concepts from PostgreSQL fields', async () => {
   const pool = {
     async query(sql, params = []) {
