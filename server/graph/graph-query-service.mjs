@@ -139,16 +139,29 @@ export function createGraphQueryService({ graphDriver = null, database = 'neo4j'
         const target = node(`rule:${rule.id}`, 'Rule', rule.name || rule.id, { versionNo: rule.version_no });
         nodes.push(target);
         edges.push(edge(focus.id, target.id, 'HIT_RULE', '命中规则'));
+        appendRuleSnapshotExpansion(rule, item.knowledge_sources || [], target.id, nodes, edges);
       }
       for (const knowledge of item.knowledge_sources || []) {
         const target = node(`knowledge:${knowledge.id}`, 'Knowledge', knowledge.title || knowledge.id, { versionNo: knowledge.version_no });
         nodes.push(target);
         edges.push(edge(focus.id, target.id, 'USED_KNOWLEDGE', '使用知识'));
+        appendKnowledgeSnapshotExpansion(knowledge, target.id, nodes, edges, { linkSelf: false });
       }
       if (item.template_snapshot?.id) {
         const target = node(`template:${item.template_snapshot.id}`, 'Template', item.template_snapshot.name || item.template_snapshot.id, { versionNo: item.template_snapshot.version_no });
         nodes.push(target);
         edges.push(edge(focus.id, target.id, 'USED_TEMPLATE', '使用模板'));
+        for (const ruleId of item.template_snapshot.template_scope?.rule_ids || []) {
+          const rule = (item.rule_hits || []).find((candidate) => candidate.id === ruleId);
+          const ruleNode = node(`rule:${ruleId}`, 'Rule', rule?.name || ruleId, { versionNo: rule?.version_no });
+          nodes.push(ruleNode);
+          edges.push(edge(target.id, ruleNode.id, 'TRIGGERS', '关联规则'));
+        }
+        if (item.template_snapshot.risk_boundary) {
+          const risk = node(`risk:template:${item.template_snapshot.id}`, 'RiskBoundary', item.template_snapshot.risk_boundary, {});
+          nodes.push(risk);
+          edges.push(edge(target.id, risk.id, 'USES_RISK_BOUNDARY', '使用风险边界'));
+        }
       }
       return dedupeGraph({ focus, nodes, edges });
     },
@@ -173,6 +186,43 @@ async function appendKnowledgeExpansion(pool, knowledgeId, parentId, nodes, edge
     const source = node(`source:${knowledge.id}`, 'Source', knowledge.source_note, { sourceNote: knowledge.source_note });
     nodes.push(source);
     edges.push(edge(target.id, source.id, 'HAS_SOURCE', '来源'));
+  }
+}
+
+function appendRuleSnapshotExpansion(rule, knowledgeSources, parentId, nodes, edges) {
+  for (const knowledgeId of rule?.knowledge_entry_ids || []) {
+    const knowledge = knowledgeSources.find((candidate) => candidate.id === knowledgeId) || { id: knowledgeId };
+    appendKnowledgeSnapshotExpansion(knowledge, parentId, nodes, edges);
+  }
+  for (const key of rule?.graph_node_keys || []) {
+    const concept = findConcept(key);
+    const conceptNode = node(conceptId(concept.key), 'Concept', concept.label, { conceptType: concept.conceptType });
+    nodes.push(conceptNode);
+    edges.push(edge(parentId, conceptNode.id, 'REFERENCES_CONCEPT', '关联概念'));
+  }
+  if (rule?.risk_boundary) {
+    const risk = node(`risk:rule:${rule.id}`, 'RiskBoundary', rule.risk_boundary, {});
+    nodes.push(risk);
+    edges.push(edge(risk.id, parentId, 'CONSTRAINS', '约束'));
+  }
+}
+
+function appendKnowledgeSnapshotExpansion(knowledge, parentId, nodes, edges, { linkSelf = true } = {}) {
+  const knowledgeNode = node(`knowledge:${knowledge.id}`, 'Knowledge', knowledge.title || knowledge.id, { versionNo: knowledge.version_no, sourceNote: knowledge.source_note || '' });
+  nodes.push(knowledgeNode);
+  if (linkSelf) {
+    edges.push(edge(parentId, knowledgeNode.id, 'USES', '引用知识'));
+  }
+  for (const key of knowledge?.concept_keys || []) {
+    const concept = findConcept(key);
+    const conceptNode = node(conceptId(concept.key), 'Concept', concept.label, { conceptType: concept.conceptType });
+    nodes.push(conceptNode);
+    edges.push(edge(knowledgeNode.id, conceptNode.id, 'EXPLAINS', '解释'));
+  }
+  if (knowledge?.source_note) {
+    const source = node(`source:${knowledge.id}`, 'Source', knowledge.source_note, { sourceNote: knowledge.source_note });
+    nodes.push(source);
+    edges.push(edge(knowledgeNode.id, source.id, 'HAS_SOURCE', '来源'));
   }
 }
 

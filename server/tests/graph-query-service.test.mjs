@@ -344,3 +344,55 @@ test('report graph returns stored provenance graph and report focus', async () =
   assert.ok(graph.nodes.some((node) => node.id === 'knowledge:knowledge-1'));
   assert.ok(graph.nodes.some((node) => node.id === 'template:template-1'));
 });
+
+test('report graph derives explanation paths from provenance snapshots', async () => {
+  const pool = {
+    async query(sql, params = []) {
+      assert.match(sql, /from app\.report_provenance_records/i);
+      assert.deepEqual(params, ['report-path-1']);
+      return {
+        rows: [
+          {
+            graph_nodes: [],
+            graph_edges: [],
+            rule_hits: [
+              {
+                id: 'rule-1',
+                name: '木旺规则',
+                knowledge_entry_ids: ['knowledge-1'],
+                graph_node_keys: ['wood'],
+                risk_boundary: '避免绝对化',
+              },
+            ],
+            knowledge_sources: [
+              {
+                id: 'knowledge-1',
+                title: '木旺知识',
+                concept_keys: ['wood'],
+                source_note: '内部知识库整理',
+              },
+            ],
+            template_snapshot: {
+              id: 'template-1',
+              name: '完整报告模板',
+              template_scope: { rule_ids: ['rule-1'] },
+              risk_boundary: '仅供参考',
+            },
+          },
+        ],
+      };
+    },
+  };
+  const service = createGraphQueryService({ graphDriver: null, database: 'neo4j' });
+
+  const graph = await service.getReportGraph('report-path-1', { pool });
+
+  assert.ok(graph.edges.some((edge) => edge.source === 'report:report-path-1' && edge.target === 'rule:rule-1' && edge.type === 'HIT_RULE'));
+  assert.ok(graph.edges.some((edge) => edge.source === 'report:report-path-1' && edge.target === 'template:template-1' && edge.type === 'USED_TEMPLATE'));
+  assert.ok(graph.edges.some((edge) => edge.source === 'template:template-1' && edge.target === 'rule:rule-1' && edge.type === 'TRIGGERS'));
+  assert.ok(graph.edges.some((edge) => edge.source === 'rule:rule-1' && edge.target === 'knowledge:knowledge-1' && edge.type === 'USES'));
+  assert.ok(graph.edges.some((edge) => edge.source === 'knowledge:knowledge-1' && edge.target === 'concept:wood' && edge.type === 'EXPLAINS'));
+  assert.ok(graph.edges.some((edge) => edge.source === 'knowledge:knowledge-1' && edge.target === 'source:knowledge-1' && edge.type === 'HAS_SOURCE'));
+  assert.ok(graph.nodes.some((node) => node.id === 'risk:rule:rule-1'));
+  assert.ok(graph.nodes.some((node) => node.id === 'risk:template:template-1'));
+});
