@@ -49,12 +49,16 @@ export function mountGraphRoutes(app, { config, graphDriver, pool = null }) {
 
   app.get('/destiny-api/admin/graph/concepts/:key/paths', async (req, res) => {
     const concept = concepts.find((item) => item.key === req.params.key || item.label === req.params.key);
-    if (!concept) {
+    if (!concept && !graphDriver) {
       res.status(404).json({ error: 'CONCEPT_NOT_FOUND' });
       return;
     }
-    const graph = await graphService.getConceptGraph(req.params.key, { depth: parseDepth(req.query.depth) });
-    res.json({ ...graph, concept: graph.focus, relationships: graph.edges });
+    try {
+      const graph = await graphService.getConceptGraph(req.params.key, { depth: parseDepth(req.query.depth) });
+      res.json({ ...graph, concept: graph.focus, relationships: graph.edges });
+    } catch (error) {
+      sendGraphError(res, error);
+    }
   });
 
   app.get('/destiny-api/admin/graph/knowledge/:id', async (req, res) => {

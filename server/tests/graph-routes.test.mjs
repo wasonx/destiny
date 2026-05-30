@@ -68,3 +68,55 @@ test('admin graph routes return normalized nodes and edges', async () => {
     await new Promise((resolve) => server.close(resolve));
   }
 });
+
+test('concept graph route allows Neo4j-only concept keys when graph driver is configured', async () => {
+  let queriedKey = '';
+  const graphDriver = {
+    session(options) {
+      assert.deepEqual(options, { database: 'neo4j' });
+      return {
+        async run(cypher, params = {}) {
+          queriedKey = params.key || '';
+          if (cypher.includes('return 1')) {
+            return { records: [] };
+          }
+          return {
+            records: [
+              {
+                get(name) {
+                  if (name === 'focus') {
+                    return {
+                      labels: ['Concept'],
+                      properties: { key: 'custom.node', label: '自定义节点', type: '自定义概念' },
+                      elementId: 'custom-node',
+                    };
+                  }
+                  if (name === 'paths') {
+                    return [];
+                  }
+                  throw new Error(`Unexpected field: ${name}`);
+                },
+              },
+            ],
+          };
+        },
+        async close() {},
+      };
+    },
+  };
+  const app = createApp({ config: loadConfig({ SESSION_SECRET: 'test-secret' }), graphDriver });
+  const server = app.listen(0);
+  const { port } = server.address();
+
+  try {
+    const response = await fetch(`http://127.0.0.1:${port}/destiny-api/admin/graph/concepts/custom.node/paths`);
+    const data = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(queriedKey, 'custom.node');
+    assert.equal(data.focus.id, 'concept:custom.node');
+    assert.equal(data.focus.label, '自定义节点');
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
