@@ -19,8 +19,8 @@ function memoryUsers() {
       username: null,
       role: null,
       identities: [
-        { provider: 'wechat', provider_subject: 'dev-openid', phone: null },
-        { provider: 'phone', provider_subject: '13800000000', phone: '13800000000' },
+        { id: 'dev-identity-wechat', provider: 'wechat', provider_subject: 'dev-openid', phone: null },
+        { id: 'dev-identity-phone', provider: 'phone', provider_subject: '13800000000', phone: '13800000000' },
       ],
     },
     {
@@ -76,7 +76,11 @@ export function mountUserRoutes(app, { pool = null } = {}) {
               jsonb_build_object(
                 'provider', ci.provider,
                 'provider_subject', ci.provider_subject,
-                'phone', ci.phone
+                'phone', ci.phone,
+                'id', ci.id,
+                'openid', ci.openid,
+                'unionid', ci.unionid,
+                'created_at', ci.created_at
               )
             ) filter (where ci.id is not null),
             '[]'::jsonb
@@ -92,5 +96,88 @@ export function mountUserRoutes(app, { pool = null } = {}) {
       [accountType],
     );
     res.json({ users: result.rows });
+  });
+
+  app.delete('/destiny-api/admin/users/:userId/identities/:identityId', async (req, res, next) => {
+    if (!requirePlatformAdmin(req, res, pool)) {
+      return;
+    }
+    if (!pool) {
+      res.json({
+        ok: true,
+        identity: {
+          id: req.params.identityId,
+          user_id: req.params.userId,
+        },
+      });
+      return;
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('begin');
+      const identity = await client.query(
+        `
+          select ci.id, ci.user_id, ci.provider, ci.provider_subject, ci.phone
+          from app.customer_identities ci
+          join app.users u on u.id = ci.user_id
+          where ci.user_id = $1
+            and ci.id = $2
+            and u.account_type = 'customer'
+          for update
+        `,
+        [req.params.userId, req.params.identityId],
+      );
+      const row = identity.rows[0];
+      if (!row) {
+        await client.query('rollback');
+        res.status(404).json({ error: 'IDENTITY_NOT_FOUND' });
+        return;
+      }
+
+      const count = await client.query(
+        `
+          select count(*)::int as identity_count
+          from app.customer_identities
+          where user_id = $1
+        `,
+        [req.params.userId],
+      );
+      if (Number(count.rows[0]?.identity_count || 0) <= 1) {
+        await client.query('rollback');
+        res.status(400).json({ error: 'CANNOT_REMOVE_LAST_IDENTITY' });
+        return;
+      }
+
+      await client.query(
+        'delete from app.customer_identities where id = $1 and user_id = $2',
+        [req.params.identityId, req.params.userId],
+      );
+      await client.query(
+        `
+          insert into app.audit_logs(actor_user_id, action, target_type, target_id, metadata)
+          values ($1, $2, $3, $4, $5)
+        `,
+        [
+          req.session?.user_id || null,
+          'customer_identity.unlink',
+          'customer',
+          req.params.userId,
+          {
+            identityId: row.id,
+            provider: row.provider,
+            providerSubject: row.provider_subject,
+            phone: row.phone || null,
+          },
+        ],
+      );
+      await client.query('commit');
+      res.json({ ok: true, identity: row });
+    } catch (error) {
+      await client.query('rollback');
+      next(error);
+    } finally {
+      client.release();
+    }
   });
 }

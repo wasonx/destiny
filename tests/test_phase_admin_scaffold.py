@@ -152,6 +152,15 @@ class AdminScaffoldTests(unittest.TestCase):
         for text in ["客户", "后端编辑人员", "平台管理人员", "微信登录", "手机验证码", "账号密码"]:
             self.assertIn(text, page)
 
+    def test_users_page_exposes_identity_unlink_controls(self):
+        page = (ROOT / "src" / "admin" / "pages" / "UsersPage.tsx").read_text(encoding="utf-8")
+
+        self.assertIn("/users/${userId}/identities/${identityId}", page)
+        self.assertIn("unlinkIdentity", page)
+        self.assertIn("解绑身份", page)
+        self.assertIn("provider_subject", page)
+        self.assertIn("身份已解绑", page)
+
     def test_settings_page_calls_integration_status_endpoint(self):
         page = (ROOT / "src" / "admin" / "pages" / "SettingsPage.tsx").read_text(encoding="utf-8")
 

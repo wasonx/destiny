@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { RefreshCcw } from 'lucide-react';
+import { RefreshCcw, Unlink2 } from 'lucide-react';
 import { adminRequest } from '../api';
 
 type AccountType = 'all' | 'customer' | 'editor' | 'admin';
@@ -12,7 +12,14 @@ type UserRow = {
   phone?: string | null;
   username?: string | null;
   role?: string | null;
-  identities?: Array<{ provider: string; provider_subject?: string; phone?: string | null }>;
+  identities?: Array<{
+    id?: string;
+    provider: string;
+    provider_subject?: string;
+    phone?: string | null;
+    openid?: string | null;
+    unionid?: string | null;
+  }>;
   created_at?: string;
 };
 
@@ -41,10 +48,15 @@ function formatDate(value?: string) {
   return new Date(value).toLocaleDateString('zh-CN');
 }
 
+function identityPath(userId: string, identityId: string) {
+  return `/users/${userId}/identities/${identityId}`;
+}
+
 export default function UsersPage() {
   const [accountType, setAccountType] = useState<AccountType>('all');
   const [users, setUsers] = useState<UserRow[]>([]);
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
 
   async function loadUsers(nextType = accountType) {
     setError('');
@@ -54,6 +66,20 @@ export default function UsersPage() {
       setUsers(data.users || []);
     } catch {
       setError('用户列表读取失败');
+    }
+  }
+
+  async function unlinkIdentity(userId: string, identityId?: string) {
+    if (!identityId) return;
+    if (!window.confirm('确认解绑该身份？')) return;
+    setError('');
+    setMessage('');
+    try {
+      await adminRequest(identityPath(userId, identityId), { method: 'DELETE' });
+      setMessage('身份已解绑');
+      await loadUsers(accountType);
+    } catch {
+      setError('身份解绑失败，请确认客户至少保留一种登录身份');
     }
   }
 
@@ -83,6 +109,7 @@ export default function UsersPage() {
       </div>
 
       {error && <p className="mx-5 mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+      {message && <p className="mx-5 mt-4 rounded-md bg-emerald-50 px-3 py-2 text-sm text-serene-teal">{message}</p>}
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[900px] text-sm">
@@ -106,7 +133,32 @@ export default function UsersPage() {
                 <td>{loginMethods(user)}</td>
                 <td>{user.username || '-'}</td>
                 <td>{user.phone || '-'}</td>
-                <td className="max-w-[240px] truncate">{(user.identities || []).map((identity) => identity.provider).join('、') || '-'}</td>
+                <td className="max-w-[320px]">
+                  {(user.identities || []).length ? (
+                    <div className="grid gap-2">
+                      {(user.identities || []).map((identity, index) => (
+                        <div key={identity.id || `${identity.provider}-${index}`} className="flex items-start justify-between gap-2 rounded-md bg-surface px-2 py-1">
+                          <div className="min-w-0">
+                            <div className="font-medium">{identity.provider}</div>
+                            <div className="truncate font-mono text-xs text-on-surface-variant">
+                              {identity.provider_subject || identity.openid || identity.unionid || identity.phone || '-'}
+                            </div>
+                          </div>
+                          {user.account_type === 'customer' && identity.id ? (
+                            <button
+                              type="button"
+                              onClick={() => void unlinkIdentity(user.id, identity.id)}
+                              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-shadow-gray px-2 py-1 text-xs"
+                            >
+                              <Unlink2 className="h-3 w-3" />
+                              解绑身份
+                            </button>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  ) : '-'}
+                </td>
                 <td>{user.status}</td>
                 <td>{formatDate(user.created_at)}</td>
               </tr>
