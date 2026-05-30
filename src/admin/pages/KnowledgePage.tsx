@@ -187,6 +187,11 @@ export default function KnowledgePage() {
             </button>
             <button type="button" onClick={() => void publishEntry()} className="rounded-md bg-ink-blue px-4 py-2 text-white">发布</button>
             <button type="button" onClick={() => void disableEntry()} className="rounded-md border border-shadow-gray px-4 py-2 text-cinnabar">停用</button>
+            {selectedId && (
+              <a href={`/admin?view=ontology&mode=knowledge&target=${encodeURIComponent(selectedId)}&depth=2`} className="rounded-md border border-shadow-gray px-4 py-2">
+                查看图谱
+              </a>
+            )}
           </div>
           {message && <p className="text-sm text-serene-teal">{message}</p>}
           {error && <p className="text-sm text-red-600">{error}</p>}

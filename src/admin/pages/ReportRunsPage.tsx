@@ -98,6 +98,13 @@ export default function ReportRunsPage() {
 
       <section className="space-y-4">
         {error && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+        {selected?.id && (
+          <div className="flex justify-end">
+            <a href={`/admin?view=ontology&mode=report&target=${encodeURIComponent(selected.id)}&depth=2`} className="rounded-md border border-shadow-gray bg-white px-4 py-2 text-sm">
+              查看图谱
+            </a>
+          </div>
+        )}
         <div className="grid gap-4 md:grid-cols-2">
           <div className="rounded-lg border border-shadow-gray bg-white p-5">
             <h3 className="font-serif text-xl">输入参数</h3>

@@ -14,7 +14,7 @@ interface GraphPayload {
 type GraphMode = 'concept' | 'knowledge' | 'rule' | 'template' | 'report';
 
 const modes: Array<{ id: GraphMode; label: string; defaultTarget: string; endpoint: (target: string) => string }> = [
-  { id: 'concept', label: '概念节点图', defaultTarget: 'wood', endpoint: () => '/graph/concepts/wood/paths' },
+  { id: 'concept', label: '概念节点图', defaultTarget: 'wood', endpoint: (target) => `/graph/concepts/${encodeURIComponent(target)}/paths` },
   { id: 'knowledge', label: '知识关系图', defaultTarget: 'knowledge-1', endpoint: (target) => `/graph/knowledge/${encodeURIComponent(target)}` },
   { id: 'rule', label: '规则路径图', defaultTarget: 'rule-1', endpoint: (target) => `/graph/rules/${encodeURIComponent(target)}` },
   { id: 'template', label: '模板路径图', defaultTarget: 'template-1', endpoint: (target) => `/graph/templates/${encodeURIComponent(target)}` },
@@ -45,6 +45,22 @@ function conceptNodeId(value?: string) {
 function withDepth(endpoint: string, depth: number) {
   const separator = endpoint.includes('?') ? '&' : '?';
   return `${endpoint}${separator}depth=${depth}`;
+}
+
+function normalizeDepth(depth: unknown) {
+  return Math.max(1, Math.min(3, Number(depth) || 2));
+}
+
+function readInitialGraphState() {
+  const params = new URLSearchParams(window.location.search);
+  const modeParam = params.get('mode') as GraphMode | null;
+  const mode = modeParam && modes.some((item) => item.id === modeParam) ? modeParam : 'concept';
+  const config = modes.find((item) => item.id === mode) || modes[0];
+  return {
+    mode,
+    target: params.get('target') || config.defaultTarget,
+    depth: normalizeDepth(params.get('depth')),
+  };
 }
 
 function normalizeGraphPayload(data: GraphPayload): GraphPayload {
@@ -100,14 +116,15 @@ function normalizeGraphPayload(data: GraphPayload): GraphPayload {
 }
 
 export default function OntologyPage() {
-  const [mode, setMode] = useState<GraphMode>('concept');
-  const [target, setTarget] = useState('wood');
+  const [initialGraphState] = useState(() => readInitialGraphState());
+  const [mode, setMode] = useState<GraphMode>(initialGraphState.mode);
+  const [target, setTarget] = useState(initialGraphState.target);
   const [graph, setGraph] = useState<GraphPayload>(sampleGraph);
   const [selected, setSelected] = useState<GraphNode | GraphEdge | null>(sampleGraph.focus);
   const [search, setSearch] = useState('');
   const [nodeType, setNodeType] = useState('all');
   const [edgeType, setEdgeType] = useState('all');
-  const [depth, setDepth] = useState(2);
+  const [depth, setDepth] = useState(initialGraphState.depth);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -115,7 +132,7 @@ export default function OntologyPage() {
 
   async function loadGraph(nextMode = mode, nextTarget = target, nextDepth = depth) {
     const config = modes.find((item) => item.id === nextMode) || modes[0];
-    const graphDepth = Math.max(1, Math.min(3, Number(nextDepth) || 2));
+    const graphDepth = normalizeDepth(nextDepth);
     setLoading(true);
     setError('');
     try {
@@ -135,7 +152,7 @@ export default function OntologyPage() {
   }
 
   useEffect(() => {
-    void loadGraph('concept', 'wood');
+    void loadGraph(initialGraphState.mode, initialGraphState.target, initialGraphState.depth);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -198,6 +198,11 @@ export default function TemplatesPage() {
             <button type="button" onClick={() => void publishTemplate()} className="rounded-md bg-ink-blue px-4 py-2 text-white">发布</button>
             <button type="button" onClick={() => void disableTemplate()} className="rounded-md border border-shadow-gray px-4 py-2 text-cinnabar">停用</button>
             <button type="button" onClick={() => void previewTemplate()} className="rounded-md border border-shadow-gray px-4 py-2">预览</button>
+            {selectedId && (
+              <a href={`/admin?view=ontology&mode=template&target=${encodeURIComponent(selectedId)}&depth=2`} className="rounded-md border border-shadow-gray px-4 py-2">
+                查看图谱
+              </a>
+            )}
           </div>
           {message && <p className="mt-3 text-sm text-serene-teal">{message}</p>}
           {error && <p className="mt-3 text-sm text-red-600">{error}</p>}

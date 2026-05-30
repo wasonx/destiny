@@ -23,9 +23,49 @@ import TemplatesPage from './pages/TemplatesPage';
 import TestBenchPage from './pages/TestBenchPage';
 import UsersPage from './pages/UsersPage';
 
+const adminViews: AdminView[] = [
+  'dashboard',
+  'users',
+  'ontology',
+  'knowledge',
+  'testbench',
+  'rules',
+  'templates',
+  'reports',
+  'membership',
+  'entitlements',
+  'points',
+  'products',
+  'inventory',
+  'orders',
+  'payments',
+  'shipments',
+  'refunds',
+  'deliveryLogs',
+  'ops',
+  'settings',
+];
+
+function readInitialView(): AdminView {
+  const params = new URLSearchParams(window.location.search);
+  const view = params.get('view') as AdminView | null;
+  return view && adminViews.includes(view) ? view : 'dashboard';
+}
+
+function updateViewUrl(view: AdminView) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('view', view);
+  if (view !== 'ontology') {
+    url.searchParams.delete('mode');
+    url.searchParams.delete('target');
+    url.searchParams.delete('depth');
+  }
+  window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+}
+
 export default function AdminApp() {
   const [loggedIn, setLoggedIn] = useState(Boolean(getAdminToken()));
-  const [view, setView] = useState<AdminView>('dashboard');
+  const [view, setView] = useState<AdminView>(() => readInitialView());
 
   const page = useMemo(() => {
     const pages: Record<AdminView, React.ReactNode> = {
@@ -57,8 +97,13 @@ export default function AdminApp() {
     return <LoginPage onLoggedIn={() => setLoggedIn(true)} />;
   }
 
+  function changeView(nextView: AdminView) {
+    setView(nextView);
+    updateViewUrl(nextView);
+  }
+
   return (
-    <AdminLayout activeView={view} onViewChange={setView}>
+    <AdminLayout activeView={view} onViewChange={changeView}>
       {page}
     </AdminLayout>
   );

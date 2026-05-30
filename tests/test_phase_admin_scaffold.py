@@ -181,7 +181,7 @@ class AdminScaffoldTests(unittest.TestCase):
 
         self.assertIn("GraphCanvas", ontology)
         self.assertIn("GraphDetailsPanel", ontology)
-        self.assertIn("/graph/concepts/wood/paths", ontology)
+        self.assertIn("/graph/concepts/${encodeURIComponent(target)}/paths", ontology)
         self.assertIn("/graph/knowledge/", ontology)
         self.assertIn("/graph/rules/", ontology)
         self.assertIn("/graph/templates/", ontology)
@@ -194,6 +194,30 @@ class AdminScaffoldTests(unittest.TestCase):
 
         self.assertTrue((ROOT / "src" / "admin" / "components" / "GraphCanvas.tsx").exists())
         self.assertTrue((ROOT / "src" / "admin" / "components" / "GraphDetailsPanel.tsx").exists())
+
+    def test_graph_visualization_supports_deep_links_from_work_pages(self):
+        admin_app = (ROOT / "src" / "admin" / "AdminApp.tsx").read_text(encoding="utf-8")
+        ontology = (ROOT / "src" / "admin" / "pages" / "OntologyPage.tsx").read_text(encoding="utf-8")
+        work_pages = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in [
+                ROOT / "src" / "admin" / "pages" / "KnowledgePage.tsx",
+                ROOT / "src" / "admin" / "pages" / "RulesPage.tsx",
+                ROOT / "src" / "admin" / "pages" / "TemplatesPage.tsx",
+                ROOT / "src" / "admin" / "pages" / "ReportRunsPage.tsx",
+            ]
+        )
+
+        self.assertIn("URLSearchParams", admin_app)
+        self.assertIn("view=ontology", work_pages)
+        for mode in ["mode=knowledge", "mode=rule", "mode=template", "mode=report"]:
+            self.assertIn(mode, work_pages)
+        self.assertIn("查看图谱", work_pages)
+        self.assertIn("window.location.search", ontology)
+        self.assertIn("mode", ontology)
+        self.assertIn("target", ontology)
+        self.assertIn("depth", ontology)
+        self.assertIn("/graph/concepts/${encodeURIComponent(target)}/paths", ontology)
 
 
 if __name__ == "__main__":
