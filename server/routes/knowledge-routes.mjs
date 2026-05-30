@@ -1,7 +1,7 @@
 import { disableItem, publishItem } from '../content/publishing-service.mjs';
 import { memory, nextId } from './memory-state.mjs';
 
-export function mountKnowledgeRoutes(app, { pool }) {
+export function mountKnowledgeRoutes(app, { pool, publishingGraphSync = null }) {
   app.get('/destiny-api/admin/knowledge', async (req, res) => {
     if (!pool) {
       const status = req.query.status;
@@ -84,6 +84,7 @@ export function mountKnowledgeRoutes(app, { pool }) {
         actorUserId: req.session?.user_id,
         changeSummary: req.body?.changeSummary,
       });
+      await publishingGraphSync?.syncPublishedItem('knowledge', result.item);
       await client.query('commit');
       res.json(result);
     } catch (error) {

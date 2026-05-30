@@ -145,22 +145,22 @@ function createPublishingRoutePool() {
       };
     }
     if (normalized.includes('select * from app.knowledge_entries')) {
-      return { rows: [{ id: 'knowledge-1', module: 'bazi', title: '五行', summary: '', body: '正文', tags: [], risk_note: '', applicable_scope: {}, concept_keys: [], source_note: '', version_no: 0 }], rowCount: 1 };
+      return { rows: [{ id: 'knowledge-1', module: 'bazi', title: '五行', summary: '', body: '正文', tags: [], risk_note: '', applicable_scope: {}, concept_keys: ['wood'], source_note: '内部整理', version_no: 0 }], rowCount: 1 };
     }
     if (normalized.includes('select * from app.analysis_rules')) {
-      return { rows: [{ id: 'rule-1', module: 'bazi', name: '木旺', priority: 10, weight: 5, condition: {}, conclusion: '木旺', advice: '', risk_boundary: '', knowledge_entry_ids: [], graph_node_keys: [], trigger_explanation: '', version_no: 0 }], rowCount: 1 };
+      return { rows: [{ id: 'rule-1', module: 'bazi', name: '木旺', priority: 10, weight: 5, condition: {}, conclusion: '木旺', advice: '', risk_boundary: '避免绝对化', knowledge_entry_ids: ['knowledge-1'], graph_node_keys: ['wood'], trigger_explanation: '', version_no: 0 }], rowCount: 1 };
     }
     if (normalized.includes('select * from app.report_templates')) {
-      return { rows: [{ id: 'template-1', module: 'bazi', name: '完整报告', report_kind: 'life', sections: [], tone: '亲民', disclaimer: '仅供参考', forbidden_expressions: [], risk_boundary: '', template_scope: {}, version_no: 0 }], rowCount: 1 };
+      return { rows: [{ id: 'template-1', module: 'bazi', name: '完整报告', report_kind: 'life', sections: [], tone: '亲民', disclaimer: '仅供参考', forbidden_expressions: [], risk_boundary: '仅供参考', template_scope: { rule_ids: ['rule-1'] }, version_no: 0 }], rowCount: 1 };
     }
     if (normalized.includes('update app.knowledge_entries')) {
-      return { rows: [{ id: 'knowledge-1', status: 'published', version_no: 1 }], rowCount: 1 };
+      return { rows: [{ id: 'knowledge-1', module: 'bazi', title: '五行', summary: '', body: '正文', tags: [], risk_note: '', applicable_scope: {}, concept_keys: ['wood'], source_note: '内部整理', status: 'published', version_no: 1 }], rowCount: 1 };
     }
     if (normalized.includes('update app.analysis_rules')) {
-      return { rows: [{ id: 'rule-1', status: 'published', version_no: 1 }], rowCount: 1 };
+      return { rows: [{ id: 'rule-1', module: 'bazi', name: '木旺', priority: 10, weight: 5, condition: {}, conclusion: '木旺', advice: '', risk_boundary: '避免绝对化', knowledge_entry_ids: ['knowledge-1'], graph_node_keys: ['wood'], trigger_explanation: '', status: 'published', version_no: 1 }], rowCount: 1 };
     }
     if (normalized.includes('update app.report_templates')) {
-      return { rows: [{ id: 'template-1', status: 'published', version_no: 1 }], rowCount: 1 };
+      return { rows: [{ id: 'template-1', module: 'bazi', name: '完整报告', report_kind: 'life', sections: [], tone: '亲民', disclaimer: '仅供参考', forbidden_expressions: [], risk_boundary: '仅供参考', template_scope: { rule_ids: ['rule-1'] }, status: 'published', version_no: 1 }], rowCount: 1 };
     }
     if (normalized.includes('insert into app.knowledge_entry_versions')) {
       return { rows: [{ version_no: 1, change_summary: params.at(-1) }], rowCount: 1 };
@@ -217,6 +217,54 @@ test('admin publish routes write versions and audit logs', async () => {
     assert.ok(queries.some((query) => query.sql.includes('insert into app.report_template_versions')));
     assert.ok(queries.filter((query) => query.sql.includes('insert into app.audit_logs')).length >= 3);
     assert.ok(queries.some((query) => query.params.includes('admin-user-1')));
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test('admin publish routes sync published graph facts to Neo4j when configured', async () => {
+  const { pool } = createPublishingRoutePool();
+  const graphRuns = [];
+  const sessionOptions = [];
+  const graphDriver = {
+    session(options) {
+      sessionOptions.push(options);
+      return {
+        async run(cypher, params = {}) {
+          graphRuns.push({ cypher, params });
+          return { records: [] };
+        },
+        async close() {},
+      };
+    },
+  };
+  const app = createApp({
+    config: loadConfig({ SESSION_SECRET: 'test-secret', NEO4J_DATABASE: 'zhensuan' }),
+    pool,
+    graphDriver,
+  });
+  const server = app.listen(0);
+  const { port } = server.address();
+
+  try {
+    for (const path of [
+      '/destiny-api/admin/knowledge/knowledge-1/publish',
+      '/destiny-api/admin/rules/rule-1/publish',
+      '/destiny-api/admin/templates/template-1/publish',
+    ]) {
+      const response = await fetch(`http://127.0.0.1:${port}${path}`, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer admin-token', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ changeSummary: '发布到线上并同步图谱' }),
+      });
+
+      assert.equal(response.status, 200);
+    }
+
+    assert.ok(sessionOptions.every((options) => options.database === 'zhensuan'));
+    assert.ok(graphRuns.some((run) => run.cypher.includes('Knowledge') && run.cypher.includes('EXPLAINS') && run.params.id === 'knowledge-1' && run.params.conceptKeys.includes('wood')));
+    assert.ok(graphRuns.some((run) => run.cypher.includes('Rule') && run.cypher.includes('USES') && run.cypher.includes('REFERENCES_CONCEPT') && run.params.id === 'rule-1' && run.params.knowledgeEntryIds.includes('knowledge-1')));
+    assert.ok(graphRuns.some((run) => run.cypher.includes('Template') && run.cypher.includes('TRIGGERS') && run.params.id === 'template-1' && run.params.ruleIds.includes('rule-1')));
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }

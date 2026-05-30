@@ -1,7 +1,7 @@
 import { disableItem, publishItem } from '../content/publishing-service.mjs';
 import { memory, nextId } from './memory-state.mjs';
 
-export function mountTemplateRoutes(app, { pool } = {}) {
+export function mountTemplateRoutes(app, { pool, publishingGraphSync = null } = {}) {
   app.get('/destiny-api/admin/templates', async (req, res) => {
     if (!pool) {
       const status = req.query.status;
@@ -95,6 +95,7 @@ export function mountTemplateRoutes(app, { pool } = {}) {
         actorUserId: req.session?.user_id,
         changeSummary: req.body?.changeSummary,
       });
+      await publishingGraphSync?.syncPublishedItem('template', result.item);
       await client.query('commit');
       res.json(result);
     } catch (error) {

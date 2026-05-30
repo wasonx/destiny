@@ -14,9 +14,11 @@ import { mountTemplateRoutes } from './routes/template-routes.mjs';
 import { mountTestBenchRoutes } from './routes/testbench-routes.mjs';
 import { mountUserRoutes } from './routes/user-routes.mjs';
 import { requireSession } from './middleware/require-session.mjs';
+import { createPublishingGraphSyncService } from './graph/publishing-graph-sync-service.mjs';
 
 export function createApp({ config, pool = null, graphDriver = null, wechatSessionProvider = null } = {}) {
   const app = express();
+  const publishingGraphSync = createPublishingGraphSyncService({ graphDriver, database: config.neo4jDatabase });
 
   app.use(express.json({ limit: '1mb' }));
 
@@ -26,11 +28,11 @@ export function createApp({ config, pool = null, graphDriver = null, wechatSessi
     app.use('/destiny-api/admin', requireSession({ config, pool, accountTypes: ['editor', 'admin'] }));
   }
   mountCustomerAuthRoutes(app, { config, pool, wechatSessionProvider });
-  mountKnowledgeRoutes(app, { pool });
+  mountKnowledgeRoutes(app, { pool, publishingGraphSync });
   mountGraphRoutes(app, { config, graphDriver, pool });
   mountTestBenchRoutes(app);
-  mountRuleRoutes(app, { pool });
-  mountTemplateRoutes(app, { pool });
+  mountRuleRoutes(app, { pool, publishingGraphSync });
+  mountTemplateRoutes(app, { pool, publishingGraphSync });
   mountReportHistoryRoutes(app, { config, pool });
   mountEntitlementRoutes(app, { config, pool });
   mountUserRoutes(app, { pool });

@@ -2,7 +2,7 @@ import { disableItem, publishItem } from '../content/publishing-service.mjs';
 import { runRules } from '../rules/rule-engine.mjs';
 import { memory, nextId } from './memory-state.mjs';
 
-export function mountRuleRoutes(app, { pool } = {}) {
+export function mountRuleRoutes(app, { pool, publishingGraphSync = null } = {}) {
   app.get('/destiny-api/admin/rules', async (req, res) => {
     if (!pool) {
       const status = req.query.status;
@@ -100,6 +100,7 @@ export function mountRuleRoutes(app, { pool } = {}) {
         actorUserId: req.session?.user_id,
         changeSummary: req.body?.changeSummary,
       });
+      await publishingGraphSync?.syncPublishedItem('rule', result.item);
       await client.query('commit');
       res.json(result);
     } catch (error) {
