@@ -30,6 +30,7 @@ class AdminScaffoldTests(unittest.TestCase):
             "支付管理",
             "发货管理",
             "退款管理",
+            "审计日志",
             "运行健康",
         ]:
             self.assertIn(text, combined)
@@ -183,6 +184,20 @@ class AdminScaffoldTests(unittest.TestCase):
         self.assertIn("/ops/health", page)
         self.assertIn("/ops/recent-errors", page)
         for text in ["Node/Express API", "PostgreSQL", "Neo4j", "商城服务", "最近错误"]:
+            self.assertIn(text, page)
+
+    def test_audit_logs_page_calls_audit_endpoint(self):
+        app = (ROOT / "src" / "admin" / "AdminApp.tsx").read_text(encoding="utf-8")
+        layout = (ROOT / "src" / "admin" / "components" / "AdminLayout.tsx").read_text(encoding="utf-8")
+        page = (ROOT / "src" / "admin" / "pages" / "AuditLogsPage.tsx").read_text(encoding="utf-8")
+
+        self.assertIn("auditLogs", app)
+        self.assertIn("AuditLogsPage", app)
+        self.assertIn("auditLogs", layout)
+        self.assertIn("审计日志", layout)
+        self.assertIn("adminRequest", page)
+        self.assertIn("/audit-logs", page)
+        for text in ["操作类型", "目标类型", "目标 ID", "元数据"]:
             self.assertIn(text, page)
 
     def test_ontology_page_exposes_graph_visualization_workbench(self):

@@ -1,5 +1,6 @@
 import express from 'express';
 import { mountAdminAuthRoutes } from './routes/admin-auth-routes.mjs';
+import { mountAuditRoutes } from './routes/audit-routes.mjs';
 import { mountCommerceRoutes } from './routes/commerce-routes.mjs';
 import { mountCustomerAuthRoutes } from './routes/customer-auth-routes.mjs';
 import { mountEntitlementRoutes } from './routes/entitlement-routes.mjs';
@@ -36,6 +37,7 @@ export function createApp({ config, pool = null, graphDriver = null, wechatSessi
   mountReportHistoryRoutes(app, { config, pool });
   mountEntitlementRoutes(app, { config, pool });
   mountUserRoutes(app, { pool });
+  mountAuditRoutes(app, { pool });
   mountSettingsRoutes(app, { config, pool });
   mountCommerceRoutes(app, { config, pool });
   mountOpsRoutes(app, { config, pool, graphDriver });

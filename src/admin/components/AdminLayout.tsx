@@ -13,6 +13,7 @@ import {
   Package,
   ReceiptText,
   RefreshCcw,
+  ScrollText,
   ShieldCheck,
   Sparkles,
   Settings,
@@ -40,6 +41,7 @@ export type AdminView =
   | 'shipments'
   | 'refunds'
   | 'deliveryLogs'
+  | 'auditLogs'
   | 'ops'
   | 'settings';
 
@@ -62,6 +64,7 @@ const menu: Array<{ id: AdminView; label: string; icon: React.ReactNode }> = [
   { id: 'shipments', label: '发货管理', icon: <Truck className="h-4 w-4" /> },
   { id: 'refunds', label: '退款管理', icon: <RefreshCcw className="h-4 w-4" /> },
   { id: 'deliveryLogs', label: '发放记录', icon: <Activity className="h-4 w-4" /> },
+  { id: 'auditLogs', label: '审计日志', icon: <ScrollText className="h-4 w-4" /> },
   { id: 'ops', label: '运行健康', icon: <Activity className="h-4 w-4" /> },
   { id: 'settings', label: '系统设置', icon: <Settings className="h-4 w-4" /> },
 ];

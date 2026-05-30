@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { getAdminToken } from './api';
 import AdminLayout, { AdminView } from './components/AdminLayout';
+import AuditLogsPage from './pages/AuditLogsPage';
 import DashboardPage from './pages/DashboardPage';
 import DeliveryLogsPage from './pages/DeliveryLogsPage';
 import EntitlementsPage from './pages/EntitlementsPage';
@@ -42,6 +43,7 @@ const adminViews: AdminView[] = [
   'shipments',
   'refunds',
   'deliveryLogs',
+  'auditLogs',
   'ops',
   'settings',
 ];
@@ -87,6 +89,7 @@ export default function AdminApp() {
       shipments: <ShipmentsPage />,
       refunds: <RefundsPage />,
       deliveryLogs: <DeliveryLogsPage />,
+      auditLogs: <AuditLogsPage />,
       ops: <OpsPage />,
       settings: <SettingsPage />,
     };
