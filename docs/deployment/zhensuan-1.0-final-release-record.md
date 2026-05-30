@@ -29,11 +29,17 @@
 
 | 项目 | 命令或页面 | 结果 | 证据 |
 | --- | --- | --- | --- |
-| API 健康检查 | `https://www.goye.cc/destiny-api/health` | 未执行 | 执行 Task 3 Step 1 后替换为实际结果 |
-| 后台页面 | `https://www.goye.cc/admin` | 未执行 | 执行 Task 3 Step 3 后替换为实际结果 |
-| H5 首页 | `https://www.goye.cc` | 未执行 | 执行 Task 3 Step 2 后替换为实际结果 |
-| PostgreSQL 迁移 | 服务器迁移命令 | 未执行 | 执行 Task 3 Step 4 后替换为实际结果 |
-| Neo4j 图谱 | 后台图谱页面 | 未执行 | 执行 Task 3 Step 5 后替换为实际结果 |
+| API 健康检查 | `https://www.goye.cc/destiny-api/health` | 通过 | PowerShell `Invoke-RestMethod` 返回 `{"ok":true,"model":"deepseek-chat","hasKey":true}` |
+| 后台页面 | `https://www.goye.cc/admin` | 通过 | `curl.exe -fsSI` 返回 HTTP `200 OK` |
+| H5 首页 | `https://www.goye.cc` | 通过 | `curl.exe -fsSI` 返回 HTTP `200 OK` |
+| PostgreSQL 迁移 | 服务器迁移命令 | 未完成 | SSH 端口可达，但本机没有可用私钥；非交互 SSH 返回 `Permission denied (publickey,password)` |
+| Neo4j 图谱 | 后台图谱页面 | 未完成 | 服务器后端尚未验证；公网 `/destiny-api/legal` 返回 404，说明服务器代码仍落后于当前 1.0 分支 |
+
+服务器部署备注：
+
+- 当前 1.0 发布分支已推送到 `origin/codex/zhensuan-full-build`。
+- 服务器公网旧服务可响应健康检查和静态页面，但缺少当前 1.0 必需的 `/destiny-api/legal` 接口。
+- 需要在服务器拉取当前 1.0 代码、执行 `npm run db:migrate`、`npm run graph:seed`、重启 `destiny-api`，再重新验证后台图谱和报告溯源。
 
 ## 小程序上传
 
