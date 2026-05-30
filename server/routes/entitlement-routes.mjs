@@ -41,6 +41,54 @@ export function mountEntitlementRoutes(app, { config, pool }) {
     res.json(await getCustomerValueState(pool, req.params.customerId));
   });
 
+  app.get('/destiny-api/admin/customers/:customerId/value-ledger', async (req, res) => {
+    if (pool && !requirePlatformAdmin(req, res)) {
+      return;
+    }
+    if (!pool) {
+      res.json({ memberships: [], entitlementLedger: [], pointsLedger: [] });
+      return;
+    }
+    const customerId = req.params.customerId;
+    const [memberships, entitlementLedger, pointsLedger] = await Promise.all([
+      pool.query(
+        `
+          select id, plan_code, starts_at, expires_at, status, source, created_at
+          from app.customer_memberships
+          where customer_id = $1
+          order by created_at desc
+          limit 50
+        `,
+        [customerId],
+      ),
+      pool.query(
+        `
+          select id, amount, balance_after, reason, reference_type, reference_id, actor_user_id, created_at
+          from app.entitlement_ledger
+          where customer_id = $1
+          order by created_at desc
+          limit 50
+        `,
+        [customerId],
+      ),
+      pool.query(
+        `
+          select id, amount, balance_after, lifetime_after, growth_level_after, reason, reference_type, reference_id, actor_user_id, created_at
+          from app.points_ledger
+          where customer_id = $1
+          order by created_at desc
+          limit 50
+        `,
+        [customerId],
+      ),
+    ]);
+    res.json({
+      memberships: memberships.rows,
+      entitlementLedger: entitlementLedger.rows,
+      pointsLedger: pointsLedger.rows,
+    });
+  });
+
   app.post('/destiny-api/admin/customers/:customerId/grant-quota', async (req, res) => {
     if (pool && !requirePlatformAdmin(req, res)) {
       return;

@@ -189,3 +189,60 @@ test('admin membership expiry route requires platform admin and writes audit log
     await new Promise((resolve) => server.close(resolve));
   }
 });
+
+test('admin customer value ledger route requires platform admin and returns provenance rows', async () => {
+  const queries = [];
+  let sessionRole = 'editor';
+  const memberships = [
+    { id: 'membership-1', plan_code: 'monthly', status: 'expired', source: 'manual', starts_at: '2026-04-01', expires_at: '2026-05-01', created_at: '2026-04-01' },
+  ];
+  const entitlementLedger = [
+    { id: 'entitlement-1', amount: 3, balance_after: 3, reason: 'order_paid', reference_type: 'order', reference_id: 'order-1', actor_user_id: null, created_at: '2026-05-01' },
+  ];
+  const pointsLedger = [
+    { id: 'points-1', amount: 20, balance_after: 20, lifetime_after: 20, growth_level_after: '启蒙', reason: '活动奖励', reference_type: 'admin', reference_id: 'customer-1', actor_user_id: 'admin-1', created_at: '2026-05-01' },
+  ];
+  const pool = {
+    async query(sql, params = []) {
+      const text = normalizeSql(sql);
+      queries.push({ sql: text, params });
+      if (text.includes('from app.login_sessions')) {
+        return { rows: [{ session_id: 'session-1', account_type: sessionRole, user_id: 'admin-1', status: 'active', display_name: '管理员' }] };
+      }
+      if (text.includes('from app.customer_memberships')) {
+        return { rows: memberships, rowCount: memberships.length };
+      }
+      if (text.includes('from app.entitlement_ledger')) {
+        return { rows: entitlementLedger, rowCount: entitlementLedger.length };
+      }
+      if (text.includes('from app.points_ledger')) {
+        return { rows: pointsLedger, rowCount: pointsLedger.length };
+      }
+      throw new Error(`Unexpected pool query: ${text}`);
+    },
+  };
+  const app = createApp({ config: loadConfig({ SESSION_SECRET: 'test-secret' }), pool });
+  const server = app.listen(0);
+  const { port } = server.address();
+
+  try {
+    const editorResponse = await fetch(`http://127.0.0.1:${port}/destiny-api/admin/customers/customer-1/value-ledger`, {
+      headers: { Authorization: 'Bearer admin-token' },
+    });
+    assert.equal(editorResponse.status, 403);
+
+    sessionRole = 'admin';
+    const response = await fetch(`http://127.0.0.1:${port}/destiny-api/admin/customers/customer-1/value-ledger`, {
+      headers: { Authorization: 'Bearer admin-token' },
+    });
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.deepEqual(body, { memberships, entitlementLedger, pointsLedger });
+
+    assert.ok(queries.some((query) => query.sql.includes('from app.customer_memberships') && query.params[0] === 'customer-1'));
+    assert.ok(queries.some((query) => query.sql.includes('from app.entitlement_ledger') && query.sql.includes('order by created_at desc')));
+    assert.ok(queries.some((query) => query.sql.includes('from app.points_ledger') && query.sql.includes('order by created_at desc')));
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});

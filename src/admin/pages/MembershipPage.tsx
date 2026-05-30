@@ -12,6 +12,38 @@ type ValueState = {
   };
 };
 
+type ValueLedger = {
+  memberships: Array<{
+    id: string;
+    plan_code: string;
+    status: string;
+    source?: string;
+    starts_at?: string;
+    expires_at?: string;
+    created_at?: string;
+  }>;
+  entitlementLedger: Array<{
+    id: string;
+    amount: number;
+    balance_after: number;
+    reason: string;
+    reference_type?: string;
+    reference_id?: string;
+    created_at?: string;
+  }>;
+  pointsLedger: Array<{
+    id: string;
+    amount: number;
+    balance_after: number;
+    lifetime_after: number;
+    growth_level_after: string;
+    reason: string;
+    reference_type?: string;
+    reference_id?: string;
+    created_at?: string;
+  }>;
+};
+
 function formatDate(value?: string) {
   if (!value) {
     return '-';
@@ -19,11 +51,19 @@ function formatDate(value?: string) {
   return new Date(value).toLocaleDateString('zh-CN');
 }
 
+function formatDateTime(value?: string) {
+  if (!value) {
+    return '-';
+  }
+  return new Date(value).toLocaleString('zh-CN');
+}
+
 export default function MembershipPage() {
   const [customerId, setCustomerId] = useState('');
   const [planCode, setPlanCode] = useState('monthly');
   const [durationDays, setDurationDays] = useState('31');
   const [state, setState] = useState<ValueState | null>(null);
+  const [ledger, setLedger] = useState<ValueLedger | null>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -36,7 +76,9 @@ export default function MembershipPage() {
     setMessage('');
     try {
       const data = await adminRequest<ValueState>(`/customers/${customerId.trim()}/value-state`);
+      const ledgerData = await adminRequest<ValueLedger>(`/customers/${customerId.trim()}/value-ledger`);
       setState(data);
+      setLedger(ledgerData);
     } catch {
       setError('查询账户失败');
     }
@@ -56,6 +98,7 @@ export default function MembershipPage() {
         body: JSON.stringify({ planCode, durationDays: Number(durationDays || 31) }),
       });
       setState((current) => current ? { ...current, membership: data.membership } : current);
+      await loadValueState();
       setMessage('开通会员成功');
     } catch {
       setError('开通会员失败');
@@ -137,6 +180,53 @@ export default function MembershipPage() {
         </form>
         {message && <p className="mt-3 text-sm text-serene-teal">{message}</p>}
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-3">
+        <div className="rounded-lg border border-shadow-gray bg-white p-5">
+          <h3 className="mb-3 font-serif text-lg">会员记录</h3>
+          <div className="space-y-3 text-sm">
+            {(ledger?.memberships || []).map((item) => (
+              <div key={item.id} className="rounded-md bg-surface p-3">
+                <div className="font-medium">{item.plan_code} · {item.status}</div>
+                <div className="mt-1 text-on-surface-variant">来源：{item.source || '-'}</div>
+                <div className="text-on-surface-variant">有效期：{formatDate(item.starts_at)} 至 {formatDate(item.expires_at)}</div>
+              </div>
+            ))}
+            {!ledger?.memberships?.length && <div className="text-on-surface-variant">暂无会员记录</div>}
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-shadow-gray bg-white p-5">
+          <h3 className="mb-3 font-serif text-lg">权益流水</h3>
+          <div className="space-y-3 text-sm">
+            {(ledger?.entitlementLedger || []).map((item) => (
+              <div key={item.id} className="rounded-md bg-surface p-3">
+                <div className="font-medium">{item.amount > 0 ? '+' : ''}{item.amount} 次，余额 {item.balance_after}</div>
+                <div className="mt-1 text-on-surface-variant">原因：{item.reason}</div>
+                <div className="text-on-surface-variant">来源：{item.reference_type || '-'} {item.reference_id || ''}</div>
+                <div className="text-on-surface-variant">{formatDateTime(item.created_at)}</div>
+              </div>
+            ))}
+            {!ledger?.entitlementLedger?.length && <div className="text-on-surface-variant">暂无权益流水</div>}
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-shadow-gray bg-white p-5">
+          <h3 className="mb-3 font-serif text-lg">积分流水</h3>
+          <div className="space-y-3 text-sm">
+            {(ledger?.pointsLedger || []).map((item) => (
+              <div key={item.id} className="rounded-md bg-surface p-3">
+                <div className="font-medium">{item.amount > 0 ? '+' : ''}{item.amount} 分，余额 {item.balance_after}</div>
+                <div className="mt-1 text-on-surface-variant">累计：{item.lifetime_after} · {item.growth_level_after}</div>
+                <div className="text-on-surface-variant">原因：{item.reason}</div>
+                <div className="text-on-surface-variant">来源：{item.reference_type || '-'} {item.reference_id || ''}</div>
+                <div className="text-on-surface-variant">{formatDateTime(item.created_at)}</div>
+              </div>
+            ))}
+            {!ledger?.pointsLedger?.length && <div className="text-on-surface-variant">暂无积分流水</div>}
+          </div>
+        </div>
       </section>
     </div>
   );

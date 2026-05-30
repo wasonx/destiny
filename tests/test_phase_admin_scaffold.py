@@ -94,9 +94,10 @@ class AdminScaffoldTests(unittest.TestCase):
             "/grant-points",
             "/grant-membership",
             "/memberships/expire-overdue",
+            "/value-ledger",
         ]:
             self.assertIn(endpoint, combined)
-        for text in ["客户 ID", "查询账户", "发放报告次数", "发放积分", "开通会员", "过期处理"]:
+        for text in ["客户 ID", "查询账户", "发放报告次数", "发放积分", "开通会员", "过期处理", "会员记录", "权益流水", "积分流水"]:
             self.assertIn(text, combined)
 
     def test_knowledge_admin_pages_expose_publish_workflow(self):
