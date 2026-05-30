@@ -15,6 +15,7 @@ import {
   RefreshCcw,
   ShieldCheck,
   Sparkles,
+  Settings,
   Truck,
   Users,
   WalletCards,
@@ -62,6 +63,7 @@ const menu: Array<{ id: AdminView; label: string; icon: React.ReactNode }> = [
   { id: 'refunds', label: '退款管理', icon: <RefreshCcw className="h-4 w-4" /> },
   { id: 'deliveryLogs', label: '发放记录', icon: <Activity className="h-4 w-4" /> },
   { id: 'ops', label: '运行健康', icon: <Activity className="h-4 w-4" /> },
+  { id: 'settings', label: '系统设置', icon: <Settings className="h-4 w-4" /> },
 ];
 
 interface Props {

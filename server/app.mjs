@@ -9,6 +9,7 @@ import { mountOpsRoutes } from './routes/ops-routes.mjs';
 import { mountReportHistoryRoutes } from './routes/report-history-routes.mjs';
 import { mountReportRoutes } from './routes/report-routes.mjs';
 import { mountRuleRoutes } from './routes/rule-routes.mjs';
+import { mountSettingsRoutes } from './routes/settings-routes.mjs';
 import { mountTemplateRoutes } from './routes/template-routes.mjs';
 import { mountTestBenchRoutes } from './routes/testbench-routes.mjs';
 import { mountUserRoutes } from './routes/user-routes.mjs';
@@ -33,6 +34,7 @@ export function createApp({ config, pool = null, graphDriver = null, wechatSessi
   mountReportHistoryRoutes(app, { pool });
   mountEntitlementRoutes(app, { config, pool });
   mountUserRoutes(app, { pool });
+  mountSettingsRoutes(app, { config, pool });
   mountCommerceRoutes(app, { config, pool });
   mountOpsRoutes(app, { config, pool, graphDriver });
 

@@ -40,6 +40,12 @@ class AdminScaffoldTests(unittest.TestCase):
         self.assertIn("startsWith('/admin')", main)
         self.assertIn("AdminApp", main)
 
+    def test_admin_layout_exposes_settings_navigation(self):
+        layout = (ROOT / "src" / "admin" / "components" / "AdminLayout.tsx").read_text(encoding="utf-8")
+
+        self.assertIn("settings", layout)
+        self.assertIn("系统设置", layout)
+
     def test_commerce_admin_pages_call_backend_endpoints(self):
         combined = "\n".join(
             path.read_text(encoding="utf-8")
@@ -144,6 +150,14 @@ class AdminScaffoldTests(unittest.TestCase):
         self.assertIn("adminRequest", page)
         self.assertIn("/users", page)
         for text in ["客户", "后端编辑人员", "平台管理人员", "微信登录", "手机验证码", "账号密码"]:
+            self.assertIn(text, page)
+
+    def test_settings_page_calls_integration_status_endpoint(self):
+        page = (ROOT / "src" / "admin" / "pages" / "SettingsPage.tsx").read_text(encoding="utf-8")
+
+        self.assertIn("adminRequest", page)
+        self.assertIn("/settings/integrations", page)
+        for text in ["微信登录", "短信", "支付", "退款", "快递", "模拟发送", "人工确认"]:
             self.assertIn(text, page)
 
     def test_ontology_page_exposes_graph_visualization_workbench(self):
