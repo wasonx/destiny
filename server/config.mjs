@@ -8,6 +8,8 @@ export function loadConfig(env = process.env) {
     sessionSecret: env.SESSION_SECRET || 'dev-only-session-secret',
     customerAuthMocksEnabled: env.CUSTOMER_AUTH_MOCKS_ENABLED !== 'false',
     smsCodeTtlSeconds: Number(env.SMS_CODE_TTL_SECONDS || 300),
+    smsSendCooldownSeconds: Number(env.SMS_SEND_COOLDOWN_SECONDS || 60),
+    smsOtpMaxAttempts: Number(env.SMS_OTP_MAX_ATTEMPTS || 5),
     qrLoginTtlSeconds: Number(env.QR_LOGIN_TTL_SECONDS || 180),
     wechatMiniProgramAppId: env.WECHAT_MINIPROGRAM_APP_ID || '',
     wechatMiniProgramSecret: env.WECHAT_MINIPROGRAM_SECRET || '',
