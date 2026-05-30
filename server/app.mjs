@@ -22,7 +22,7 @@ export function createApp({ config, pool = null, graphDriver = null, wechatSessi
 
   app.use(express.json({ limit: '1mb' }));
 
-  mountReportRoutes(app, { config, pool });
+  mountReportRoutes(app, { config, pool, graphDriver });
   mountAdminAuthRoutes(app, { config, pool });
   if (pool) {
     app.use('/destiny-api/admin', requireSession({ config, pool, accountTypes: ['editor', 'admin'] }));

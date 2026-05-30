@@ -88,6 +88,190 @@ test('generate route fills missing ai report fields from fallback structure', as
   }
 });
 
+test('generate route sends published knowledge and graph context to ai and provenance', async () => {
+  const aiRequests = [];
+  const aiServer = await new Promise((resolve) => {
+    const server = createApp({
+      config: loadConfig({ DEEPSEEK_API_KEY: '', DEEPSEEK_MODEL: 'mock' }),
+    }).listen(0, () => resolve(server));
+  });
+  const aiPort = aiServer.address().port;
+  aiServer.removeAllListeners('request');
+  aiServer.on('request', (req, res) => {
+    let body = '';
+    req.on('data', (chunk) => {
+      body += chunk;
+    });
+    req.on('end', () => {
+      aiRequests.push(JSON.parse(body));
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ summary: 'AI graph summary' }) } }] }));
+    });
+  });
+
+  const knowledge = {
+    id: 'knowledge-graph-1',
+    title: 'Wood balance knowledge',
+    module: 'bazi',
+    status: 'published',
+    concept_keys: ['wood'],
+    tags: ['element'],
+    source_note: 'internal source note',
+  };
+  const rule = {
+    id: 'rule-graph-1',
+    name: 'Wood graph rule',
+    module: 'bazi',
+    status: 'published',
+    knowledge_entry_ids: ['knowledge-graph-1'],
+    graph_node_keys: ['wood'],
+    risk_boundary: 'reference only',
+  };
+  const template = {
+    id: 'template-graph-1',
+    name: 'Graph report template',
+    module: 'bazi',
+    report_kind: 'life',
+    status: 'published',
+    template_scope: { rule_ids: ['rule-graph-1'] },
+    risk_boundary: 'no absolute claims',
+  };
+  const storedContexts = [];
+  const storedProvenances = [];
+  const client = {
+    async query(sql, params = []) {
+      if (sql.includes('from app.knowledge_entries') && sql.includes("status = 'published'")) {
+        return { rows: [knowledge] };
+      }
+      if (sql.includes('from app.analysis_rules') && sql.includes("status = 'published'")) {
+        return { rows: [rule] };
+      }
+      if (sql.includes('from app.report_templates') && sql.includes("status = 'published'")) {
+        return { rows: [template] };
+      }
+      if (sql.includes('from app.report_templates') && sql.includes('id = $1')) {
+        assert.deepEqual(params, ['template-graph-1']);
+        return { rows: [template] };
+      }
+      if (sql.includes('from app.analysis_rules') && sql.includes('id = $1')) {
+        assert.deepEqual(params, ['rule-graph-1']);
+        return { rows: [rule] };
+      }
+      if (sql.includes('from app.knowledge_entries') && sql.includes('id = $1')) {
+        assert.deepEqual(params, ['knowledge-graph-1']);
+        return { rows: [knowledge] };
+      }
+      if (sql.includes('insert into app.report_runs')) {
+        storedContexts.push(params[3]);
+        return { rows: [{ id: 'report-run-graph' }], rowCount: 1 };
+      }
+      if (sql.includes('insert into app.safety_reviews')) {
+        return { rows: [], rowCount: 1 };
+      }
+      if (sql.includes('insert into app.report_provenance_records')) {
+        storedProvenances.push({ graphNodes: params[1], graphEdges: params[2] });
+        return { rows: [], rowCount: 1 };
+      }
+      if (sql.includes('update app.report_runs set provenance')) {
+        storedProvenances.push(params[1]);
+        return { rows: [], rowCount: 1 };
+      }
+      if (['begin', 'commit', 'rollback'].includes(sql)) {
+        return { rows: [], rowCount: 0 };
+      }
+      throw new Error(`Unexpected query: ${sql}`);
+    },
+    release() {},
+  };
+  const pool = {
+    async query(sql, params = []) {
+      return client.query(sql, params);
+    },
+    async connect() {
+      return client;
+    },
+  };
+  let graphRunCount = 0;
+  const wood = {
+    properties: { key: 'wood', label: 'Wood', type: 'FiveElement' },
+    elementId: 'wood-node',
+  };
+  const fire = {
+    properties: { key: 'fire', label: 'Fire', type: 'FiveElement' },
+    elementId: 'fire-node',
+  };
+  const graphDriver = {
+    session() {
+      return {
+        async run(_cypher, params) {
+          graphRunCount += 1;
+          assert.deepEqual(params, { key: 'wood' });
+          return {
+            records: [
+              {
+                get(name) {
+                  if (name === 'focus') return wood;
+                  if (name === 'paths') {
+                    return [
+                      {
+                        segments: [
+                          {
+                            start: wood,
+                            relationship: { type: 'GENERATES', properties: { source: 'neo4j-test' } },
+                            end: fire,
+                          },
+                        ],
+                      },
+                    ];
+                  }
+                  throw new Error(`Unexpected graph field: ${name}`);
+                },
+              },
+            ],
+          };
+        },
+        async close() {},
+      };
+    },
+  };
+  const app = createApp({
+    config: loadConfig({
+      DEEPSEEK_API_KEY: 'test-key',
+      DEEPSEEK_MODEL: 'mock',
+      DEEPSEEK_API_URL: `http://127.0.0.1:${aiPort}`,
+      NEO4J_DATABASE: 'zhensuan-test',
+    }),
+    pool,
+    graphDriver,
+  });
+  const server = app.listen(0);
+  const { port } = server.address();
+
+  try {
+    const response = await fetch(`http://127.0.0.1:${port}/destiny-api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind: 'life', payload: { focus: 'career' } }),
+    });
+    const data = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(data.report.summary, 'AI graph summary');
+    assert.equal(graphRunCount, 1);
+    const prompt = aiRequests[0].messages.map((message) => message.content).join('\n');
+    assert.match(prompt, /knowledge-graph-1/);
+    assert.match(prompt, /rule-graph-1/);
+    assert.match(prompt, /concept:fire/);
+    assert.match(prompt, /GENERATES/);
+    assert.ok(storedContexts.some((context) => context.graph.nodes.some((node) => node.id === 'concept:fire')));
+    assert.ok(storedContexts.some((context) => context.graph.edges.some((edge) => edge.type === 'GENERATES')));
+    assert.ok(storedProvenances.some((provenance) => provenance.graphNodes?.some((node) => node.id === 'concept:fire')));
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+    await new Promise((resolve) => aiServer.close(resolve));
+  }
+});
+
 test('generate route with customer session spends report quota and records customer report run', async () => {
   const queries = [];
   const client = {

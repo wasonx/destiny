@@ -1,5 +1,6 @@
 import { loadPublishedReportContent } from '../content/published-content-service.mjs';
 import { spendReportQuota } from '../entitlements/ledger-service.mjs';
+import { createGraphQueryService } from '../graph/graph-query-service.mjs';
 import { buildReportProvenance, saveReportProvenance } from '../graph/report-provenance-service.mjs';
 import { findSession, getBearerToken } from '../middleware/require-session.mjs';
 import { buildReportContext } from '../reports/context-builder.mjs';
@@ -99,7 +100,138 @@ function buildPrompt(kind, payload) {
   return `请生成甄算${kind}报告。必须输出 JSON，避免绝对化和高风险承诺。用户输入：${JSON.stringify(payload)}`;
 }
 
-export function mountReportRoutes(app, { config, pool }) {
+function graphEmpty() {
+  return { nodes: [], edges: [] };
+}
+
+function takeArray(value, limit = 50) {
+  return Array.isArray(value) ? value.slice(0, limit) : [];
+}
+
+function compactReportContext(context = {}) {
+  const graph = context.graph || graphEmpty();
+  return {
+    input: context.input || {},
+    features: context.features || {},
+    template: context.template
+      ? {
+          id: context.template.id,
+          name: context.template.name,
+          version_no: context.template.version_no,
+          report_kind: context.template.report_kind,
+          template_scope: context.template.template_scope || {},
+          risk_boundary: context.template.risk_boundary || '',
+        }
+      : null,
+    rules: takeArray(context.rules, 30).map((item) => ({
+      id: item.id,
+      name: item.name,
+      version_no: item.version_no,
+      priority: item.priority,
+      weight: item.weight,
+      knowledge_entry_ids: item.knowledge_entry_ids || [],
+      graph_node_keys: item.graph_node_keys || [],
+      risk_boundary: item.risk_boundary || '',
+    })),
+    knowledge: takeArray(context.knowledge, 30).map((item) => ({
+      id: item.id,
+      title: item.title,
+      version_no: item.version_no,
+      tags: item.tags || [],
+      concept_keys: item.concept_keys || [],
+      source_note: item.source_note || '',
+    })),
+    graph: {
+      nodes: takeArray(graph.nodes, 80).map((item) => ({
+        id: item.id,
+        type: item.type,
+        label: item.label,
+        metadata: item.metadata || {},
+      })),
+      edges: takeArray(graph.edges, 120).map((item) => ({
+        id: item.id,
+        source: item.source,
+        target: item.target,
+        type: item.type,
+        label: item.label,
+        metadata: item.metadata || {},
+      })),
+    },
+  };
+}
+
+function buildPromptWithContext(kind, payload, context = {}) {
+  return `${buildPrompt(kind, payload)}\nLocal knowledge and graph context: ${JSON.stringify(compactReportContext(context))}`;
+}
+
+function collectConceptKeys(publishedContent = {}) {
+  const keys = new Set();
+  for (const item of publishedContent.knowledge || []) {
+    for (const key of item.concept_keys || []) keys.add(key);
+  }
+  for (const item of publishedContent.rules || []) {
+    for (const key of item.graph_node_keys || []) keys.add(key);
+  }
+  return [...keys].filter(Boolean).slice(0, 12);
+}
+
+function mergeGraphs(graphs) {
+  const nodes = new Map();
+  const edges = new Map();
+  let focus = null;
+  for (const graph of graphs) {
+    if (!graph) continue;
+    if (!focus && graph.focus) focus = graph.focus;
+    for (const item of graph.nodes || []) {
+      if (item?.id) nodes.set(item.id, item);
+    }
+    for (const item of graph.edges || []) {
+      if (item?.id) edges.set(item.id, item);
+    }
+  }
+  return {
+    focus,
+    nodes: [...nodes.values()],
+    edges: [...edges.values()],
+  };
+}
+
+async function tryGraph(loadGraph) {
+  try {
+    return await loadGraph();
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+async function buildReportGraphContext({ pool, graphService, publishedContent = {} } = {}) {
+  if (!pool || !graphService) {
+    return graphEmpty();
+  }
+
+  const graphs = [];
+  if (publishedContent.template?.id) {
+    graphs.push(await tryGraph(() => graphService.getTemplateGraph(publishedContent.template.id, { pool })));
+  } else {
+    for (const item of takeArray(publishedContent.rules, 12)) {
+      graphs.push(await tryGraph(() => graphService.getRuleGraph(item.id, { pool })));
+    }
+    for (const item of takeArray(publishedContent.knowledge, 12)) {
+      graphs.push(await tryGraph(() => graphService.getKnowledgeGraph(item.id, { pool })));
+    }
+  }
+
+  for (const key of collectConceptKeys(publishedContent)) {
+    graphs.push(await tryGraph(() => graphService.getConceptGraph(key, { depth: 1 })));
+  }
+
+  return mergeGraphs(graphs);
+}
+
+export function mountReportRoutes(app, { config, pool, graphDriver = null }) {
+  const graphService = createGraphQueryService({ graphDriver, database: config.neo4jDatabase });
+
   app.get('/destiny-api/health', (_req, res) => {
     res.json({ ok: true, model: config.model, hasKey: Boolean(config.apiKey) });
   });
@@ -123,6 +255,20 @@ export function mountReportRoutes(app, { config, pool }) {
       return;
     }
 
+    const publishedContent = await loadPublishedReportContent(pool, {
+      reportKind: kind,
+      module: kind === 'life' ? 'bazi' : kind,
+    });
+    const reportGraph = await buildReportGraphContext({ pool, graphService, publishedContent });
+    const context = buildReportContext({
+      input: payload,
+      features: { reportTier: tier, isPreview: tier === 'free' },
+      rules: publishedContent.rules,
+      knowledge: publishedContent.knowledge,
+      template: publishedContent.template,
+      graph: reportGraph,
+    });
+
     let report = null;
     if (config.apiKey) {
       try {
@@ -133,7 +279,7 @@ export function mountReportRoutes(app, { config, pool }) {
             model: config.model,
             messages: [
               { role: 'system', content: '你只输出可解析 JSON，避免绝对化、高风险和恐吓式建议。' },
-              { role: 'user', content: buildPrompt(kind, payload) },
+              { role: 'user', content: buildPromptWithContext(kind, payload, context) },
             ],
             response_format: { type: 'json_object' },
             temperature: 0.7,
@@ -168,17 +314,6 @@ export function mountReportRoutes(app, { config, pool }) {
     }
     report = applyReportTier(report, tier);
 
-    const publishedContent = await loadPublishedReportContent(pool, {
-      reportKind: kind,
-      module: kind === 'life' ? 'bazi' : kind,
-    });
-    const context = buildReportContext({
-      input: payload,
-      features: { reportTier: tier, isPreview: tier === 'free' },
-      rules: publishedContent.rules,
-      knowledge: publishedContent.knowledge,
-      template: publishedContent.template,
-    });
     if (pool) {
       const client = await pool.connect();
       try {
@@ -209,7 +344,7 @@ export function mountReportRoutes(app, { config, pool }) {
           [reportRunId, safety.passed, safety.flags || [], JSON.stringify(safety)],
         );
         const provenance = buildReportProvenance({
-          graph: { nodes: [], edges: [] },
+          graph: context.graph || graphEmpty(),
           context,
           safety,
         });
