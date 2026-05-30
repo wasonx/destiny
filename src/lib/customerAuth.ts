@@ -37,6 +37,34 @@ export async function verifyOtp(phone: string, code: string) {
   return data;
 }
 
+export interface QrLoginSession {
+  token: string;
+  status: 'pending' | 'confirmed' | 'expired' | 'cancelled' | string;
+  expires_at?: string;
+  customerToken?: string;
+  customer?: {
+    id?: string;
+  };
+}
+
+export async function createQrLoginSession(): Promise<QrLoginSession> {
+  const response = await fetch('/destiny-api/customer/qr/create', {
+    method: 'POST',
+  });
+  if (!response.ok) throw new Error('二维码登录会话创建失败');
+  return response.json();
+}
+
+export async function fetchQrLoginStatus(token: string): Promise<QrLoginSession> {
+  const response = await fetch(`/destiny-api/customer/qr/status/${encodeURIComponent(token)}`);
+  if (!response.ok) throw new Error('二维码登录状态获取失败');
+  const data = await response.json();
+  if (data.customerToken) {
+    setCustomerToken(data.customerToken);
+  }
+  return data;
+}
+
 export async function fetchValueState() {
   const response = await fetch('/destiny-api/customer/value-state', {
     headers: authHeaders(),

@@ -1,11 +1,33 @@
 const auth = require('../../utils/auth');
 
+function parseQrLoginToken(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+
+  try {
+    const parsed = JSON.parse(text);
+    if (parsed && parsed.token) {
+      return String(parsed.token).trim();
+    }
+  } catch (error) {
+    // QR content can also be a plain token or URL.
+  }
+
+  const tokenIndex = text.indexOf('token=');
+  if (tokenIndex >= 0) {
+    return decodeURIComponent(text.slice(tokenIndex + 6).split(/[&#]/)[0]).trim();
+  }
+
+  return text;
+}
+
 Page({
   data: {
     phone: '',
     code: '',
     sending: false,
     loggingIn: false,
+    scanningQr: false,
     message: '',
   },
 
@@ -41,6 +63,37 @@ Page({
       })
       .finally(() => {
         this.setData({ loggingIn: false });
+      });
+  },
+
+  scanQrLogin() {
+    if (this.data.scanningQr) return;
+    this.setData({ scanningQr: true, message: '' });
+
+    const ensureCustomerSession = auth.getToken() ? Promise.resolve() : auth.loginWithWechatCode();
+    ensureCustomerSession
+      .then(() => new Promise((resolve, reject) => {
+        wx.scanCode({
+          onlyFromCamera: false,
+          success: resolve,
+          fail: reject,
+        });
+      }))
+      .then((scanResult) => {
+        const token = parseQrLoginToken(scanResult && scanResult.result);
+        if (!token) {
+          throw new Error('QR_TOKEN_MISSING');
+        }
+        return auth.confirmQrLogin(token);
+      })
+      .then(() => {
+        this.finishLogin('扫码确认成功');
+      })
+      .catch(() => {
+        wx.showToast({ title: '扫码登录失败，请重试', icon: 'none' });
+      })
+      .finally(() => {
+        this.setData({ scanningQr: false });
       });
   },
 

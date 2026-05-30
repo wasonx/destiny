@@ -14,6 +14,14 @@
   </view>
 
   <view class="section login-section">
+    <view class="section-title">扫码登录</view>
+    <view class="login-copy">用于确认电脑端二维码登录，扫码后会把当前微信小程序账号授权给 H5 端。</view>
+    <button class="secondary-button" loading="{{scanningQr}}" disabled="{{scanningQr}}" bindtap="scanQrLogin">
+      {{scanningQr ? '确认中' : '扫码登录'}}
+    </button>
+  </view>
+
+  <view class="section login-section">
     <view class="section-title">手机验证码登录</view>
     <view class="login-copy">适合用手机号进入同一客户账号，便于后续查看历史记录。</view>
     <view class="field">

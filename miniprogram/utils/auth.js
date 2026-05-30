@@ -61,6 +61,15 @@ function verifyPhoneOtp(phone, code) {
   });
 }
 
+function confirmQrLogin(token) {
+  return api.request('/customer/qr/confirm', {
+    method: 'POST',
+    data: {
+      token,
+    },
+  });
+}
+
 module.exports = {
   TOKEN_KEY,
   getToken,
@@ -68,4 +77,5 @@ module.exports = {
   loginWithWechatCode,
   sendPhoneOtp,
   verifyPhoneOtp,
+  confirmQrLogin,
 };

@@ -77,6 +77,23 @@ class OnlineIntegrationScaffoldTests(unittest.TestCase):
         self.assertIn("onTabChange('reports')", layout)
         self.assertIn("报告", layout)
 
+    def test_customer_qr_login_frontends_are_wired(self):
+        h5_auth = (ROOT / "src" / "lib" / "customerAuth.ts").read_text(encoding="utf-8")
+        login_panel = (ROOT / "src" / "components" / "LoginPanel.tsx").read_text(encoding="utf-8")
+        mini_auth = (MINI / "utils" / "auth.js").read_text(encoding="utf-8")
+        mini_login_js = (MINI / "pages" / "login" / "index.js").read_text(encoding="utf-8")
+        mini_login_wxml = (MINI / "pages" / "login" / "index.wxml").read_text(encoding="utf-8")
+
+        for text in ["createQrLoginSession", "fetchQrLoginStatus", "/customer/qr/create", "/customer/qr/status", "customerToken"]:
+            self.assertIn(text, h5_auth)
+        for text in ["QRCode", "startQrLogin", "pollQrLoginStatus", "扫码登录", "qrImage"]:
+            self.assertIn(text, login_panel)
+        for text in ["confirmQrLogin", "/customer/qr/confirm"]:
+            self.assertIn(text, mini_auth)
+        self.assertIn("wx.scanCode", mini_login_js)
+        self.assertIn("scanQrLogin", mini_login_js)
+        self.assertIn('bindtap="scanQrLogin"', mini_login_wxml)
+
     def test_h5_exposes_customer_commerce_center(self):
         app_tsx = (ROOT / "src" / "App.tsx").read_text(encoding="utf-8")
         commerce_path = ROOT / "src" / "lib" / "customerCommerce.ts"
