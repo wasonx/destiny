@@ -89,22 +89,40 @@ function createRefundRequest(orderId, payload) {
   });
 }
 
-function generateInsight(kind, payload) {
+function applyReportTier(report, tier) {
+  const isPreview = report.isPreview !== undefined ? report.isPreview : tier === 'free';
+  const next = {
+    ...report,
+    tier: report.tier || tier,
+    reportTier: report.reportTier || report.tier || tier,
+    isPreview,
+    upgradePrompt: report.upgradePrompt || (isPreview ? '当前为免费体验版，解锁完整版可查看完整结构、规则解释、风险边界和更多行动建议。' : ''),
+  };
+  if (isPreview) {
+    next.keywords = (next.keywords || []).slice(0, 3);
+    next.sections = (next.sections || []).slice(0, 2);
+    next.actions = (next.actions || []).slice(0, 3);
+  }
+  return next;
+}
+
+function generateInsight(kind, payload, tier = 'free') {
   return request('/generate', {
     method: 'POST',
     data: {
       kind,
       payload,
+      tier,
     },
   }).then((data) => {
     if (!data || !data.report || !data.report.title) {
       throw new Error('Invalid report response');
     }
 
-    return {
+    return applyReportTier({
       ...data.report,
       kind,
-    };
+    }, tier);
   });
 }
 

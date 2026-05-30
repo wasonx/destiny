@@ -7,6 +7,7 @@ import { reviewReportSafety } from '../reports/safety-review.mjs';
 import { memory, nextId } from './memory-state.mjs';
 
 const disclaimer = '内容仅作自我探索与生活参考，不构成医疗、投资、法律或重大人生决策建议。';
+const freeUpgradePrompt = '当前为免费体验版，已保留核心摘要和部分建议。解锁完整版可查看完整结构、规则解释、风险边界和更多行动建议。';
 
 function today() {
   return new Intl.DateTimeFormat('zh-CN', {
@@ -73,6 +74,27 @@ export function buildFallbackReport(kind, payload = {}) {
   return { kind, ...report, generatedAt: today(), disclaimer, source: 'fallback' };
 }
 
+function normalizeReportTier(value) {
+  return value === 'full' ? 'full' : 'free';
+}
+
+function applyReportTier(report, tier) {
+  const full = tier === 'full';
+  const next = {
+    ...report,
+    tier,
+    reportTier: tier,
+    isPreview: !full,
+    upgradePrompt: full ? '' : freeUpgradePrompt,
+  };
+  if (!full) {
+    next.keywords = Array.isArray(report.keywords) ? report.keywords.slice(0, 3) : [];
+    next.sections = Array.isArray(report.sections) ? report.sections.slice(0, 2) : [];
+    next.actions = Array.isArray(report.actions) ? report.actions.slice(0, 3) : [];
+  }
+  return next;
+}
+
 function buildPrompt(kind, payload) {
   return `请生成甄算${kind}报告。必须输出 JSON，避免绝对化和高风险承诺。用户输入：${JSON.stringify(payload)}`;
 }
@@ -85,6 +107,7 @@ export function mountReportRoutes(app, { config, pool }) {
   app.post('/destiny-api/generate', async (req, res) => {
     const kind = req.body?.kind;
     const payload = req.body?.payload || {};
+    const tier = normalizeReportTier(req.body?.tier || payload.tier);
     if (!['life', 'relationship', 'question', 'space'].includes(kind)) {
       res.status(400).json({ error: 'Unsupported report kind' });
       return;
@@ -93,6 +116,10 @@ export function mountReportRoutes(app, { config, pool }) {
     const session = pool && token ? await findSession(req, { pool, config, accountTypes: ['customer'] }) : null;
     if (pool && token && !session) {
       res.status(401).json({ error: 'UNAUTHORIZED' });
+      return;
+    }
+    if (pool && tier === 'full' && !session) {
+      res.status(401).json({ error: 'CUSTOMER_LOGIN_REQUIRED' });
       return;
     }
 
@@ -139,6 +166,7 @@ export function mountReportRoutes(app, { config, pool }) {
     if (!safety.passed) {
       report = buildFallbackReport(kind, payload);
     }
+    report = applyReportTier(report, tier);
 
     const publishedContent = await loadPublishedReportContent(pool, {
       reportKind: kind,
@@ -146,7 +174,7 @@ export function mountReportRoutes(app, { config, pool }) {
     });
     const context = buildReportContext({
       input: payload,
-      features: {},
+      features: { reportTier: tier, isPreview: tier === 'free' },
       rules: publishedContent.rules,
       knowledge: publishedContent.knowledge,
       template: publishedContent.template,
@@ -155,36 +183,37 @@ export function mountReportRoutes(app, { config, pool }) {
       const client = await pool.connect();
       try {
         await client.query('begin');
-        if (session) {
+        const run = await client.query(
+          `
+            insert into app.report_runs(customer_id, report_kind, input_params, structured_context, final_report, source, report_tier, provenance)
+            values ($1, $2, $3, $4, $5, $6, $7, $8)
+            returning id
+          `,
+          [session?.user_id || null, kind, payload, context, report, report.source || 'fallback', tier, {}],
+        );
+        const reportRunId = run.rows[0]?.id || null;
+        if (tier === 'full' && session) {
           await spendReportQuota(client, {
             customerId: session.user_id,
             amount: 1,
-            reason: 'report_generation',
+            reason: 'full_report_generation',
             referenceType: 'report',
-            referenceId: kind,
+            referenceId: reportRunId,
           });
         }
-        const run = await client.query(
-          `
-            insert into app.report_runs(customer_id, report_kind, input_params, structured_context, final_report, source, provenance)
-            values ($1, $2, $3, $4, $5, $6, $7)
-            returning id
-          `,
-          [session?.user_id || null, kind, payload, context, report, report.source || 'fallback', {}],
-        );
         await client.query(
           `
             insert into app.safety_reviews(report_run_id, passed, flags, review_text)
             values ($1, $2, $3, $4)
           `,
-          [run.rows[0]?.id || null, safety.passed, safety.flags || [], JSON.stringify(safety)],
+          [reportRunId, safety.passed, safety.flags || [], JSON.stringify(safety)],
         );
         const provenance = buildReportProvenance({
           graph: { nodes: [], edges: [] },
           context,
           safety,
         });
-        await saveReportProvenance(client, { reportRunId: run.rows[0]?.id || null, provenance });
+        await saveReportProvenance(client, { reportRunId, provenance });
         await client.query('commit');
       } catch (error) {
         await client.query('rollback');
@@ -197,9 +226,9 @@ export function mountReportRoutes(app, { config, pool }) {
         client.release();
       }
     } else {
-      memory.reportRuns.push({ id: nextId('report'), report_kind: kind, input_params: payload, structured_context: context, final_report: report, source: report.source });
+      memory.reportRuns.push({ id: nextId('report'), report_kind: kind, report_tier: tier, input_params: payload, structured_context: context, final_report: report, source: report.source });
     }
 
-    res.json({ report, safety });
+    res.json({ report, safety, tier, entitlement: { spent: tier === 'full' && Boolean(session) ? 1 : 0 } });
   });
 }

@@ -2,8 +2,14 @@
   <view class="section report-header">
     <view class="report-title">{{report.title}}</view>
     <view class="report-subtitle">{{report.subtitle}}</view>
+    <view class="tier-badge">{{report.tier === 'full' ? '完整版' : '免费体验版'}}</view>
     <view class="report-date">生成于 {{report.generatedAt}}</view>
     <view class="source" wx:if="{{report.source === 'fallback'}}">离线示例结果</view>
+  </view>
+
+  <view class="section upgrade-card" wx:if="{{report.tier !== 'full' && report.upgradePrompt}}">
+    <view class="section-title">解锁完整版</view>
+    <view class="summary">{{report.upgradePrompt}}</view>
   </view>
 
   <view class="section">

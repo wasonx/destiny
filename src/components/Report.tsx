@@ -10,7 +10,12 @@ interface ReportProps {
 
 export default function Report({ report, loading = false }: ReportProps) {
   const activeReport = report ?? buildFallbackReport('life');
-  const categories = ['总览', ...activeReport.sections.map((section) => section.title.replace(/提醒|判断/g, '').slice(0, 4))];
+  const isPreview = activeReport.isPreview ?? activeReport.tier === 'free';
+  const tierLabel = isPreview ? '免费体验版' : '完整版';
+  const displayKeywords = isPreview ? activeReport.keywords.slice(0, 3) : activeReport.keywords;
+  const displaySections = isPreview ? activeReport.sections.slice(0, 2) : activeReport.sections;
+  const displayActions = isPreview ? activeReport.actions.slice(0, 3) : activeReport.actions;
+  const categories = ['总览', ...displaySections.map((section) => section.title.replace(/提醒|判断/g, '').slice(0, 4))];
 
   if (loading) {
     return (
@@ -46,7 +51,10 @@ export default function Report({ report, loading = false }: ReportProps) {
       <section className="pt-8 space-y-4">
         <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-3 border-b border-shadow-gray pb-4">
           <div>
-            <h2 className="font-serif text-3xl text-ink-blue mb-2">{activeReport.title}</h2>
+            <div className="mb-3 flex flex-wrap items-center gap-3">
+              <h2 className="font-serif text-3xl text-ink-blue">{activeReport.title}</h2>
+              <span className="rounded-md border border-wisdom-gold/40 bg-wisdom-gold/10 px-3 py-1 text-xs text-ink-blue">{tierLabel}</span>
+            </div>
             <p className="text-on-surface-variant text-sm">{activeReport.subtitle}</p>
           </div>
           <div className="md:text-right">
@@ -58,6 +66,18 @@ export default function Report({ report, loading = false }: ReportProps) {
         </div>
       </section>
 
+      {isPreview && activeReport.upgradePrompt && (
+        <section className="rounded-xl border border-wisdom-gold/30 bg-wisdom-gold/10 p-5">
+          <div className="flex items-start gap-3">
+            <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-wisdom-gold" />
+            <div>
+              <h3 className="font-serif text-lg text-ink-blue">解锁完整版</h3>
+              <p className="mt-2 text-sm leading-relaxed text-on-surface-variant">{activeReport.upgradePrompt}</p>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="bg-report-bg border border-shadow-gray rounded-xl p-6 md:p-8 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-serene-teal/10 to-transparent rounded-bl-full pointer-events-none" />
         <div className="flex items-center gap-3 mb-6">
@@ -65,7 +85,7 @@ export default function Report({ report, loading = false }: ReportProps) {
           <h3 className="font-serif text-xl text-ink-blue">核心摘要</h3>
         </div>
         <div className="flex flex-wrap gap-3 mb-6">
-          {activeReport.keywords.map((tag) => (
+          {displayKeywords.map((tag) => (
             <span key={tag} className="px-4 py-1.5 bg-white border border-shadow-gray rounded-full font-mono text-xs text-ink-blue">
               {tag}
             </span>
@@ -74,7 +94,7 @@ export default function Report({ report, loading = false }: ReportProps) {
         <p className="text-on-surface-variant leading-relaxed">{activeReport.summary}</p>
       </section>
 
-      {activeReport.sections.map((section, index) => (
+      {displaySections.map((section, index) => (
         <section key={section.title} className="space-y-6">
           <div className="flex items-center gap-4">
             <div className="h-px bg-shadow-gray flex-1" />
@@ -111,7 +131,7 @@ export default function Report({ report, loading = false }: ReportProps) {
       <section className="bg-white border border-shadow-gray rounded-xl p-6 md:p-8 mb-24">
         <h3 className="font-serif text-xl text-ink-blue mb-5">接下来可以优先做的事</h3>
         <div className="space-y-4">
-          {activeReport.actions.map((item, i) => (
+          {displayActions.map((item, i) => (
             <div key={item} className="flex items-start gap-3">
               <span className="flex items-center justify-center w-6 h-6 rounded-full bg-serene-teal/10 text-serene-teal font-mono text-[10px] shrink-0 mt-0.5">
                 {i + 1}

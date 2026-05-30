@@ -17,14 +17,20 @@ export interface InsightReport {
   actions: string[];
   disclaimer: string;
   source?: 'ai' | 'fallback';
+  tier?: 'free' | 'full';
+  reportTier?: 'free' | 'full';
+  isPreview?: boolean;
+  upgradePrompt?: string;
 }
 
 export interface GenerateInsightRequest {
   kind: InsightKind;
   payload: Record<string, unknown>;
+  tier?: 'free' | 'full';
 }
 
 const sharedDisclaimer = '内容仅作自我探索与生活参考，不构成医疗、投资、法律或重大人生决策建议。';
+const defaultUpgradePrompt = '当前为免费体验版，解锁完整版可查看完整结构、规则解释、风险边界和更多行动建议。';
 
 const formatDate = () =>
   new Intl.DateTimeFormat('zh-CN', {
@@ -35,6 +41,23 @@ const formatDate = () =>
 
 function asText(value: unknown, fallback = '未填写') {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback;
+}
+
+function applyClientReportTier(report: InsightReport, tier: 'free' | 'full'): InsightReport {
+  const isPreview = report.isPreview ?? tier === 'free';
+  const next: InsightReport = {
+    ...report,
+    tier: report.tier || tier,
+    reportTier: report.reportTier || report.tier || tier,
+    isPreview,
+    upgradePrompt: report.upgradePrompt || (isPreview ? defaultUpgradePrompt : ''),
+  };
+  if (isPreview) {
+    next.keywords = next.keywords.slice(0, 3);
+    next.sections = next.sections.slice(0, 2);
+    next.actions = next.actions.slice(0, 3);
+  }
+  return next;
 }
 
 export function buildFallbackReport(kind: InsightKind, payload: Record<string, unknown> = {}): InsightReport {
@@ -172,13 +195,14 @@ export function buildFallbackReport(kind: InsightKind, payload: Record<string, u
 export async function generateInsight(request: GenerateInsightRequest): Promise<InsightReport> {
   try {
     const token = window.localStorage.getItem('zhensuan_customer_token') || '';
+    const tier = request.tier || 'free';
     const response = await fetch('/destiny-api/generate', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: token ? `Bearer ${token}` : '',
       },
-      body: JSON.stringify(request),
+      body: JSON.stringify({ ...request, tier }),
     });
 
     if (!response.ok) {
@@ -190,16 +214,19 @@ export async function generateInsight(request: GenerateInsightRequest): Promise<
       throw new Error('Invalid AI response shape');
     }
 
-    return {
+    return applyClientReportTier({
       ...data.report,
       kind: request.kind,
       generatedAt: data.report.generatedAt || formatDate(),
       disclaimer: data.report.disclaimer || sharedDisclaimer,
       source: data.report.source || 'ai',
-    };
+    }, tier);
   } catch (error) {
     console.warn('Using fallback insight report:', error);
-    return buildFallbackReport(request.kind, request.payload);
+    const tier = request.tier || 'free';
+    return applyClientReportTier({
+      ...buildFallbackReport(request.kind, request.payload),
+    }, tier);
   }
 }
 

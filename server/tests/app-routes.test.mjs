@@ -141,7 +141,7 @@ test('generate route with customer session spends report quota and records custo
     const response = await fetch(`http://127.0.0.1:${port}/destiny-api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer customer-token' },
-      body: JSON.stringify({ kind: 'life', payload: { focus: '事业' } }),
+      body: JSON.stringify({ kind: 'life', tier: 'full', payload: { focus: '事业' } }),
     });
     assert.equal(response.status, 200);
     assert.ok(queries.some((query) => query.sql.includes('update app.entitlement_accounts') && query.params[0] === 'customer-1'));
@@ -164,6 +164,70 @@ test('generate route returns 402 when logged-in customer has no report quota', a
       }
       if (sql.includes('update app.entitlement_accounts')) {
         return { rows: [], rowCount: 0 };
+      }
+      if (sql.includes('insert into app.report_runs')) {
+        return { rows: [{ id: 'report-run-no-quota' }], rowCount: 1 };
+      }
+      if (['begin', 'commit', 'rollback'].includes(sql)) {
+        return { rows: [], rowCount: 0 };
+      }
+      throw new Error(`Unexpected query: ${sql}`);
+    },
+    release() {},
+  };
+  const pool = {
+    async query(sql, params = []) {
+      return client.query(sql, params);
+    },
+    async connect() {
+      return client;
+    },
+  };
+  const app = createApp({ config: loadConfig({ SESSION_SECRET: 'test-secret' }), pool });
+  const server = app.listen(0);
+  const { port } = server.address();
+
+  try {
+    const response = await fetch(`http://127.0.0.1:${port}/destiny-api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer customer-token' },
+      body: JSON.stringify({ kind: 'life', tier: 'full', payload: { focus: '事业' } }),
+    });
+    assert.equal(response.status, 402);
+    assert.deepEqual(await response.json(), { error: 'INSUFFICIENT_REPORT_QUOTA' });
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test('generate route defaults to free report without spending customer quota', async () => {
+  const queries = [];
+  const client = {
+    async query(sql, params = []) {
+      queries.push({ sql: sql.replace(/\s+/g, ' ').trim(), params });
+      if (sql.includes('from app.login_sessions')) {
+        return { rows: [{ session_id: 'session-1', account_type: 'customer', user_id: 'customer-1', status: 'active', display_name: '客户' }] };
+      }
+      const publishedRows = publishedContentRows(sql);
+      if (publishedRows) {
+        return publishedRows;
+      }
+      if (sql.includes('update app.entitlement_accounts')) {
+        throw new Error('FREE_TIER_SHOULD_NOT_SPEND_QUOTA');
+      }
+      if (sql.includes('insert into app.report_runs')) {
+        assert.match(sql, /report_tier/);
+        assert.equal(params[6], 'free');
+        return { rows: [{ id: 'report-run-free' }], rowCount: 1 };
+      }
+      if (sql.includes('insert into app.safety_reviews')) {
+        return { rows: [], rowCount: 1 };
+      }
+      if (sql.includes('insert into app.report_provenance_records')) {
+        return { rows: [], rowCount: 1 };
+      }
+      if (sql.includes('update app.report_runs set provenance')) {
+        return { rows: [], rowCount: 1 };
       }
       if (['begin', 'commit', 'rollback'].includes(sql)) {
         return { rows: [], rowCount: 0 };
@@ -190,8 +254,83 @@ test('generate route returns 402 when logged-in customer has no report quota', a
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer customer-token' },
       body: JSON.stringify({ kind: 'life', payload: { focus: '事业' } }),
     });
-    assert.equal(response.status, 402);
-    assert.deepEqual(await response.json(), { error: 'INSUFFICIENT_REPORT_QUOTA' });
+    const data = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(data.report.tier, 'free');
+    assert.equal(data.report.isPreview, true);
+    assert.ok(data.report.upgradePrompt);
+    assert.ok(!queries.some((query) => query.sql.includes('update app.entitlement_accounts')));
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test('generate route spends quota for full report tier and records it', async () => {
+  const queries = [];
+  const client = {
+    async query(sql, params = []) {
+      queries.push({ sql: sql.replace(/\s+/g, ' ').trim(), params });
+      if (sql.includes('from app.login_sessions')) {
+        return { rows: [{ session_id: 'session-1', account_type: 'customer', user_id: 'customer-1', status: 'active', display_name: '客户' }] };
+      }
+      const publishedRows = publishedContentRows(sql);
+      if (publishedRows) {
+        return publishedRows;
+      }
+      if (sql.includes('insert into app.report_runs')) {
+        assert.match(sql, /report_tier/);
+        assert.equal(params[6], 'full');
+        return { rows: [{ id: 'report-run-full' }], rowCount: 1 };
+      }
+      if (sql.includes('update app.entitlement_accounts')) {
+        return { rows: [{ report_quota_balance: 1 }], rowCount: 1 };
+      }
+      if (sql.includes('insert into app.entitlement_ledger')) {
+        assert.equal(params[4], 'report');
+        assert.equal(params[5], 'report-run-full');
+        return { rows: [], rowCount: 1 };
+      }
+      if (sql.includes('insert into app.safety_reviews')) {
+        return { rows: [], rowCount: 1 };
+      }
+      if (sql.includes('insert into app.report_provenance_records')) {
+        return { rows: [], rowCount: 1 };
+      }
+      if (sql.includes('update app.report_runs set provenance')) {
+        return { rows: [], rowCount: 1 };
+      }
+      if (['begin', 'commit', 'rollback'].includes(sql)) {
+        return { rows: [], rowCount: 0 };
+      }
+      throw new Error(`Unexpected query: ${sql}`);
+    },
+    release() {},
+  };
+  const pool = {
+    async query(sql, params = []) {
+      return client.query(sql, params);
+    },
+    async connect() {
+      return client;
+    },
+  };
+  const app = createApp({ config: loadConfig({ SESSION_SECRET: 'test-secret' }), pool });
+  const server = app.listen(0);
+  const { port } = server.address();
+
+  try {
+    const response = await fetch(`http://127.0.0.1:${port}/destiny-api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer customer-token' },
+      body: JSON.stringify({ kind: 'life', tier: 'full', payload: { focus: '事业' } }),
+    });
+    const data = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(data.report.tier, 'full');
+    assert.equal(data.report.isPreview, false);
+    assert.ok(queries.some((query) => query.sql.includes('update app.entitlement_accounts') && query.params[0] === 'customer-1'));
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }

@@ -36,6 +36,19 @@ class OnlineIntegrationScaffoldTests(unittest.TestCase):
         self.assertNotIn("mock-code", mini_auth)
         self.assertNotIn("loginRes.code ||", mini_auth)
 
+    def test_h5_and_miniprogram_expose_report_tiers(self):
+        h5_insights = (ROOT / "src" / "lib" / "insights.ts").read_text(encoding="utf-8")
+        h5_report = (ROOT / "src" / "components" / "Report.tsx").read_text(encoding="utf-8")
+        mini_api = (MINI / "utils" / "api.js").read_text(encoding="utf-8")
+        mini_report = (MINI / "pages" / "report" / "index.wxml").read_text(encoding="utf-8")
+
+        self.assertIn("tier?: 'free' | 'full'", h5_insights)
+        self.assertIn("upgradePrompt", h5_report)
+        self.assertIn("免费体验版", h5_report)
+        self.assertIn("function generateInsight(kind, payload, tier = 'free')", mini_api)
+        self.assertIn("report.tier", mini_report)
+        self.assertIn("report.upgradePrompt", mini_report)
+
 
 if __name__ == "__main__":
     unittest.main()
