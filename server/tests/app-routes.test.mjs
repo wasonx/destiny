@@ -291,7 +291,7 @@ test('generate route records only matching published rules and related knowledge
     name: 'Career rule',
     priority: 10,
     weight: 5,
-    condition: { field: 'concern', operator: 'eq', value: 'career' },
+    condition: { field: 'dayStem', operator: 'eq', value: '庚' },
     knowledge_entry_ids: ['knowledge-hit'],
     graph_node_keys: ['wood'],
     risk_boundary: 'reference only',
@@ -301,7 +301,7 @@ test('generate route records only matching published rules and related knowledge
     name: 'Relationship rule',
     priority: 1,
     weight: 100,
-    condition: { field: 'concern', operator: 'eq', value: 'relationship' },
+    condition: { field: 'dayStem', operator: 'eq', value: '甲' },
     knowledge_entry_ids: ['knowledge-miss'],
     graph_node_keys: ['fire'],
     risk_boundary: 'reference only',
@@ -365,13 +365,14 @@ test('generate route records only matching published rules and related knowledge
     const response = await fetch(`http://127.0.0.1:${port}/destiny-api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ kind: 'life', payload: { concern: 'career' } }),
+      body: JSON.stringify({ kind: 'life', payload: { concern: 'career', birthdate: '1999-06-07', birthtime: '09:11' } }),
     });
 
     assert.equal(response.status, 200);
     assert.deepEqual(storedContexts[0].rules.map((rule) => rule.id), ['rule-hit']);
     assert.deepEqual(storedContexts[0].knowledge.map((item) => item.id), ['knowledge-hit']);
     assert.equal(storedContexts[0].features.concern, 'career');
+    assert.equal(storedContexts[0].features.dayStem, '庚');
     assert.ok(storedContexts[0].graph.nodes.some((node) => node.id === 'rule:rule-hit'));
     assert.ok(!storedContexts[0].graph.nodes.some((node) => node.id === 'rule:rule-miss'));
     assert.ok(storedProvenances.some((provenance) => provenance.ruleHits?.every((rule) => rule.id === 'rule-hit')));

@@ -5,7 +5,7 @@ import { buildReportProvenance, saveReportProvenance } from '../graph/report-pro
 import { findSession, getBearerToken } from '../middleware/require-session.mjs';
 import { buildReportContext } from '../reports/context-builder.mjs';
 import { reviewReportSafety } from '../reports/safety-review.mjs';
-import { summarizeFourPillars } from '../rules/bazi-features.mjs';
+import { summarizeBirthInput, summarizeFourPillars } from '../rules/bazi-features.mjs';
 import { runRules } from '../rules/rule-engine.mjs';
 import { memory, nextId } from './memory-state.mjs';
 
@@ -179,7 +179,9 @@ function collectConceptKeys(publishedContent = {}) {
 
 function buildReportFacts(kind, payload = {}) {
   const baziInput = payload.fourPillars || payload.pillars || payload;
-  const baziFacts = kind === 'life' ? summarizeFourPillars(baziInput) : {};
+  const baziFacts = kind === 'life'
+    ? (payload.birthdate ? summarizeBirthInput(payload) : summarizeFourPillars(baziInput))
+    : {};
   const tags = [
     kind,
     payload.concern,

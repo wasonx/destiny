@@ -6,13 +6,24 @@ import {
   heavenlyStems,
   tenGods,
 } from '../graph/bazi-seed-data.mjs';
-import { summarizeFourPillars } from '../rules/bazi-features.mjs';
+import { summarizeBirthInput, summarizeFourPillars } from '../rules/bazi-features.mjs';
 
 test('bazi seed data includes core ontology counts', () => {
   assert.equal(heavenlyStems.length, 10);
   assert.equal(earthlyBranches.length, 12);
   assert.equal(fiveElements.length, 5);
   assert.equal(tenGods.length, 10);
+});
+
+test('birth date and time can be converted to four pillars', () => {
+  const summary = summarizeBirthInput({
+    birthdate: '1999-06-07',
+    birthtime: '09:11',
+  });
+
+  assert.deepEqual(summary.pillars, ['己卯', '庚午', '庚寅', '辛巳']);
+  assert.equal(summary.dayStem, '庚');
+  assert.equal(summary.warnings.length, 0);
 });
 
 test('four pillars summary counts stem and branch elements', () => {
