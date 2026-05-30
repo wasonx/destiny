@@ -65,9 +65,24 @@ export function createGraphQueryService({ graphDriver = null, database = 'neo4j'
       const nodes = [focus];
       const edges = [];
       for (const knowledgeId of item.knowledge_entry_ids || []) {
-        const target = node(`knowledge:${knowledgeId}`, 'Knowledge', knowledgeId, {});
+        const knowledgeResult = await pool.query('select * from app.knowledge_entries where id = $1', [knowledgeId]);
+        const knowledge = knowledgeResult.rows[0];
+        const target = knowledge
+          ? node(`knowledge:${knowledge.id}`, 'Knowledge', knowledge.title, { tags: knowledge.tags || [], sourceNote: knowledge.source_note || '' })
+          : node(`knowledge:${knowledgeId}`, 'Knowledge', knowledgeId, {});
         nodes.push(target);
         edges.push(edge(focus.id, target.id, 'USES', '引用知识'));
+        for (const key of knowledge?.concept_keys || []) {
+          const concept = findConcept(key);
+          const conceptNode = node(conceptId(concept.key), 'Concept', concept.label, { conceptType: concept.conceptType });
+          nodes.push(conceptNode);
+          edges.push(edge(target.id, conceptNode.id, 'EXPLAINS', '解释'));
+        }
+        if (knowledge?.source_note) {
+          const source = node(`source:${knowledge.id}`, 'Source', knowledge.source_note, { sourceNote: knowledge.source_note });
+          nodes.push(source);
+          edges.push(edge(target.id, source.id, 'HAS_SOURCE', '来源'));
+        }
       }
       for (const key of item.graph_node_keys || []) {
         const concept = findConcept(key);

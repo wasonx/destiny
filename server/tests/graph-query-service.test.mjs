@@ -146,6 +146,10 @@ test('rule graph links rules to knowledge and concept nodes', async () => {
           ],
         };
       }
+      if (sql.includes('from app.knowledge_entries')) {
+        assert.deepEqual(params, ['knowledge-1']);
+        return { rows: [{ id: 'knowledge-1', title: '五行偏旺', concept_keys: [], tags: [], source_note: '' }] };
+      }
       throw new Error(`Unexpected query: ${sql}`);
     },
   };
@@ -158,6 +162,52 @@ test('rule graph links rules to knowledge and concept nodes', async () => {
   assert.ok(graph.nodes.some((node) => node.id === 'concept:wood'));
   assert.ok(graph.edges.some((edge) => edge.type === 'USES'));
   assert.ok(graph.edges.some((edge) => edge.type === 'REFERENCES_CONCEPT'));
+});
+
+test('rule graph expands cited knowledge into concepts and sources', async () => {
+  const pool = {
+    async query(sql, params = []) {
+      if (sql.includes('from app.analysis_rules')) {
+        assert.deepEqual(params, ['rule-expand-1']);
+        return {
+          rows: [
+            {
+              id: 'rule-expand-1',
+              name: '引用知识规则',
+              knowledge_entry_ids: ['knowledge-expand-1'],
+              graph_node_keys: [],
+              risk_boundary: '',
+            },
+          ],
+        };
+      }
+      if (sql.includes('from app.knowledge_entries')) {
+        assert.deepEqual(params, ['knowledge-expand-1']);
+        return {
+          rows: [
+            {
+              id: 'knowledge-expand-1',
+              title: '木旺知识',
+              concept_keys: ['wood'],
+              tags: ['五行'],
+              source_note: '内部知识库整理',
+            },
+          ],
+        };
+      }
+      throw new Error(`Unexpected query: ${sql}`);
+    },
+  };
+  const service = createGraphQueryService({ graphDriver: null, database: 'neo4j' });
+
+  const graph = await service.getRuleGraph('rule-expand-1', { pool });
+
+  assert.ok(graph.nodes.some((node) => node.id === 'knowledge:knowledge-expand-1' && node.label === '木旺知识'));
+  assert.ok(graph.nodes.some((node) => node.id === 'concept:wood'));
+  assert.ok(graph.nodes.some((node) => node.id === 'source:knowledge-expand-1'));
+  assert.ok(graph.edges.some((edge) => edge.source === 'rule:rule-expand-1' && edge.target === 'knowledge:knowledge-expand-1' && edge.type === 'USES'));
+  assert.ok(graph.edges.some((edge) => edge.source === 'knowledge:knowledge-expand-1' && edge.target === 'concept:wood' && edge.type === 'EXPLAINS'));
+  assert.ok(graph.edges.some((edge) => edge.source === 'knowledge:knowledge-expand-1' && edge.target === 'source:knowledge-expand-1' && edge.type === 'HAS_SOURCE'));
 });
 
 test('template graph exposes risk boundary and scoped rule nodes', async () => {
