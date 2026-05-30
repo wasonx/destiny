@@ -103,6 +103,32 @@ test('knowledge graph links knowledge to concepts from PostgreSQL fields', async
   assert.ok(graph.edges.some((edge) => edge.type === 'EXPLAINS'));
 });
 
+test('knowledge graph exposes source notes as source nodes', async () => {
+  const pool = {
+    async query(sql, params = []) {
+      assert.match(sql, /from app\.knowledge_entries/i);
+      assert.deepEqual(params, ['knowledge-source-1']);
+      return {
+        rows: [
+          {
+            id: 'knowledge-source-1',
+            title: '五行来源条目',
+            concept_keys: ['wood'],
+            tags: ['五行'],
+            source_note: '《滴天髓》整理',
+          },
+        ],
+      };
+    },
+  };
+  const service = createGraphQueryService({ graphDriver: null, database: 'neo4j' });
+
+  const graph = await service.getKnowledgeGraph('knowledge-source-1', { pool });
+
+  assert.ok(graph.nodes.some((node) => node.id === 'source:knowledge-source-1' && node.type === 'Source'));
+  assert.ok(graph.edges.some((edge) => edge.source === 'knowledge:knowledge-source-1' && edge.target === 'source:knowledge-source-1' && edge.type === 'HAS_SOURCE'));
+});
+
 test('rule graph links rules to knowledge and concept nodes', async () => {
   const pool = {
     async query(sql, params = []) {

@@ -47,6 +47,11 @@ export function createGraphQueryService({ graphDriver = null, database = 'neo4j'
         nodes.push(target);
         edges.push(edge(focus.id, target.id, 'EXPLAINS', '解释'));
       }
+      if (item.source_note) {
+        const source = node(`source:${item.id}`, 'Source', item.source_note, { sourceNote: item.source_note });
+        nodes.push(source);
+        edges.push(edge(focus.id, source.id, 'HAS_SOURCE', '来源'));
+      }
       return dedupeGraph({ focus, nodes, edges });
     },
     async getRuleGraph(id, { pool } = {}) {
