@@ -171,6 +171,15 @@ class AdminScaffoldTests(unittest.TestCase):
         self.assertIn("sourceUserId", page)
         self.assertIn("customer.merge", page)
 
+    def test_users_page_exposes_identity_bind_controls(self):
+        page = (ROOT / "src" / "admin" / "pages" / "UsersPage.tsx").read_text(encoding="utf-8")
+
+        self.assertIn("bindIdentity", page)
+        self.assertIn("bindProvider", page)
+        self.assertIn("/users/${userId}/identities", page)
+        self.assertIn("providerSubject", page)
+        self.assertIn("customer_identity.bind", page)
+
     def test_settings_page_calls_integration_status_endpoint(self):
         page = (ROOT / "src" / "admin" / "pages" / "SettingsPage.tsx").read_text(encoding="utf-8")
 

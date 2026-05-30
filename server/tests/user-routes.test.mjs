@@ -159,6 +159,100 @@ test('admin users route unlinks customer identity with audit log and keeps last 
   }
 });
 
+test('admin users route binds customer identity with conflict detection and audit log', async () => {
+  const queries = [];
+  let sessionRole = 'editor';
+  let conflictingIdentity = null;
+  const client = {
+    async query(sql, params = []) {
+      const text = normalizeSql(sql);
+      queries.push({ sql: text, params });
+      if (['begin', 'commit', 'rollback'].includes(text)) {
+        return { rows: [], rowCount: 0 };
+      }
+      if (text.includes('from app.users') && text.includes("account_type = 'customer'") && text.includes('for update')) {
+        return {
+          rows: [{ id: params[0], account_type: 'customer', status: 'active' }],
+          rowCount: 1,
+        };
+      }
+      if (text.includes('from app.customer_identities') && text.includes('provider_subject = $2') && text.includes('for update')) {
+        return { rows: conflictingIdentity ? [conflictingIdentity] : [], rowCount: conflictingIdentity ? 1 : 0 };
+      }
+      if (text.startsWith('insert into app.customer_identities')) {
+        return {
+          rows: [{
+            id: 'identity-new',
+            user_id: params[0],
+            provider: params[1],
+            provider_subject: params[2],
+            phone: params[3],
+            openid: params[4],
+            unionid: params[5],
+          }],
+          rowCount: 1,
+        };
+      }
+      if (text.startsWith('update app.users set phone')) return { rows: [], rowCount: 1 };
+      if (text.includes('insert into app.audit_logs')) return { rows: [], rowCount: 1 };
+      throw new Error(`Unexpected client query: ${text}`);
+    },
+    release() {},
+  };
+  const pool = {
+    async query(sql) {
+      const text = normalizeSql(sql);
+      queries.push({ sql: text, params: [] });
+      if (text.includes('from app.login_sessions')) {
+        return { rows: [{ session_id: 'session-1', account_type: sessionRole, user_id: 'admin-1', status: 'active', display_name: '绠＄悊鍛?' }] };
+      }
+      throw new Error(`Unexpected pool query: ${text}`);
+    },
+    connect: async () => client,
+  };
+  const app = createApp({ config: loadConfig({ SESSION_SECRET: 'test-secret' }), pool });
+  const server = app.listen(0);
+  const { port } = server.address();
+
+  try {
+    const forbidden = await fetch(`http://127.0.0.1:${port}/destiny-api/admin/users/customer-1/identities`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer admin-token', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider: 'phone', phone: '13900000000' }),
+    });
+    assert.equal(forbidden.status, 403);
+
+    sessionRole = 'admin';
+    conflictingIdentity = { id: 'identity-other', user_id: 'customer-other', provider: 'phone', provider_subject: '13900000000' };
+    const conflict = await fetch(`http://127.0.0.1:${port}/destiny-api/admin/users/customer-1/identities`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer admin-token', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider: 'phone', phone: '13900000000' }),
+    });
+    assert.equal(conflict.status, 409);
+    assert.deepEqual(await conflict.json(), { error: 'IDENTITY_ALREADY_BOUND', boundUserId: 'customer-other' });
+
+    conflictingIdentity = null;
+    const response = await fetch(`http://127.0.0.1:${port}/destiny-api/admin/users/customer-1/identities`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer admin-token', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider: 'phone', phone: '13900000000', reason: 'support verified phone' }),
+    });
+    const data = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(data.ok, true);
+    assert.equal(data.identity.id, 'identity-new');
+    assert.equal(data.identity.provider, 'phone');
+    assert.equal(data.identity.provider_subject, '13900000000');
+    assert.ok(queries.some((query) => query.sql.includes('insert into app.customer_identities') && query.params[0] === 'customer-1' && query.params[1] === 'phone' && query.params[2] === '13900000000'));
+    assert.ok(queries.some((query) => query.sql.includes('update app.users set phone') && query.params[0] === '13900000000' && query.params[1] === 'customer-1'));
+    assert.ok(queries.some((query) => query.sql.includes('insert into app.audit_logs') && query.params[1] === 'customer_identity.bind' && query.params[3] === 'customer-1'));
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
 test('admin users route merges customer accounts across identities and business records', async () => {
   const queries = [];
   let sessionRole = 'editor';

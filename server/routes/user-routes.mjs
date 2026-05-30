@@ -46,6 +46,29 @@ function memoryUsers() {
   ];
 }
 
+function normalizeIdentityPayload(body = {}) {
+  const provider = String(body.provider || '').trim();
+  const phone = String(body.phone || '').trim() || null;
+  const openid = String(body.openid || '').trim() || null;
+  const unionid = String(body.unionid || '').trim() || null;
+  let providerSubject = String(body.providerSubject || body.provider_subject || '').trim();
+
+  if (provider === 'phone' && !providerSubject && phone) {
+    providerSubject = phone;
+  }
+  if (provider === 'wechat' && !providerSubject) {
+    providerSubject = unionid ? `unionid:${unionid}` : openid ? `openid:${openid}` : '';
+  }
+
+  return {
+    provider,
+    providerSubject,
+    phone: provider === 'phone' ? (phone || providerSubject || null) : phone,
+    openid,
+    unionid,
+  };
+}
+
 export function mountUserRoutes(app, { pool = null } = {}) {
   app.get('/destiny-api/admin/users', async (req, res) => {
     if (!requirePlatformAdmin(req, res, pool)) {
@@ -173,6 +196,137 @@ export function mountUserRoutes(app, { pool = null } = {}) {
       );
       await client.query('commit');
       res.json({ ok: true, identity: row });
+    } catch (error) {
+      await client.query('rollback');
+      next(error);
+    } finally {
+      client.release();
+    }
+  });
+
+  app.post('/destiny-api/admin/users/:userId/identities', async (req, res, next) => {
+    if (!requirePlatformAdmin(req, res, pool)) {
+      return;
+    }
+
+    const { provider, providerSubject, phone, openid, unionid } = normalizeIdentityPayload(req.body);
+    const reason = String(req.body?.reason || '').trim();
+    if (!['phone', 'wechat'].includes(provider) || !providerSubject) {
+      res.status(400).json({ error: 'INVALID_IDENTITY_PAYLOAD' });
+      return;
+    }
+
+    if (!pool) {
+      res.json({
+        ok: true,
+        identity: {
+          id: 'memory-bound-identity',
+          user_id: req.params.userId,
+          provider,
+          provider_subject: providerSubject,
+          phone,
+          openid,
+          unionid,
+        },
+      });
+      return;
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('begin');
+      const customer = await client.query(
+        `
+          select id, account_type, status
+          from app.users
+          where id = $1
+            and account_type = 'customer'
+            and status = 'active'
+          for update
+        `,
+        [req.params.userId],
+      );
+      if (!customer.rowCount) {
+        await client.query('rollback');
+        res.status(404).json({ error: 'CUSTOMER_NOT_FOUND' });
+        return;
+      }
+
+      const existing = await client.query(
+        `
+          select id, user_id, provider, provider_subject, phone, openid, unionid
+          from app.customer_identities
+          where provider = $1
+            and (
+              provider_subject = $2
+              or ($1 = 'wechat' and $3::text is not null and openid = $3)
+              or ($1 = 'wechat' and $4::text is not null and unionid = $4)
+            )
+          for update
+        `,
+        [provider, providerSubject, openid, unionid],
+      );
+      const boundIdentity = existing.rows[0];
+      if (boundIdentity && String(boundIdentity.user_id) !== req.params.userId) {
+        await client.query('rollback');
+        res.status(409).json({ error: 'IDENTITY_ALREADY_BOUND', boundUserId: String(boundIdentity.user_id) });
+        return;
+      }
+      if (boundIdentity) {
+        await client.query('commit');
+        res.json({ ok: true, identity: boundIdentity, existing: true });
+        return;
+      }
+
+      const inserted = await client.query(
+        `
+          insert into app.customer_identities(user_id, provider, provider_subject, phone, openid, unionid, provider_payload)
+          values ($1, $2, $3, $4, $5, $6, $7)
+          returning id, user_id, provider, provider_subject, phone, openid, unionid
+        `,
+        [
+          req.params.userId,
+          provider,
+          providerSubject,
+          phone,
+          openid,
+          unionid,
+          {
+            source: 'admin_manual_bind',
+            reason: reason || null,
+          },
+        ],
+      );
+      const identity = inserted.rows[0];
+      if (provider === 'phone' && phone) {
+        await client.query(
+          "update app.users set phone = $1, updated_at = now() where id = $2 and (phone is null or phone = '')",
+          [phone, req.params.userId],
+        );
+      }
+      await client.query(
+        `
+          insert into app.audit_logs(actor_user_id, action, target_type, target_id, metadata)
+          values ($1, $2, $3, $4, $5)
+        `,
+        [
+          req.session?.user_id || null,
+          'customer_identity.bind',
+          'customer',
+          req.params.userId,
+          {
+            identityId: identity.id,
+            provider,
+            providerSubject,
+            phone,
+            openid,
+            unionid,
+            reason: reason || null,
+          },
+        ],
+      );
+      await client.query('commit');
+      res.json({ ok: true, identity });
     } catch (error) {
       await client.query('rollback');
       next(error);

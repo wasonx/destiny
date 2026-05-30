@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { GitMerge, RefreshCcw, Unlink2 } from 'lucide-react';
+import { GitMerge, Link2, RefreshCcw, Unlink2 } from 'lucide-react';
 import { adminRequest } from '../api';
 
 type AccountType = 'all' | 'customer' | 'editor' | 'admin';
+type BindProvider = 'phone' | 'wechat';
 
 type UserRow = {
   id: string;
@@ -56,6 +57,11 @@ export default function UsersPage() {
   const [accountType, setAccountType] = useState<AccountType>('all');
   const [users, setUsers] = useState<UserRow[]>([]);
   const [mergeTargetId, setMergeTargetId] = useState('');
+  const [bindProvider, setBindProvider] = useState<BindProvider>('phone');
+  const [bindSubject, setBindSubject] = useState('');
+  const [bindPhone, setBindPhone] = useState('');
+  const [bindOpenid, setBindOpenid] = useState('');
+  const [bindUnionid, setBindUnionid] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
@@ -81,6 +87,34 @@ export default function UsersPage() {
       await loadUsers(accountType);
     } catch {
       setError('身份解绑失败，请确认客户至少保留一种登录身份');
+    }
+  }
+
+  async function bindIdentity(userId: string) {
+    const providerSubject = bindSubject || (bindProvider === 'phone' ? bindPhone : bindUnionid ? `unionid:${bindUnionid}` : bindOpenid ? `openid:${bindOpenid}` : '');
+    if (!providerSubject) {
+      setError('请先填写要绑定的身份标识');
+      return;
+    }
+    if (!window.confirm(`确认给客户 ${userId} 绑定 ${bindProvider} 身份？`)) return;
+    setError('');
+    setMessage('');
+    try {
+      await adminRequest(`/users/${userId}/identities`, {
+        method: 'POST',
+        body: JSON.stringify({
+          provider: bindProvider,
+          providerSubject,
+          phone: bindPhone || undefined,
+          openid: bindOpenid || undefined,
+          unionid: bindUnionid || undefined,
+          reason: 'customer_identity.bind',
+        }),
+      });
+      setMessage('身份已绑定');
+      await loadUsers(accountType);
+    } catch {
+      setError('身份绑定失败，请确认身份没有绑定到其他客户；如已绑定，请先走客户合并');
     }
   }
 
@@ -139,6 +173,37 @@ export default function UsersPage() {
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2 border-b border-shadow-gray bg-surface px-5 py-4">
+        <select value={bindProvider} onChange={(event) => setBindProvider(event.target.value as BindProvider)} className="rounded-md border border-shadow-gray bg-white px-3 py-2 text-sm">
+          <option value="phone">手机号身份</option>
+          <option value="wechat">微信身份</option>
+        </select>
+        <input
+          value={bindSubject}
+          onChange={(event) => setBindSubject(event.target.value.trim())}
+          placeholder="身份标识"
+          className="w-44 rounded-md border border-shadow-gray bg-white px-3 py-2 text-sm"
+        />
+        <input
+          value={bindPhone}
+          onChange={(event) => setBindPhone(event.target.value.trim())}
+          placeholder="手机号"
+          className="w-36 rounded-md border border-shadow-gray bg-white px-3 py-2 text-sm"
+        />
+        <input
+          value={bindOpenid}
+          onChange={(event) => setBindOpenid(event.target.value.trim())}
+          placeholder="openid"
+          className="w-40 rounded-md border border-shadow-gray bg-white px-3 py-2 text-sm"
+        />
+        <input
+          value={bindUnionid}
+          onChange={(event) => setBindUnionid(event.target.value.trim())}
+          placeholder="unionid"
+          className="w-40 rounded-md border border-shadow-gray bg-white px-3 py-2 text-sm"
+        />
+      </div>
+
       {error && <p className="mx-5 mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
       {message && <p className="mx-5 mt-4 rounded-md bg-emerald-50 px-3 py-2 text-sm text-serene-teal">{message}</p>}
 
@@ -195,16 +260,28 @@ export default function UsersPage() {
                 <td>{formatDate(user.created_at)}</td>
                 <td>
                   {user.account_type === 'customer' ? (
-                    <button
-                      type="button"
-                      onClick={() => void mergeCustomer(user.id)}
-                      disabled={!mergeTargetId || mergeTargetId === user.id}
-                      className="inline-flex items-center gap-1 rounded-md border border-shadow-gray px-2 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
-                      title="将当前客户合并到目标客户"
-                    >
-                      <GitMerge className="h-3 w-3" />
-                      合并客户
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void bindIdentity(user.id)}
+                        disabled={!bindSubject && !bindPhone && !bindOpenid && !bindUnionid}
+                        className="inline-flex items-center gap-1 rounded-md border border-shadow-gray px-2 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                        title="给当前客户绑定身份"
+                      >
+                        <Link2 className="h-3 w-3" />
+                        绑定身份
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void mergeCustomer(user.id)}
+                        disabled={!mergeTargetId || mergeTargetId === user.id}
+                        className="inline-flex items-center gap-1 rounded-md border border-shadow-gray px-2 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                        title="将当前客户合并到目标客户"
+                      >
+                        <GitMerge className="h-3 w-3" />
+                        合并客户
+                      </button>
+                    </div>
                   ) : '-'}
                 </td>
               </tr>
