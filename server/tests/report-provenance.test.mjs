@@ -34,6 +34,47 @@ test('buildReportProvenance extracts graph nodes edges and published sources', (
   assert.equal(provenance.safetySnapshot.passed, true);
 });
 
+test('buildReportProvenance derives graph paths from report context', () => {
+  const provenance = buildReportProvenance({
+    context: {
+      rules: [
+        {
+          id: 'rule-1',
+          name: '木旺提醒',
+          version_no: 3,
+          knowledge_entry_ids: ['knowledge-1'],
+          graph_node_keys: ['wood'],
+          risk_boundary: '避免绝对化判断',
+        },
+      ],
+      knowledge: [
+        {
+          id: 'knowledge-1',
+          title: '木气解释',
+          version_no: 2,
+          concept_keys: ['wood'],
+        },
+      ],
+      template: {
+        id: 'template-1',
+        name: '照见模板',
+        version_no: 4,
+        template_scope: { rule_ids: ['rule-1'] },
+        risk_boundary: '仅作参考',
+      },
+    },
+    safety: { passed: true },
+  });
+
+  assert.ok(provenance.graphNodes.some((node) => node.id === 'rule:rule-1' && node.type === 'Rule'));
+  assert.ok(provenance.graphNodes.some((node) => node.id === 'knowledge:knowledge-1' && node.type === 'Knowledge'));
+  assert.ok(provenance.graphNodes.some((node) => node.id === 'concept:wood' && node.type === 'Concept'));
+  assert.ok(provenance.graphNodes.some((node) => node.id === 'template:template-1' && node.type === 'Template'));
+  assert.ok(provenance.graphEdges.some((edge) => edge.source === 'rule:rule-1' && edge.target === 'knowledge:knowledge-1' && edge.type === 'USES'));
+  assert.ok(provenance.graphEdges.some((edge) => edge.source === 'knowledge:knowledge-1' && edge.target === 'concept:wood' && edge.type === 'EXPLAINS'));
+  assert.ok(provenance.graphEdges.some((edge) => edge.source === 'template:template-1' && edge.target === 'rule:rule-1' && edge.type === 'TRIGGERS'));
+});
+
 test('saveReportProvenance inserts detail row and updates report run summary', async () => {
   const queries = [];
   const client = {
