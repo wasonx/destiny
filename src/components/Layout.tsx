@@ -30,7 +30,7 @@ export default function Layout({
       </div>
 
       {/* Top Bar */}
-      <header className="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-shadow-gray flex justify-between items-center px-margin-mobile h-16">
+      <header className="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-shadow-gray flex justify-between items-center gap-4 px-margin-mobile h-16">
         {showBack ? (
           <button 
             onClick={onBack}
@@ -46,7 +46,34 @@ export default function Layout({
           </button>
         )}
         
-        <h1 className="font-serif text-xl md:text-2xl text-ink-blue font-bold tracking-tight">{title}</h1>
+        <div className="flex flex-1 items-center justify-center gap-6">
+          <h1 className="font-serif text-xl md:text-2xl text-ink-blue font-bold tracking-tight">{title}</h1>
+          {!hideBottomNav && (
+            <nav className="hidden md:flex items-center gap-2 rounded-lg border border-shadow-gray bg-white/70 p-1">
+              <button
+                onClick={() => onTabChange('home')}
+                className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${activeTab === 'home' || activeTab === 'input' ? 'bg-wisdom-gold/10 text-ink-blue' : 'text-on-surface-variant hover:bg-surface hover:text-ink-blue'}`}
+              >
+                <Compass className="h-4 w-4" />
+                照见
+              </button>
+              <button
+                onClick={() => onTabChange('reports')}
+                className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${activeTab === 'reports' ? 'bg-wisdom-gold/10 text-ink-blue' : 'text-on-surface-variant hover:bg-surface hover:text-ink-blue'}`}
+              >
+                <FileText className="h-4 w-4" />
+                报告
+              </button>
+              <button
+                onClick={() => onTabChange('profile')}
+                className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${activeTab === 'profile' ? 'bg-wisdom-gold/10 text-ink-blue' : 'text-on-surface-variant hover:bg-surface hover:text-ink-blue'}`}
+              >
+                <User className="h-4 w-4" />
+                我
+              </button>
+            </nav>
+          )}
+        </div>
         
         <button className="text-ink-blue hover:opacity-80 transition-opacity active:scale-95 flex items-center justify-center p-2 -mr-2 rounded-full">
           <Bell className="w-6 h-6" />

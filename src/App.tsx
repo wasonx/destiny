@@ -13,6 +13,7 @@ import Questions from './components/Questions';
 import Anju from './components/Anju';
 import LoginPanel from './components/LoginPanel';
 import ValueState from './components/ValueState';
+import ReportHistory from './components/ReportHistory';
 import { generateInsight, InsightReport } from './lib/insights';
 import { getCustomerToken } from './lib/customerAuth';
 
@@ -41,7 +42,7 @@ export default function App() {
 
   const renderContent = () => {
     if (reportsView) {
-      return <Report report={currentReport} />;
+      return customerLoggedIn ? <ReportHistory /> : <LoginPanel onLoggedIn={() => setCustomerLoggedIn(true)} />;
     }
 
     switch (view) {

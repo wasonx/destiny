@@ -49,6 +49,28 @@ class OnlineIntegrationScaffoldTests(unittest.TestCase):
         self.assertIn("report.tier", mini_report)
         self.assertIn("report.upgradePrompt", mini_report)
 
+    def test_h5_exposes_customer_report_history(self):
+        h5_auth = (ROOT / "src" / "lib" / "customerAuth.ts").read_text(encoding="utf-8")
+        app_tsx = (ROOT / "src" / "App.tsx").read_text(encoding="utf-8")
+        history_path = ROOT / "src" / "components" / "ReportHistory.tsx"
+
+        self.assertTrue(history_path.exists(), "missing H5 report history component")
+        history = history_path.read_text(encoding="utf-8")
+        self.assertIn("fetchCustomerReportRuns", h5_auth)
+        self.assertIn("fetchCustomerReportRun", h5_auth)
+        self.assertIn("/customer/report-runs", h5_auth)
+        self.assertIn("ReportHistory", app_tsx)
+        self.assertIn("报告历史", history)
+        self.assertIn("report_tier", history)
+        self.assertIn("final_report", history)
+
+    def test_h5_desktop_navigation_exposes_report_history(self):
+        layout = (ROOT / "src" / "components" / "Layout.tsx").read_text(encoding="utf-8")
+
+        self.assertIn("hidden md:flex", layout)
+        self.assertIn("onTabChange('reports')", layout)
+        self.assertIn("报告", layout)
+
 
 if __name__ == "__main__":
     unittest.main()
