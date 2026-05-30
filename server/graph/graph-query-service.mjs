@@ -24,8 +24,8 @@ export function createGraphQueryService({ graphDriver = null, database = 'neo4j'
   void database;
 
   return {
-    async getConceptGraph(key) {
-      return getFallbackConceptGraph(key);
+    async getConceptGraph(key, { depth = 2 } = {}) {
+      return getFallbackConceptGraph(key, { depth });
     },
     async getKnowledgeGraph(id, { pool } = {}) {
       const result = await pool.query('select * from app.knowledge_entries where id = $1', [id]);
@@ -134,7 +134,7 @@ function findConcept(keyOrLabel) {
   return conceptRows.find((item) => item.key === keyOrLabel || item.label === keyOrLabel) || { key: keyOrLabel, label: keyOrLabel, conceptType: '概念' };
 }
 
-function getFallbackConceptGraph(keyOrLabel) {
+function getFallbackConceptGraph(keyOrLabel, { depth = 2 } = {}) {
   const focusConcept = findConcept(keyOrLabel);
   const nodes = conceptRows.map((item) => node(conceptId(item.key), 'Concept', item.label, { conceptType: item.conceptType }));
   const labelToKey = new Map(conceptRows.map((item) => [item.label, item.key]));
@@ -144,7 +144,7 @@ function getFallbackConceptGraph(keyOrLabel) {
     ...branchConflicts.map(([from, to]) => edge(conceptId(labelToKey.get(from)), conceptId(labelToKey.get(to)), 'CONFLICTS_WITH', '相冲')),
   ].filter((item) => !item.source.includes('undefined') && !item.target.includes('undefined'));
   const focus = node(conceptId(focusConcept.key), 'Concept', focusConcept.label, { conceptType: focusConcept.conceptType });
-  return dedupeGraph({ focus, nodes, edges });
+  return limitGraphByDepth(dedupeGraph({ focus, nodes, edges }), depth);
 }
 
 function dedupeGraph({ focus, nodes, edges }) {
@@ -152,5 +152,47 @@ function dedupeGraph({ focus, nodes, edges }) {
     focus,
     nodes: [...new Map(nodes.map((item) => [item.id, item])).values()],
     edges: [...new Map(edges.map((item) => [item.id, item])).values()],
+  };
+}
+
+function limitGraphByDepth(graph, depth) {
+  const maxDepth = Math.max(1, Math.min(3, Number.parseInt(String(depth), 10) || 2));
+  const adjacency = new Map();
+  for (const edgeItem of graph.edges) {
+    if (!adjacency.has(edgeItem.source)) adjacency.set(edgeItem.source, new Set());
+    if (!adjacency.has(edgeItem.target)) adjacency.set(edgeItem.target, new Set());
+    adjacency.get(edgeItem.source).add(edgeItem.target);
+    adjacency.get(edgeItem.target).add(edgeItem.source);
+  }
+
+  const visible = new Set([graph.focus.id]);
+  const distances = new Map([[graph.focus.id, 0]]);
+  const queue = [{ id: graph.focus.id, distance: 0 }];
+  while (queue.length) {
+    const current = queue.shift();
+    if (!current || current.distance >= maxDepth) continue;
+    for (const next of adjacency.get(current.id) || []) {
+      if (visible.has(next)) continue;
+      visible.add(next);
+      const distance = current.distance + 1;
+      distances.set(next, distance);
+      queue.push({ id: next, distance });
+    }
+  }
+
+  return {
+    focus: graph.focus,
+    nodes: graph.nodes.filter((item) => visible.has(item.id)),
+    edges: graph.edges.filter((item) => {
+      const sourceDistance = distances.get(item.source);
+      const targetDistance = distances.get(item.target);
+      return (
+        sourceDistance !== undefined
+        && targetDistance !== undefined
+        && sourceDistance <= maxDepth
+        && targetDistance <= maxDepth
+        && Math.min(sourceDistance, targetDistance) < maxDepth
+      );
+    }),
   };
 }

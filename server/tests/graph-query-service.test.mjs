@@ -12,6 +12,15 @@ test('fallback concept graph returns normalized nodes and edges', async () => {
   assert.ok(graph.edges.every((edge) => edge.source && edge.target));
 });
 
+test('fallback concept graph can be limited by one-hop depth', async () => {
+  const service = createGraphQueryService({ graphDriver: null, database: 'neo4j' });
+  const oneHop = await service.getConceptGraph('wood', { depth: 1 });
+  const twoHop = await service.getConceptGraph('wood', { depth: 2 });
+
+  assert.ok(twoHop.nodes.length >= oneHop.nodes.length);
+  assert.ok(oneHop.edges.every((edge) => edge.source === 'concept:wood' || edge.target === 'concept:wood'));
+});
+
 test('knowledge graph links knowledge to concepts from PostgreSQL fields', async () => {
   const pool = {
     async query(sql, params = []) {

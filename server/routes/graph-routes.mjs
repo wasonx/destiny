@@ -16,6 +16,13 @@ function sendGraphError(res, error) {
   throw error;
 }
 
+function parseDepth(value) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const depth = Number.parseInt(String(raw || ''), 10);
+  if (!Number.isFinite(depth)) return 2;
+  return Math.max(1, Math.min(3, depth));
+}
+
 export function mountGraphRoutes(app, { config, graphDriver, pool = null }) {
   const graphService = createGraphQueryService({ graphDriver, database: config.neo4jDatabase });
 
@@ -46,7 +53,7 @@ export function mountGraphRoutes(app, { config, graphDriver, pool = null }) {
       res.status(404).json({ error: 'CONCEPT_NOT_FOUND' });
       return;
     }
-    const graph = await graphService.getConceptGraph(req.params.key);
+    const graph = await graphService.getConceptGraph(req.params.key, { depth: parseDepth(req.query.depth) });
     res.json({ ...graph, concept: graph.focus, relationships: graph.edges });
   });
 
@@ -56,7 +63,7 @@ export function mountGraphRoutes(app, { config, graphDriver, pool = null }) {
       return;
     }
     try {
-      res.json(await graphService.getKnowledgeGraph(req.params.id, { pool }));
+      res.json(await graphService.getKnowledgeGraph(req.params.id, { pool, depth: parseDepth(req.query.depth) }));
     } catch (error) {
       sendGraphError(res, error);
     }
@@ -68,7 +75,7 @@ export function mountGraphRoutes(app, { config, graphDriver, pool = null }) {
       return;
     }
     try {
-      res.json(await graphService.getRuleGraph(req.params.id, { pool }));
+      res.json(await graphService.getRuleGraph(req.params.id, { pool, depth: parseDepth(req.query.depth) }));
     } catch (error) {
       sendGraphError(res, error);
     }
@@ -80,7 +87,7 @@ export function mountGraphRoutes(app, { config, graphDriver, pool = null }) {
       return;
     }
     try {
-      res.json(await graphService.getTemplateGraph(req.params.id, { pool }));
+      res.json(await graphService.getTemplateGraph(req.params.id, { pool, depth: parseDepth(req.query.depth) }));
     } catch (error) {
       sendGraphError(res, error);
     }
@@ -92,7 +99,7 @@ export function mountGraphRoutes(app, { config, graphDriver, pool = null }) {
       return;
     }
     try {
-      res.json(await graphService.getReportGraph(req.params.id, { pool }));
+      res.json(await graphService.getReportGraph(req.params.id, { pool, depth: parseDepth(req.query.depth) }));
     } catch (error) {
       sendGraphError(res, error);
     }

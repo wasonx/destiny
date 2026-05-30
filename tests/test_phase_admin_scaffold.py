@@ -84,6 +84,25 @@ class AdminScaffoldTests(unittest.TestCase):
         self.assertIn("停用", templates)
         self.assertIn("免责声明", templates)
 
+    def test_ontology_page_exposes_graph_visualization_workbench(self):
+        ontology = (ROOT / "src" / "admin" / "pages" / "OntologyPage.tsx").read_text(encoding="utf-8")
+
+        self.assertIn("GraphCanvas", ontology)
+        self.assertIn("GraphDetailsPanel", ontology)
+        self.assertIn("/graph/concepts/wood/paths", ontology)
+        self.assertIn("/graph/knowledge/", ontology)
+        self.assertIn("/graph/rules/", ontology)
+        self.assertIn("/graph/templates/", ontology)
+        self.assertIn("/graph/reports/", ontology)
+        self.assertIn("节点搜索", ontology)
+        self.assertIn("节点类型", ontology)
+        self.assertIn("关系类型", ontology)
+        self.assertIn("展开范围", ontology)
+        self.assertIn("一跳关系", ontology)
+
+        self.assertTrue((ROOT / "src" / "admin" / "components" / "GraphCanvas.tsx").exists())
+        self.assertTrue((ROOT / "src" / "admin" / "components" / "GraphDetailsPanel.tsx").exists())
+
 
 if __name__ == "__main__":
     unittest.main()
