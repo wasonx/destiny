@@ -82,6 +82,12 @@ class AdminScaffoldTests(unittest.TestCase):
         for text in ["请填写快递公司和单号", "发货成功", "发货失败", "setMessage", "setError"]:
             self.assertIn(text, page)
 
+    def test_refunds_page_exposes_review_feedback(self):
+        page = (ROOT / "src" / "admin" / "pages" / "RefundsPage.tsx").read_text(encoding="utf-8")
+
+        for text in ["退款审核已处理", "退款审核失败", "setMessage", "setError"]:
+            self.assertIn(text, page)
+
     def test_value_admin_pages_call_entitlement_endpoints(self):
         combined = "\n".join(
             path.read_text(encoding="utf-8")

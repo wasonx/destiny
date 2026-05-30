@@ -75,5 +75,23 @@ export async function reviewRefundRequest(client, { refundRequestId, status, rev
     [refund.order_id, nextOrderStatus],
   );
 
+  await client.query(
+    `
+      insert into app.audit_logs(actor_user_id, action, target_type, target_id, metadata)
+      values ($1, $2, $3, $4, $5)
+    `,
+    [
+      reviewerId,
+      'refund.review',
+      'refund_request',
+      refundRequestId,
+      {
+        orderId: refund.order_id,
+        status,
+        note: note || '',
+      },
+    ],
+  );
+
   return result.rows[0];
 }

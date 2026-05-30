@@ -21,8 +21,11 @@ function money(value: number) {
 export default function RefundsPage() {
   const [refunds, setRefunds] = useState<RefundRequest[]>([]);
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
   async function loadRefunds() {
+    setError('');
     const data = await adminRequest<{ refundRequests: RefundRequest[] }>('/refund-requests');
     setRefunds(data.refundRequests || []);
   }
@@ -32,17 +35,26 @@ export default function RefundsPage() {
   }, []);
 
   async function review(id: string, status: 'approved' | 'rejected') {
-    await adminRequest(`/refund-requests/${id}/review`, {
-      method: 'POST',
-      body: JSON.stringify({ status, note: notes[id] || '' }),
-    });
-    await loadRefunds();
+    setMessage('');
+    setError('');
+    try {
+      await adminRequest(`/refund-requests/${id}/review`, {
+        method: 'POST',
+        body: JSON.stringify({ status, note: notes[id] || '' }),
+      });
+      setMessage('退款审核已处理');
+      await loadRefunds();
+    } catch {
+      setError('退款审核失败');
+    }
   }
 
   return (
     <section className="overflow-x-auto rounded-lg border border-shadow-gray bg-white">
       <div className="border-b border-shadow-gray p-5">
         <h2 className="font-serif text-2xl">退款管理</h2>
+        {message && <p className="mt-3 rounded-md bg-surface px-3 py-2 text-sm text-serene-teal">{message}</p>}
+        {error && <p className="mt-3 rounded-md bg-surface px-3 py-2 text-sm text-red-600">{error}</p>}
       </div>
       <table className="w-full min-w-[920px] text-sm">
         <thead>

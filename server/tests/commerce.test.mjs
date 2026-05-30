@@ -202,7 +202,7 @@ function createCommerceClient({ cardInventory = 2 } = {}) {
       }
 
       if (text.startsWith('insert into app.audit_logs')) {
-        state.auditLogs.push({ actor_user_id: params[0], action: params[1], target_type: params[2], target_id: params[3] });
+        state.auditLogs.push({ actor_user_id: params[0], action: params[1], target_type: params[2], target_id: params[3], metadata: params[4] || {} });
         return { rows: [], rowCount: 1 };
       }
 
@@ -356,6 +356,41 @@ test('approved refund review marks the order refunded', async () => {
 
   assert.equal(client.state.refunds[0].status, 'approved');
   assert.equal(client.state.orders[0].status, 'refunded');
+});
+
+test('refund review writes audit log with status and note', async () => {
+  const client = createCommerceClient();
+  const order = await createOrder(client, {
+    customerId: 'customer-1',
+    items: [{ sku: 'REPORT-3', quantity: 1 }],
+  });
+  const payment = await createPaymentIntent(client, {
+    orderId: order.id,
+    amountCents: order.amount_cents,
+    provider: 'manual',
+  });
+  await markPaymentPaid(client, { paymentIntentId: payment.id, actorUserId: 'admin-1' });
+  const refund = await createRefundRequest(client, {
+    orderId: order.id,
+    customerId: 'customer-1',
+    reason: '客户申请退款',
+    amountCents: order.amount_cents,
+  });
+
+  await reviewRefundRequest(client, {
+    refundRequestId: refund.id,
+    status: 'rejected',
+    reviewerId: 'admin-1',
+    note: '凭证不足，驳回',
+  });
+
+  const audit = client.state.auditLogs.at(-1);
+  assert.equal(audit.action, 'refund.review');
+  assert.equal(audit.target_type, 'refund_request');
+  assert.equal(audit.target_id, refund.id);
+  assert.equal(audit.metadata.status, 'rejected');
+  assert.equal(audit.metadata.orderId, order.id);
+  assert.equal(audit.metadata.note, '凭证不足，驳回');
 });
 
 test('shipping pending fulfillment order records shipment and audit log', async () => {
