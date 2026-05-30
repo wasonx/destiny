@@ -1,4 +1,5 @@
 import { disableItem, publishItem } from '../content/publishing-service.mjs';
+import { requirePlatformAdmin } from '../middleware/roles.mjs';
 import { memory, nextId } from './memory-state.mjs';
 
 export function mountTemplateRoutes(app, { pool, publishingGraphSync = null } = {}) {
@@ -80,6 +81,9 @@ export function mountTemplateRoutes(app, { pool, publishingGraphSync = null } = 
   });
 
   app.post('/destiny-api/admin/templates/:id/publish', async (req, res) => {
+    if (!requirePlatformAdmin(req, res, pool)) {
+      return;
+    }
     if (!pool) {
       const template = memory.templates.find((item) => item.id === req.params.id);
       if (template) template.status = 'published';
@@ -107,6 +111,9 @@ export function mountTemplateRoutes(app, { pool, publishingGraphSync = null } = 
   });
 
   app.post('/destiny-api/admin/templates/:id/disable', async (req, res) => {
+    if (!requirePlatformAdmin(req, res, pool)) {
+      return;
+    }
     if (!pool) {
       const template = memory.templates.find((item) => item.id === req.params.id);
       if (template) template.status = 'disabled';

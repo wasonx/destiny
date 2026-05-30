@@ -130,7 +130,7 @@ test('disableItem marks content disabled and writes audit log', async () => {
   assert.ok(queries.some((query) => query.sql.includes('insert into app.audit_logs')));
 });
 
-function createPublishingRoutePool() {
+function createPublishingRoutePool({ sessionRole = 'admin' } = {}) {
   const queries = [];
   const runQuery = async (sql, params = []) => {
     const normalized = sql.replace(/\s+/g, ' ').trim();
@@ -140,7 +140,7 @@ function createPublishingRoutePool() {
     }
     if (normalized.includes('from app.login_sessions')) {
       return {
-        rows: [{ session_id: 'session-1', account_type: 'admin', user_id: 'admin-user-1', status: 'active', display_name: '管理员' }],
+        rows: [{ session_id: 'session-1', account_type: sessionRole, user_id: `${sessionRole}-user-1`, status: 'active', display_name: sessionRole === 'admin' ? '管理员' : '编辑' }],
         rowCount: 1,
       };
     }
@@ -217,6 +217,37 @@ test('admin publish routes write versions and audit logs', async () => {
     assert.ok(queries.some((query) => query.sql.includes('insert into app.report_template_versions')));
     assert.ok(queries.filter((query) => query.sql.includes('insert into app.audit_logs')).length >= 3);
     assert.ok(queries.some((query) => query.params.includes('admin-user-1')));
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test('editor sessions cannot publish or disable knowledge rules and templates', async () => {
+  const { pool, queries } = createPublishingRoutePool({ sessionRole: 'editor' });
+  const app = createApp({ config: loadConfig({ SESSION_SECRET: 'test-secret' }), pool });
+  const server = app.listen(0);
+  const { port } = server.address();
+
+  try {
+    for (const path of [
+      '/destiny-api/admin/knowledge/knowledge-1/publish',
+      '/destiny-api/admin/knowledge/knowledge-1/disable',
+      '/destiny-api/admin/rules/rule-1/publish',
+      '/destiny-api/admin/rules/rule-1/disable',
+      '/destiny-api/admin/templates/template-1/publish',
+      '/destiny-api/admin/templates/template-1/disable',
+    ]) {
+      const response = await fetch(`http://127.0.0.1:${port}${path}`, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer editor-token', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ changeSummary: '编辑尝试发布' }),
+      });
+
+      assert.equal(response.status, 403);
+    }
+
+    assert.ok(!queries.some((query) => query.sql.includes("status = 'published'")));
+    assert.ok(!queries.some((query) => query.sql.includes("status = 'disabled'")));
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }

@@ -1,4 +1,5 @@
 import { disableItem, publishItem } from '../content/publishing-service.mjs';
+import { requirePlatformAdmin } from '../middleware/roles.mjs';
 import { runRules } from '../rules/rule-engine.mjs';
 import { memory, nextId } from './memory-state.mjs';
 
@@ -85,6 +86,9 @@ export function mountRuleRoutes(app, { pool, publishingGraphSync = null } = {}) 
   });
 
   app.post('/destiny-api/admin/rules/:id/publish', async (req, res) => {
+    if (!requirePlatformAdmin(req, res, pool)) {
+      return;
+    }
     if (!pool) {
       const rule = memory.rules.find((item) => item.id === req.params.id);
       if (rule) rule.status = 'published';
@@ -112,6 +116,9 @@ export function mountRuleRoutes(app, { pool, publishingGraphSync = null } = {}) 
   });
 
   app.post('/destiny-api/admin/rules/:id/disable', async (req, res) => {
+    if (!requirePlatformAdmin(req, res, pool)) {
+      return;
+    }
     if (!pool) {
       const rule = memory.rules.find((item) => item.id === req.params.id);
       if (rule) rule.status = 'disabled';

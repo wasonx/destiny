@@ -2,6 +2,7 @@ import { createOrder, createPaymentIntent, markOrderShipped, markPaymentPaid } f
 import { buildEntitlementPayload } from '../commerce/product-mapping-service.mjs';
 import { createRefundRequest, reviewRefundRequest } from '../commerce/refund-service.mjs';
 import { requireSession } from '../middleware/require-session.mjs';
+import { requirePlatformAdmin } from '../middleware/roles.mjs';
 import { memory, nextId } from './memory-state.mjs';
 
 function asyncRoute(handler) {
@@ -19,7 +20,12 @@ function knownCommerceStatus(error) {
 
 function mountDatabaseCommerceRoutes(app, { pool, config }) {
   const customerOnly = requireSession({ pool, config, accountTypes: ['customer'] });
-  const adminOnly = requireSession({ pool, config, accountTypes: ['editor', 'admin'] });
+  const adminSession = requireSession({ pool, config, accountTypes: ['editor', 'admin'] });
+  const platformAdminOnly = (req, res, next) => {
+    if (!requirePlatformAdmin(req, res, pool)) return;
+    next();
+  };
+  const adminOnly = [adminSession, platformAdminOnly];
 
   app.get('/destiny-api/customer/products', asyncRoute(async (_req, res) => {
     const result = await pool.query(

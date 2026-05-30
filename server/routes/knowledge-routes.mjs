@@ -1,4 +1,5 @@
 import { disableItem, publishItem } from '../content/publishing-service.mjs';
+import { requirePlatformAdmin } from '../middleware/roles.mjs';
 import { memory, nextId } from './memory-state.mjs';
 
 export function mountKnowledgeRoutes(app, { pool, publishingGraphSync = null }) {
@@ -69,6 +70,9 @@ export function mountKnowledgeRoutes(app, { pool, publishingGraphSync = null }) 
   });
 
   app.post('/destiny-api/admin/knowledge/:id/publish', async (req, res) => {
+    if (!requirePlatformAdmin(req, res, pool)) {
+      return;
+    }
     if (!pool) {
       const entry = memory.knowledgeEntries.find((item) => item.id === req.params.id);
       if (entry) entry.status = 'published';
@@ -96,6 +100,9 @@ export function mountKnowledgeRoutes(app, { pool, publishingGraphSync = null }) 
   });
 
   app.post('/destiny-api/admin/knowledge/:id/disable', async (req, res) => {
+    if (!requirePlatformAdmin(req, res, pool)) {
+      return;
+    }
     if (!pool) {
       const entry = memory.knowledgeEntries.find((item) => item.id === req.params.id);
       if (entry) entry.status = 'disabled';

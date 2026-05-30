@@ -313,3 +313,45 @@ test('commerce admin product route requires session and reads database products 
     await new Promise((resolve) => server.close(resolve));
   }
 });
+
+test('editor sessions cannot access commerce admin operations', async () => {
+  const queries = [];
+  const pool = {
+    async query(sql) {
+      const text = normalizeSql(sql);
+      queries.push({ sql: text });
+      if (text.includes('from app.login_sessions')) {
+        return { rows: [{ session_id: 'session-1', account_type: 'editor', user_id: 'editor-1', status: 'active', display_name: '编辑' }] };
+      }
+      throw new Error(`Editor should not reach commerce query: ${text}`);
+    },
+    async connect() {
+      throw new Error('Editor should not open commerce transaction');
+    },
+  };
+  const app = createApp({ config: loadConfig({ SESSION_SECRET: 'test-secret' }), pool });
+  const server = app.listen(0);
+  const { port } = server.address();
+
+  try {
+    for (const request of [
+      { path: '/destiny-api/admin/products', method: 'GET' },
+      { path: '/destiny-api/admin/payments/payment-1/mark-paid', method: 'POST' },
+      { path: '/destiny-api/admin/orders/order-1/ship', method: 'POST' },
+      { path: '/destiny-api/admin/refund-requests/refund-1/review', method: 'POST' },
+    ]) {
+      const response = await fetch(`http://127.0.0.1:${port}${request.path}`, {
+        method: request.method,
+        headers: { Authorization: 'Bearer editor-token', 'Content-Type': 'application/json' },
+        body: request.method === 'POST' ? JSON.stringify({ note: '越权尝试' }) : undefined,
+      });
+
+      assert.equal(response.status, 403);
+    }
+
+    assert.ok(queries.length >= 4);
+    assert.ok(queries.every((query) => query.sql.includes('from app.login_sessions')));
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
