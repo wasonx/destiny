@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { createLoginSession, createSessionToken } from '../auth/sessions.mjs';
 import { createWechatSessionProvider, WechatSessionError } from '../auth/wechat-session-provider.mjs';
+import { findSession } from '../middleware/require-session.mjs';
 import { memory, nextId } from './memory-state.mjs';
 
 const mockCode = '246810';
@@ -217,21 +218,100 @@ export function mountCustomerAuthRoutes(app, { config, pool, wechatSessionProvid
 
   app.get('/destiny-api/customer/qr/status/:token', async (req, res) => {
     if (!pool) {
-      res.json(memory.qr?.token === req.params.token ? memory.qr : { token: req.params.token, status: 'expired' });
+      if (memory.qr?.token !== req.params.token) {
+        res.json({ token: req.params.token, status: 'expired' });
+        return;
+      }
+      if (memory.qr.status === 'confirmed') {
+        res.json({
+          token: req.params.token,
+          status: 'confirmed',
+          customerToken: memory.qr.loginToken || memory.customerToken,
+          customer: { id: memory.qr.customerId || 'dev-customer' },
+        });
+        return;
+      }
+      res.json(memory.qr);
       return;
     }
-    const result = await pool.query('select token, status, expires_at from app.qr_login_sessions where token = $1', [req.params.token]);
-    res.json(result.rows[0] || { token: req.params.token, status: 'expired' });
+    const client = await pool.connect();
+    try {
+      await client.query('begin');
+      const result = await client.query(
+        `
+          select token, status, customer_id, expires_at
+          from app.qr_login_sessions
+          where token = $1
+          for update
+        `,
+        [req.params.token],
+      );
+      const qr = result.rows[0];
+      if (!qr || (qr.expires_at && new Date(qr.expires_at).getTime() <= Date.now())) {
+        await client.query('commit');
+        res.json({ token: req.params.token, status: 'expired' });
+        return;
+      }
+      if (qr.status !== 'confirmed' || !qr.customer_id) {
+        await client.query('commit');
+        res.json({ token: qr.token, status: qr.status, expires_at: qr.expires_at });
+        return;
+      }
+
+      const { token: customerToken } = await createLoginSession(client, {
+        config,
+        userId: qr.customer_id,
+        accountType: 'customer',
+      });
+      await client.query("update app.qr_login_sessions set status = 'cancelled' where token = $1", [qr.token]);
+      await client.query('commit');
+      res.json({
+        token: qr.token,
+        status: 'confirmed',
+        customerToken,
+        customer: { id: qr.customer_id },
+      });
+    } catch (error) {
+      await client.query('rollback');
+      throw error;
+    } finally {
+      client.release();
+    }
   });
 
   app.post('/destiny-api/customer/qr/confirm', async (req, res) => {
-    const token = req.body?.token;
-    if (!pool) {
-      memory.qr = { ...(memory.qr || {}), token, status: 'confirmed', customerId: nextId('customer') };
-      res.json({ ok: true, token: memory.customerToken });
+    const token = String(req.body?.token || '').trim();
+    if (!token) {
+      res.status(400).json({ error: 'QR_TOKEN_REQUIRED' });
       return;
     }
-    await pool.query("update app.qr_login_sessions set status = 'confirmed', confirmed_at = now() where token = $1 and status = 'pending'", [token]);
-    res.json({ ok: true });
+    if (!pool) {
+      memory.qr = { ...(memory.qr || {}), token, status: 'confirmed', customerId: nextId('customer'), loginToken: memory.customerToken };
+      res.json({ ok: true, status: 'confirmed', customerId: memory.qr.customerId });
+      return;
+    }
+    const session = await findSession(req, { pool, config, accountTypes: ['customer'] });
+    if (!session) {
+      res.status(401).json({ error: 'UNAUTHORIZED' });
+      return;
+    }
+    const result = await pool.query(
+      `
+        update app.qr_login_sessions
+        set status = 'confirmed',
+            customer_id = $2,
+            confirmed_at = now()
+        where token = $1
+          and status = 'pending'
+          and expires_at > now()
+        returning token, status, customer_id
+      `,
+      [token, session.user_id],
+    );
+    if (!result.rowCount) {
+      res.status(404).json({ error: 'QR_SESSION_NOT_FOUND' });
+      return;
+    }
+    res.json({ ok: true, status: 'confirmed', customerId: result.rows[0].customer_id });
   });
 }
