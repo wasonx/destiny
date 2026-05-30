@@ -19,11 +19,11 @@
 
 | 项目 | 命令 | 结果 | 证据 |
 | --- | --- | --- | --- |
-| 服务端测试 | `npm run test:server` | 未执行 | 执行 Task 2 Step 1 后替换为实际结果 |
-| Python 脚手架测试 | `npm run test:py` | 未执行 | 执行 Task 2 Step 2 后替换为实际结果 |
-| 小程序静态验证 | `npm run test:miniprogram` | 未执行 | 执行 Task 2 Step 3 后替换为实际结果 |
-| TypeScript 检查 | `npm run lint` | 未执行 | 执行 Task 2 Step 4 后替换为实际结果 |
-| 前端构建 | `npm run build` | 未执行 | 执行 Task 2 Step 5 后替换为实际结果 |
+| 服务端测试 | `npm run test:server` | 通过 | Node test runner: `tests 92`, `pass 92`, `fail 0` |
+| Python 脚手架测试 | `npm run test:py` | 通过 | `Ran 44 tests`，结果 `OK` |
+| 小程序静态验证 | `npm run test:miniprogram` | 通过 | `miniprogram_static_ok=16`，`json_files_ok=16`，`native_pages_ok=12` |
+| TypeScript 检查 | `npm run lint` | 通过 | `tsc --noEmit` 退出码 0 |
+| 前端构建 | `npm run build` | 通过 | Vite 构建完成：`2164 modules transformed`，`built in 2.18s`；存在 chunk-size 警告但退出码为 0 |
 
 ## 服务器验证
 
