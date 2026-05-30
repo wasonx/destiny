@@ -106,6 +106,28 @@ class AdminScaffoldTests(unittest.TestCase):
         self.assertIn("停用", templates)
         self.assertIn("免责声明", templates)
 
+    def test_knowledge_admin_pages_call_publish_endpoints(self):
+        combined = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in [
+                ROOT / "src" / "admin" / "pages" / "KnowledgePage.tsx",
+                ROOT / "src" / "admin" / "pages" / "RulesPage.tsx",
+                ROOT / "src" / "admin" / "pages" / "TemplatesPage.tsx",
+            ]
+        )
+
+        self.assertIn("adminRequest", combined)
+        for endpoint in [
+            "/knowledge",
+            "/rules",
+            "/templates",
+            "/publish",
+            "/disable",
+        ]:
+            self.assertIn(endpoint, combined)
+        for text in ["保存草稿", "发布", "停用", "变更摘要"]:
+            self.assertIn(text, combined)
+
     def test_ontology_page_exposes_graph_visualization_workbench(self):
         ontology = (ROOT / "src" / "admin" / "pages" / "OntologyPage.tsx").read_text(encoding="utf-8")
 
