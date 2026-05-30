@@ -10,7 +10,7 @@ function asyncRoute(handler) {
 }
 
 function knownCommerceStatus(error) {
-  if (['INVALID_ORDER', 'ADDRESS_REQUIRED', 'PRODUCT_NOT_AVAILABLE', 'INSUFFICIENT_INVENTORY', 'INVALID_ORDER_STATUS', 'INVALID_REFUND_ORDER_STATUS'].includes(error.code)) {
+  if (['INVALID_ORDER', 'ADDRESS_REQUIRED', 'PRODUCT_NOT_AVAILABLE', 'INSUFFICIENT_INVENTORY', 'INVALID_ORDER_STATUS', 'INVALID_REFUND_ORDER_STATUS', 'INVALID_SHIPMENT'].includes(error.code)) {
     return 400;
   }
   if (error.code === 'REFUND_NOT_FOUND') return 404;
@@ -324,7 +324,7 @@ function mountDatabaseCommerceRoutes(app, { pool, config }) {
       res.json({ shipment, order: order.rows[0] || null });
     } catch (error) {
       await client.query('rollback');
-      throw error;
+      res.status(knownCommerceStatus(error)).json({ error: error.code || error.message });
     } finally {
       client.release();
     }
@@ -459,13 +459,21 @@ function mountMemoryCommerceRoutes(app) {
   });
 
   app.post('/destiny-api/admin/orders/:id/ship', (req, res) => {
-    const shipment = { id: nextId('shipment'), order_id: req.params.id, carrier: req.body?.carrier, tracking_no: req.body?.trackingNo, shipped_at: new Date().toISOString() };
-    memory.shipments.unshift(shipment);
-    const order = memory.orders.find((item) => item.id === req.params.id);
-    if (order) {
-      order.status = 'shipped';
-      order.shipment = shipment;
+    const carrier = String(req.body?.carrier || '').trim();
+    const trackingNo = String(req.body?.tracking_no || req.body?.trackingNo || '').trim();
+    if (!carrier || !trackingNo) {
+      res.status(400).json({ error: 'INVALID_SHIPMENT' });
+      return;
     }
+    const order = memory.orders.find((item) => item.id === req.params.id);
+    if (!order || order.status !== 'pending_fulfillment') {
+      res.status(order ? 400 : 404).json({ error: order ? 'INVALID_ORDER_STATUS' : 'ORDER_NOT_FOUND' });
+      return;
+    }
+    const shipment = { id: nextId('shipment'), order_id: req.params.id, carrier, tracking_no: trackingNo, shipped_at: new Date().toISOString() };
+    memory.shipments.unshift(shipment);
+    order.status = 'shipped';
+    order.shipment = shipment;
     res.json({ shipment, order });
   });
 

@@ -154,14 +154,46 @@ export async function markPaymentPaid(client, { paymentIntentId, actorUserId }) 
 }
 
 export async function markOrderShipped(client, { orderId, carrier, trackingNo, actorUserId }) {
+  const normalizedCarrier = String(carrier || '').trim();
+  const normalizedTrackingNo = String(trackingNo || '').trim();
+  if (!normalizedCarrier || !normalizedTrackingNo) {
+    const error = new Error('INVALID_SHIPMENT');
+    error.code = 'INVALID_SHIPMENT';
+    throw error;
+  }
+
+  const orderResult = await client.query('select * from app.commerce_orders where id = $1 for update', [orderId]);
+  const order = orderResult.rows[0];
+  if (!order) throw new Error('ORDER_NOT_FOUND');
+  if (order.status !== 'pending_fulfillment') {
+    const error = new Error(`INVALID_ORDER_STATUS:${order.status}`);
+    error.code = 'INVALID_ORDER_STATUS';
+    throw error;
+  }
+
   const shipment = await client.query(
     `
       insert into app.shipments(order_id, carrier, tracking_no, created_by)
       values ($1, $2, $3, $4)
       returning *
     `,
-    [orderId, carrier, trackingNo, actorUserId],
+    [orderId, normalizedCarrier, normalizedTrackingNo, actorUserId],
   );
-  await client.query("update app.commerce_orders set status = 'shipped', updated_at = now() where id = $1", [orderId]);
+  await client.query(
+    `
+      update app.commerce_orders
+      set status = $2, updated_at = now()
+      where id = $1
+      returning *
+    `,
+    [orderId, 'shipped'],
+  );
+  await client.query(
+    `
+      insert into app.audit_logs(actor_user_id, action, target_type, target_id, metadata)
+      values ($1, $2, $3, $4, $5)
+    `,
+    [actorUserId, 'order.ship', 'commerce_order', orderId, { carrier: normalizedCarrier, trackingNo: normalizedTrackingNo }],
+  );
   return shipment.rows[0];
 }

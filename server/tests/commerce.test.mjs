@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { createApp } from '../app.mjs';
-import { createOrder, createPaymentIntent, markPaymentPaid } from '../commerce/order-service.mjs';
+import { createOrder, createPaymentIntent, markOrderShipped, markPaymentPaid } from '../commerce/order-service.mjs';
 import { buildEntitlementPayload } from '../commerce/product-mapping-service.mjs';
 import { assertPaymentTransition } from '../commerce/payment-state-machine.mjs';
 import { createRefundRequest, reviewRefundRequest } from '../commerce/refund-service.mjs';
@@ -42,6 +42,7 @@ function createCommerceClient({ cardInventory = 2 } = {}) {
     orders: [],
     payments: [],
     refunds: [],
+    shipments: [],
     entitlementDeliveries: [],
     quotaBalance: 0,
     pointsBalance: 0,
@@ -100,6 +101,18 @@ function createCommerceClient({ cardInventory = 2 } = {}) {
         return { rows: [refund], rowCount: 1 };
       }
 
+      if (text.startsWith('insert into app.shipments')) {
+        const shipment = {
+          id: `shipment-${state.shipments.length + 1}`,
+          order_id: params[0],
+          carrier: params[1],
+          tracking_no: params[2],
+          created_by: params[3],
+        };
+        state.shipments.push(shipment);
+        return { rows: [shipment], rowCount: 1 };
+      }
+
       if (text.includes('select * from app.refund_requests') && text.includes('for update')) {
         return { rows: state.refunds.filter((refund) => refund.id === params[0]) };
       }
@@ -128,7 +141,7 @@ function createCommerceClient({ cardInventory = 2 } = {}) {
 
       if (text.startsWith('update app.commerce_orders')) {
         const order = state.orders.find((item) => item.id === params[0]);
-        order.status = params[1] || 'paid';
+        order.status = params[1] || (text.includes("status = 'shipped'") ? 'shipped' : 'paid');
         return { rows: [order], rowCount: 1 };
       }
 
@@ -343,6 +356,59 @@ test('approved refund review marks the order refunded', async () => {
 
   assert.equal(client.state.refunds[0].status, 'approved');
   assert.equal(client.state.orders[0].status, 'refunded');
+});
+
+test('shipping pending fulfillment order records shipment and audit log', async () => {
+  const client = createCommerceClient();
+  const order = await createOrder(client, {
+    customerId: 'customer-1',
+    items: [{ sku: 'CARD-001', quantity: 1 }],
+    address: { receiver_name: '王先生', phone: '13800000000', detail_address: '测试地址' },
+  });
+  const payment = await createPaymentIntent(client, {
+    orderId: order.id,
+    amountCents: order.amount_cents + order.freight_cents,
+    provider: 'manual',
+  });
+  await markPaymentPaid(client, { paymentIntentId: payment.id, actorUserId: 'admin-1' });
+
+  const shipment = await markOrderShipped(client, {
+    orderId: order.id,
+    carrier: '顺丰速运',
+    trackingNo: 'SF123456789',
+    actorUserId: 'admin-1',
+  });
+
+  assert.equal(shipment.tracking_no, 'SF123456789');
+  assert.equal(client.state.orders[0].status, 'shipped');
+  assert.equal(client.state.auditLogs.at(-1).action, 'order.ship');
+  assert.equal(client.state.auditLogs.at(-1).target_id, order.id);
+});
+
+test('shipping rejects orders that are not awaiting fulfillment', async () => {
+  const client = createCommerceClient();
+  const order = await createOrder(client, {
+    customerId: 'customer-1',
+    items: [{ sku: 'REPORT-3', quantity: 1 }],
+  });
+  const payment = await createPaymentIntent(client, {
+    orderId: order.id,
+    amountCents: order.amount_cents,
+    provider: 'manual',
+  });
+  await markPaymentPaid(client, { paymentIntentId: payment.id, actorUserId: 'admin-1' });
+
+  await assert.rejects(
+    () => markOrderShipped(client, {
+      orderId: order.id,
+      carrier: '顺丰速运',
+      trackingNo: 'SF123456789',
+      actorUserId: 'admin-1',
+    }),
+    /INVALID_ORDER_STATUS/,
+  );
+  assert.equal(client.state.orders[0].status, 'paid');
+  assert.equal(client.state.shipments.length, 0);
 });
 
 test('commerce admin product route requires session and reads database products when pool is configured', async () => {

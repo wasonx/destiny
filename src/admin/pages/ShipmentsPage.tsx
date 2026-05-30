@@ -23,8 +23,11 @@ export default function ShipmentsPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [forms, setForms] = useState<ShipForm>({});
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
   async function loadData() {
+    setError('');
     const [orderData, shipmentData] = await Promise.all([
       adminRequest<{ orders: Order[] }>('/orders'),
       adminRequest<{ shipments: Shipment[] }>('/shipments'),
@@ -39,17 +42,31 @@ export default function ShipmentsPage() {
 
   async function ship(orderId: string) {
     const form = forms[orderId] || { carrier: '', tracking_no: '' };
-    await adminRequest(`/orders/${orderId}/ship`, {
-      method: 'POST',
-      body: JSON.stringify({ carrier: form.carrier, tracking_no: form.tracking_no }),
-    });
-    await loadData();
+    if (!form.carrier.trim() || !form.tracking_no.trim()) {
+      setError('请填写快递公司和单号');
+      setMessage('');
+      return;
+    }
+    setError('');
+    setMessage('');
+    try {
+      await adminRequest(`/orders/${orderId}/ship`, {
+        method: 'POST',
+        body: JSON.stringify({ carrier: form.carrier.trim(), tracking_no: form.tracking_no.trim() }),
+      });
+      setMessage('发货成功');
+      await loadData();
+    } catch {
+      setError('发货失败');
+    }
   }
 
   return (
     <div className="space-y-4">
       <section className="rounded-lg border border-shadow-gray bg-white p-5">
         <h2 className="mb-4 font-serif text-2xl">发货管理</h2>
+        {message && <p className="mb-3 rounded-md bg-surface px-3 py-2 text-sm text-serene-teal">{message}</p>}
+        {error && <p className="mb-3 rounded-md bg-surface px-3 py-2 text-sm text-red-600">{error}</p>}
         <div className="space-y-3">
           {orders.map((order) => {
             const form = forms[order.id] || { carrier: '', tracking_no: '' };

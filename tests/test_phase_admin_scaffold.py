@@ -76,6 +76,12 @@ class AdminScaffoldTests(unittest.TestCase):
         ]:
             self.assertIn(endpoint, combined)
 
+    def test_shipments_page_exposes_shipping_feedback(self):
+        page = (ROOT / "src" / "admin" / "pages" / "ShipmentsPage.tsx").read_text(encoding="utf-8")
+
+        for text in ["请填写快递公司和单号", "发货成功", "发货失败", "setMessage", "setError"]:
+            self.assertIn(text, page)
+
     def test_value_admin_pages_call_entitlement_endpoints(self):
         combined = "\n".join(
             path.read_text(encoding="utf-8")
