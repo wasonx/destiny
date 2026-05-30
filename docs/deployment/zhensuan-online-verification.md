@@ -31,3 +31,21 @@
 1. 在微信公众平台「版本管理」中查看开发版本 `0.1.0`，按平台要求提交审核；审核通过后点击发布。
 2. 接入真实腾讯云短信、微信支付、快递和退款接口。
 3. 需要更复杂商品运营时，再接入 Medusa 商品/库存/订单同步。
+
+## 2026-05-30 甄算 1.0 最终上线前验证
+
+- 发布分支：服务器已部署 `origin/codex/zhensuan-full-build`，当前 commit 为 `3755c1f`。
+- 部署备份：切换 1.0 代码前已创建 `/root/destiny-backup-20260530-131550.tar.gz`。
+- 本地验证：`npm run test:server` 94 项通过，`npm run test:py` 44 项通过，`npm run test:miniprogram` 输出 `miniprogram_static_ok=16`、`json_files_ok=16`、`native_pages_ok=12`，`npm run lint` 通过，`npm run build` 通过。
+- 服务器验证：服务器端 `npm run test:server` 94 项通过，`npm run build` 通过，PM2 `destiny-api` 在线。
+- API 健康检查：`https://www.goye.cc/destiny-api/health` 返回 `ok: true`。
+- H5 首页：`https://www.goye.cc` 返回 HTTP 200。
+- 后台入口：`https://www.goye.cc/admin` 返回 HTTP 200。
+- 合规接口：`https://www.goye.cc/destiny-api/legal` 返回 1.0 用户协议、隐私政策和报告分层说明。
+- PostgreSQL 迁移：本次部署应用 `007_phase7_wechat_identity.sql` 至 `011_phase11_sms_mock_boundaries.sql`。
+- Neo4j 种子：`npm run graph:seed` 输出 `bazi ontology seeded`。
+- 运维健康：后台登录后 `/destiny-api/admin/ops/health` 显示 `api/postgres/neo4j/medusa` 全部为 `ok`。
+- 图谱健康：后台登录后 `/destiny-api/admin/graph/health` 返回 `ok: true`，概念接口返回 37 个概念。
+- 报告溯源：线上验证报告 `d3ce576d-ff08-494a-ac5c-33ccaabf9e27` 的报告图谱接口返回 8 个节点和 10 条边，`report_provenance_records` 中 `graph_nodes` 与 `rule_hits` 均为 JSON array。
+- 小程序上传：已通过微信开发者工具 CLI 上传开发版本 `1.0.0`，AppID 为 `wxc4ed7c07ce86326c`，备注为“甄算1.0正式版：真实微信登录、知识库后台、图计算、图谱可视化、报告分层、商城、会员积分、罗盘、订单退款发货闭环”，包体约 66.0 KB。
+- 外部接口边界：真实微信支付、真实微信退款、真实腾讯云短信和真实快递接口仍未接入，符合 1.0 范围冻结口径。

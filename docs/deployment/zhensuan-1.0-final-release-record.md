@@ -19,11 +19,11 @@
 
 | 项目 | 命令 | 结果 | 证据 |
 | --- | --- | --- | --- |
-| 服务端测试 | `npm run test:server` | 通过 | Node test runner: `tests 92`, `pass 92`, `fail 0` |
+| 服务端测试 | `npm run test:server` | 通过 | Node test runner: `tests 94`, `pass 94`, `fail 0`；服务器同样通过 94 项 |
 | Python 脚手架测试 | `npm run test:py` | 通过 | `Ran 44 tests`，结果 `OK` |
 | 小程序静态验证 | `npm run test:miniprogram` | 通过 | `miniprogram_static_ok=16`，`json_files_ok=16`，`native_pages_ok=12` |
 | TypeScript 检查 | `npm run lint` | 通过 | `tsc --noEmit` 退出码 0 |
-| 前端构建 | `npm run build` | 通过 | Vite 构建完成：`2164 modules transformed`，`built in 2.18s`；存在 chunk-size 警告但退出码为 0 |
+| 前端构建 | `npm run build` | 通过 | Vite 构建完成：`2164 modules transformed`；存在 chunk-size 警告但退出码为 0 |
 
 ## 服务器验证
 
@@ -32,14 +32,19 @@
 | API 健康检查 | `https://www.goye.cc/destiny-api/health` | 通过 | PowerShell `Invoke-RestMethod` 返回 `{"ok":true,"model":"deepseek-chat","hasKey":true}` |
 | 后台页面 | `https://www.goye.cc/admin` | 通过 | `curl.exe -fsSI` 返回 HTTP `200 OK` |
 | H5 首页 | `https://www.goye.cc` | 通过 | `curl.exe -fsSI` 返回 HTTP `200 OK` |
-| PostgreSQL 迁移 | 服务器迁移命令 | 未完成 | SSH 端口可达，但本机没有可用私钥；非交互 SSH 返回 `Permission denied (publickey,password)` |
-| Neo4j 图谱 | 后台图谱页面 | 未完成 | 服务器后端尚未验证；公网 `/destiny-api/legal` 返回 404，说明服务器代码仍落后于当前 1.0 分支 |
+| PostgreSQL 迁移 | `npm run db:migrate` | 通过 | 服务器已执行到 `011_phase11_sms_mock_boundaries.sql`，其中 007-011 在本次部署中应用成功 |
+| Neo4j 图谱 | 后台图谱和报告图谱接口 | 通过 | `/destiny-api/admin/graph/health` 返回 `ok: true`；报告图谱验证记录返回 8 个节点、10 条边 |
 
 服务器部署备注：
 
-- 当前 1.0 发布分支已推送到 `origin/codex/zhensuan-full-build`。
-- 服务器公网旧服务可响应健康检查和静态页面，但缺少当前 1.0 必需的 `/destiny-api/legal` 接口。
-- 需要在服务器拉取当前 1.0 代码、执行 `npm run db:migrate`、`npm run graph:seed`、重启 `destiny-api`，再重新验证后台图谱和报告溯源。
+- 当前服务器已部署 `origin/codex/zhensuan-full-build`，commit `3755c1f`。
+- 服务器部署前已创建备份：`/root/destiny-backup-20260530-131550.tar.gz`。
+- 已执行 `npm run graph:seed`，输出 `bazi ontology seeded`。
+- 已执行 `npm run test:server`，服务器端 94 项通过。
+- 已执行 `npm run build`，并通过 PM2 重启 `destiny-api`。
+- Nginx 配置检查通过并已 reload。
+- `/destiny-api/legal` 已返回 1.0 合规文档 JSON。
+- 后台登录、运维健康、图谱健康、概念列表和报告图谱均已验证通过。
 
 ## 小程序上传
 
@@ -61,4 +66,4 @@
 
 ## 结论
 
-待最终验证后填写。
+服务器部署、小程序上传和核心 1.0 能力验证已完成；等待邮件通知完成后关闭最终交付。
