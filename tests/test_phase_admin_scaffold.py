@@ -138,6 +138,14 @@ class AdminScaffoldTests(unittest.TestCase):
         self.assertIn("图谱路径", page)
         self.assertIn("安全审查", page)
 
+    def test_users_page_calls_user_management_endpoint(self):
+        page = (ROOT / "src" / "admin" / "pages" / "UsersPage.tsx").read_text(encoding="utf-8")
+
+        self.assertIn("adminRequest", page)
+        self.assertIn("/users", page)
+        for text in ["客户", "后端编辑人员", "平台管理人员", "微信登录", "手机验证码", "账号密码"]:
+            self.assertIn(text, page)
+
     def test_ontology_page_exposes_graph_visualization_workbench(self):
         ontology = (ROOT / "src" / "admin" / "pages" / "OntologyPage.tsx").read_text(encoding="utf-8")
 
