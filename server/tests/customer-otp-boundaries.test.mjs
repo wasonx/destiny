@@ -139,3 +139,87 @@ test('mock OTP verify increments failed attempts and blocks after limit', async 
     await new Promise((resolve) => server.close(resolve));
   }
 });
+
+test('mock OTP verify binds a new phone identity to the current customer session', async () => {
+  const queries = [];
+  const challenge = {
+    id: 'challenge-1',
+    code_hash: hashOtp('13800000000', '246810'),
+    attempts: 0,
+  };
+  const client = {
+    async query(sql, params = []) {
+      const text = normalizeSql(sql);
+      queries.push({ sql: text, params });
+      if (['begin', 'commit', 'rollback'].includes(text)) {
+        return { rows: [], rowCount: 0 };
+      }
+      if (text.includes('from app.sms_otp_challenges') && text.includes('for update')) {
+        return { rows: [{ ...challenge }], rowCount: 1 };
+      }
+      if (text.includes('update app.sms_otp_challenges set consumed_at')) {
+        return { rows: [], rowCount: 1 };
+      }
+      if (text.includes("from app.customer_identities where provider = 'phone'")) {
+        return { rows: [], rowCount: 0 };
+      }
+      if (text.includes('insert into app.users')) {
+        return { rows: [{ id: 'new-user-1' }], rowCount: 1 };
+      }
+      if (text.includes('insert into app.customer_identities')) {
+        return { rows: [], rowCount: 1 };
+      }
+      if (text.includes('insert into app.login_sessions')) {
+        return { rows: [{ id: 'session-1' }], rowCount: 1 };
+      }
+      throw new Error(`Unexpected query: ${text}`);
+    },
+    release() {},
+  };
+  const pool = {
+    async query(sql, params = []) {
+      const text = normalizeSql(sql);
+      queries.push({ sql: text, params });
+      if (text.includes('from app.login_sessions')) {
+        return {
+          rows: [{
+            session_id: 'session-current',
+            account_type: 'customer',
+            user_id: 'current-customer-1',
+            status: 'active',
+            display_name: 'Current Customer',
+          }],
+          rowCount: 1,
+        };
+      }
+      throw new Error(`Unexpected pool query: ${text}`);
+    },
+    connect: async () => client,
+  };
+  const app = createApp({
+    config: loadConfig({ SESSION_SECRET: 'test-secret' }),
+    pool,
+  });
+  const server = app.listen(0);
+  const { port } = server.address();
+
+  try {
+    const response = await fetch(`http://127.0.0.1:${port}/destiny-api/customer/otp/verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer current-session-token',
+      },
+      body: JSON.stringify({ phone: '13800000000', code: '246810' }),
+    });
+    const data = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(data.customer.id, 'current-customer-1');
+    assert.ok(!queries.some((query) => query.sql.includes('insert into app.users')));
+    assert.ok(queries.some((query) => query.sql.includes('from app.login_sessions')));
+    assert.ok(queries.some((query) => query.sql.includes('insert into app.customer_identities') && query.params[0] === 'current-customer-1'));
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});

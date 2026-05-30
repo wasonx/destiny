@@ -13,37 +13,51 @@ function createRouteTestServer({ pool, provider }) {
   return app.listen(0);
 }
 
-function createMockPool({ existingUserId = null } = {}) {
+function createMockPool({ existingUserId = null, existingSessionUserId = null } = {}) {
   const queries = [];
+  async function handleQuery(sql, params = []) {
+    const normalized = sql.replace(/\s+/g, ' ').trim();
+    queries.push({ sql: normalized, params });
+    if (['begin', 'commit', 'rollback'].includes(normalized)) {
+      return { rows: [], rowCount: 0 };
+    }
+    if (normalized.includes('from app.login_sessions')) {
+      return existingSessionUserId ? {
+        rows: [{
+          session_id: 'session-existing',
+          account_type: 'customer',
+          user_id: existingSessionUserId,
+          status: 'active',
+          display_name: 'Existing Customer',
+        }],
+        rowCount: 1,
+      } : { rows: [], rowCount: 0 };
+    }
+    if (normalized.includes('from app.customer_identities') && normalized.includes("provider = 'wechat'")) {
+      return existingUserId ? { rows: [{ user_id: existingUserId }], rowCount: 1 } : { rows: [], rowCount: 0 };
+    }
+    if (normalized.includes('insert into app.users')) {
+      return { rows: [{ id: 'new-user-1' }], rowCount: 1 };
+    }
+    if (normalized.includes('insert into app.customer_identities')) {
+      return { rows: [], rowCount: 1 };
+    }
+    if (normalized.includes('update app.customer_identities')) {
+      return existingUserId ? { rows: [{ id: 'identity-1' }], rowCount: 1 } : { rows: [], rowCount: 0 };
+    }
+    if (normalized.includes('insert into app.login_sessions')) {
+      return { rows: [{ id: 'session-1' }], rowCount: 1 };
+    }
+    throw new Error(`Unexpected query: ${normalized}`);
+  }
   const client = {
-    async query(sql, params = []) {
-      const normalized = sql.replace(/\s+/g, ' ').trim();
-      queries.push({ sql: normalized, params });
-      if (['begin', 'commit', 'rollback'].includes(normalized)) {
-        return { rows: [], rowCount: 0 };
-      }
-      if (normalized.includes('from app.customer_identities') && normalized.includes("provider = 'wechat'")) {
-        return existingUserId ? { rows: [{ user_id: existingUserId }], rowCount: 1 } : { rows: [], rowCount: 0 };
-      }
-      if (normalized.includes('insert into app.users')) {
-        return { rows: [{ id: 'new-user-1' }], rowCount: 1 };
-      }
-      if (normalized.includes('insert into app.customer_identities')) {
-        return { rows: [], rowCount: 1 };
-      }
-      if (normalized.includes('update app.customer_identities')) {
-        return existingUserId ? { rows: [{ id: 'identity-1' }], rowCount: 1 } : { rows: [], rowCount: 0 };
-      }
-      if (normalized.includes('insert into app.login_sessions')) {
-        return { rows: [{ id: 'session-1' }], rowCount: 1 };
-      }
-      throw new Error(`Unexpected query: ${normalized}`);
-    },
+    query: handleQuery,
     release() {},
   };
   return {
     queries,
     pool: {
+      query: handleQuery,
       async connect() {
         return client;
       },
@@ -138,6 +152,43 @@ test('wechat customer login reuses an existing identity', async () => {
     assert.equal(data.customer.id, 'existing-user-1');
     assert.ok(!queries.some((query) => query.sql.includes('insert into app.users')));
     assert.ok(queries.some((query) => query.sql.includes('update app.customer_identities')));
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test('wechat customer login binds a new wechat identity to the current customer session', async () => {
+  const { pool, queries } = createMockPool({ existingSessionUserId: 'current-customer-1' });
+  const server = createRouteTestServer({
+    pool,
+    provider: {
+      async exchange() {
+        return {
+          openid: 'openid-new',
+          unionid: 'unionid-new',
+          providerPayload: { mode: 'real', hasUnionid: true },
+        };
+      },
+    },
+  });
+  const { port } = server.address();
+
+  try {
+    const response = await fetch(`http://127.0.0.1:${port}/destiny-api/customer/login/wechat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer current-session-token',
+      },
+      body: JSON.stringify({ code: 'wx-code-2' }),
+    });
+    const data = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(data.customer.id, 'current-customer-1');
+    assert.ok(!queries.some((query) => query.sql.includes('insert into app.users')));
+    assert.ok(queries.some((query) => query.sql.includes('from app.login_sessions')));
+    assert.ok(queries.some((query) => query.sql.includes('insert into app.customer_identities') && query.params[0] === 'current-customer-1'));
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }

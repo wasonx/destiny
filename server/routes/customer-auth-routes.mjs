@@ -119,13 +119,18 @@ export function mountCustomerAuthRoutes(app, { config, pool, wechatSessionProvid
     }
 
     const subject = buildWechatSubject(wechatSession);
+    const currentSession = await findSession(req, { pool, config, accountTypes: ['customer'] });
     const client = await pool.connect();
     try {
       await client.query('begin');
       let userId = await findWechatUserId(client, { ...wechatSession, subject });
       if (!userId) {
-        const user = await client.query("insert into app.users(account_type, display_name) values ('customer', '微信客户') returning id");
-        userId = user.rows[0].id;
+        if (currentSession) {
+          userId = currentSession.user_id;
+        } else {
+          const user = await client.query("insert into app.users(account_type, display_name) values ('customer', '微信客户') returning id");
+          userId = user.rows[0].id;
+        }
       }
       await upsertWechatIdentity(client, {
         userId,
@@ -217,6 +222,7 @@ export function mountCustomerAuthRoutes(app, { config, pool, wechatSessionProvid
       res.json({ token: memory.customerToken, customer: { id: 'dev-customer', phone } });
       return;
     }
+    const currentSession = pool ? await findSession(req, { pool, config, accountTypes: ['customer'] }) : null;
     const client = await pool.connect();
     try {
       await client.query('begin');
@@ -269,8 +275,12 @@ export function mountCustomerAuthRoutes(app, { config, pool, wechatSessionProvid
       let identity = await client.query("select user_id from app.customer_identities where provider = 'phone' and provider_subject = $1", [phone]);
       let userId = identity.rows[0]?.user_id;
       if (!userId) {
-        const user = await client.query("insert into app.users(account_type, display_name, phone) values ('customer', $1, $2) returning id", [`客户${phone.slice(-4)}`, phone]);
-        userId = user.rows[0].id;
+        if (currentSession) {
+          userId = currentSession.user_id;
+        } else {
+          const user = await client.query("insert into app.users(account_type, display_name, phone) values ('customer', $1, $2) returning id", [`客户${phone.slice(-4)}`, phone]);
+          userId = user.rows[0].id;
+        }
         await client.query("insert into app.customer_identities(user_id, provider, provider_subject, phone) values ($1, 'phone', $2, $2)", [userId, phone]);
       }
       const { token } = await createLoginSession(client, { config, userId, accountType: 'customer' });
