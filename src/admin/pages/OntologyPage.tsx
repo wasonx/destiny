@@ -51,6 +51,29 @@ function normalizeDepth(depth: unknown) {
   return Math.max(1, Math.min(3, Number(depth) || 2));
 }
 
+function graphModeFromNode(node: GraphNode): GraphMode | null {
+  if (node.type === 'Concept') return 'concept';
+  if (node.type === 'Knowledge') return 'knowledge';
+  if (node.type === 'Rule') return 'rule';
+  if (node.type === 'Template') return 'template';
+  if (node.type === 'Report') return 'report';
+  return null;
+}
+
+function targetFromNode(node: GraphNode, nextMode: GraphMode) {
+  const prefix = `${nextMode}:`;
+  return node.id.startsWith(prefix) ? node.id.slice(prefix.length) : node.id;
+}
+
+function updateGraphUrl(nextMode: GraphMode, nextTarget: string, nextDepth: number) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('view', 'ontology');
+  url.searchParams.set('mode', nextMode);
+  url.searchParams.set('target', nextTarget);
+  url.searchParams.set('depth', String(nextDepth));
+  window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+}
+
 function readInitialGraphState() {
   const params = new URLSearchParams(window.location.search);
   const modeParam = params.get('mode') as GraphMode | null;
@@ -133,13 +156,18 @@ export default function OntologyPage() {
   async function loadGraph(nextMode = mode, nextTarget = target, nextDepth = depth) {
     const config = modes.find((item) => item.id === nextMode) || modes[0];
     const graphDepth = normalizeDepth(nextDepth);
+    const graphTarget = nextTarget || config.defaultTarget;
     setLoading(true);
     setError('');
     try {
-      const data = await adminRequest<GraphPayload>(withDepth(config.endpoint(nextTarget || config.defaultTarget), graphDepth));
+      const data = await adminRequest<GraphPayload>(withDepth(config.endpoint(graphTarget), graphDepth));
       const normalized = normalizeGraphPayload(data);
+      setMode(nextMode);
+      setTarget(graphTarget);
+      setDepth(graphDepth);
       setGraph(normalized);
       setSelected(normalized.focus || normalized.nodes[0] || null);
+      updateGraphUrl(nextMode, graphTarget, graphDepth);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : '图谱加载失败');
       if (nextMode === 'concept') {
@@ -149,6 +177,19 @@ export default function OntologyPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function focusSelectedGraphNode(node: GraphNode, nextDepth: number) {
+    const nextMode = graphModeFromNode(node);
+    if (!nextMode) {
+      setError('当前节点类型暂不支持作为图谱中心展开');
+      return;
+    }
+    const nextTarget = targetFromNode(node, nextMode);
+    setSearch('');
+    setNodeType('all');
+    setEdgeType('all');
+    void loadGraph(nextMode, nextTarget, nextDepth);
   }
 
   useEffect(() => {
@@ -236,7 +277,7 @@ export default function OntologyPage() {
       </section>
 
       <div className="xl:col-start-2 2xl:col-start-auto">
-        <GraphDetailsPanel item={selected} />
+        <GraphDetailsPanel item={selected} onFocusNode={focusSelectedGraphNode} />
       </div>
     </div>
   );

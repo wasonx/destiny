@@ -178,6 +178,7 @@ class AdminScaffoldTests(unittest.TestCase):
 
     def test_ontology_page_exposes_graph_visualization_workbench(self):
         ontology = (ROOT / "src" / "admin" / "pages" / "OntologyPage.tsx").read_text(encoding="utf-8")
+        details_panel = (ROOT / "src" / "admin" / "components" / "GraphDetailsPanel.tsx").read_text(encoding="utf-8")
 
         self.assertIn("GraphCanvas", ontology)
         self.assertIn("GraphDetailsPanel", ontology)
@@ -191,6 +192,10 @@ class AdminScaffoldTests(unittest.TestCase):
         self.assertIn("关系类型", ontology)
         self.assertIn("展开范围", ontology)
         self.assertIn("一跳关系", ontology)
+        self.assertIn("focusSelectedGraphNode", ontology)
+        self.assertIn("以选中节点展开一跳", details_panel)
+        self.assertIn("以选中节点展开两跳", details_panel)
+        self.assertIn("onFocusNode", details_panel)
 
         self.assertTrue((ROOT / "src" / "admin" / "components" / "GraphCanvas.tsx").exists())
         self.assertTrue((ROOT / "src" / "admin" / "components" / "GraphDetailsPanel.tsx").exists())

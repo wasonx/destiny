@@ -3,13 +3,14 @@ import { GraphEdge, GraphNode } from './GraphCanvas';
 
 interface Props {
   item: GraphNode | GraphEdge | null;
+  onFocusNode?: (node: GraphNode, depth: number) => void;
 }
 
 function isEdge(item: GraphNode | GraphEdge): item is GraphEdge {
   return 'source' in item && 'target' in item;
 }
 
-export default function GraphDetailsPanel({ item }: Props) {
+export default function GraphDetailsPanel({ item, onFocusNode }: Props) {
   if (!item) {
     return (
       <aside className="rounded-lg border border-shadow-gray bg-white p-5">
@@ -52,6 +53,16 @@ export default function GraphDetailsPanel({ item }: Props) {
           </>
         )}
       </dl>
+      {!isEdge(item) && onFocusNode && (
+        <div className="mt-4 grid gap-2">
+          <button type="button" onClick={() => onFocusNode(item, 1)} className="rounded-md bg-ink-blue px-3 py-2 text-sm text-white">
+            以选中节点展开一跳
+          </button>
+          <button type="button" onClick={() => onFocusNode(item, 2)} className="rounded-md border border-shadow-gray px-3 py-2 text-sm">
+            以选中节点展开两跳
+          </button>
+        </div>
+      )}
       <pre className="mt-4 max-h-64 overflow-auto rounded-md bg-surface p-3 text-xs">{JSON.stringify(metadata, null, 2)}</pre>
     </aside>
   );
