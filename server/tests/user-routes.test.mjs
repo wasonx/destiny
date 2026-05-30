@@ -158,3 +158,111 @@ test('admin users route unlinks customer identity with audit log and keeps last 
     await new Promise((resolve) => server.close(resolve));
   }
 });
+
+test('admin users route merges customer accounts across identities and business records', async () => {
+  const queries = [];
+  let sessionRole = 'editor';
+  const client = {
+    async query(sql, params = []) {
+      const text = normalizeSql(sql);
+      queries.push({ sql: text, params });
+      if (['begin', 'commit', 'rollback'].includes(text)) {
+        return { rows: [], rowCount: 0 };
+      }
+      if (text.includes('from app.users') && text.includes('for update')) {
+        return {
+          rows: [
+            { id: params[0], account_type: 'customer', status: 'active' },
+            { id: params[1], account_type: 'customer', status: 'active' },
+          ],
+          rowCount: 2,
+        };
+      }
+      if (text.startsWith('update app.customer_identities set user_id')) return { rows: [], rowCount: 2 };
+      if (text.startsWith('update app.login_sessions set user_id')) return { rows: [], rowCount: 1 };
+      if (text.startsWith('update app.qr_login_sessions set customer_id')) return { rows: [], rowCount: 1 };
+      if (text.startsWith('update app.report_runs set customer_id')) return { rows: [], rowCount: 3 };
+      if (text.startsWith('update app.customer_memberships set customer_id')) return { rows: [], rowCount: 1 };
+      if (text.startsWith('update app.customer_addresses set customer_id')) return { rows: [], rowCount: 2 };
+      if (text.startsWith('update app.commerce_orders set customer_id')) return { rows: [], rowCount: 2 };
+      if (text.startsWith('update app.refund_requests set customer_id')) return { rows: [], rowCount: 1 };
+      if (text.startsWith('update app.entitlement_ledger set customer_id')) return { rows: [], rowCount: 2 };
+      if (text.startsWith('update app.points_ledger set customer_id')) return { rows: [], rowCount: 2 };
+      if (text.startsWith('insert into app.entitlement_accounts')) return { rows: [], rowCount: 1 };
+      if (text.startsWith('delete from app.entitlement_accounts')) return { rows: [], rowCount: 1 };
+      if (text.startsWith('insert into app.points_accounts')) return { rows: [], rowCount: 1 };
+      if (text.startsWith('delete from app.points_accounts')) return { rows: [], rowCount: 1 };
+      if (text.startsWith('update app.users set status')) return { rows: [], rowCount: 1 };
+      if (text.includes('insert into app.audit_logs')) return { rows: [], rowCount: 1 };
+      throw new Error(`Unexpected client query: ${text}`);
+    },
+    release() {},
+  };
+  const pool = {
+    async query(sql) {
+      const text = normalizeSql(sql);
+      queries.push({ sql: text, params: [] });
+      if (text.includes('from app.login_sessions')) {
+        return { rows: [{ session_id: 'session-1', account_type: sessionRole, user_id: 'admin-1', status: 'active', display_name: '绠＄悊鍛?' }] };
+      }
+      throw new Error(`Unexpected pool query: ${text}`);
+    },
+    connect: async () => client,
+  };
+  const app = createApp({ config: loadConfig({ SESSION_SECRET: 'test-secret' }), pool });
+  const server = app.listen(0);
+  const { port } = server.address();
+
+  try {
+    const forbidden = await fetch(`http://127.0.0.1:${port}/destiny-api/admin/users/target-customer/merge-customer`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer admin-token', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourceUserId: 'source-customer' }),
+    });
+    assert.equal(forbidden.status, 403);
+
+    sessionRole = 'admin';
+    const sameCustomer = await fetch(`http://127.0.0.1:${port}/destiny-api/admin/users/target-customer/merge-customer`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer admin-token', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourceUserId: 'target-customer' }),
+    });
+    assert.equal(sameCustomer.status, 400);
+    assert.deepEqual(await sameCustomer.json(), { error: 'MERGE_TARGET_SAME_AS_SOURCE' });
+
+    const response = await fetch(`http://127.0.0.1:${port}/destiny-api/admin/users/target-customer/merge-customer`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer admin-token', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourceUserId: 'source-customer', reason: 'same person confirmed' }),
+    });
+    const data = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(data.ok, true);
+    assert.equal(data.targetUserId, 'target-customer');
+    assert.equal(data.sourceUserId, 'source-customer');
+    assert.ok(queries.some((query) => query.sql.includes('from app.users') && query.sql.includes('for update') && query.params[0] === 'target-customer' && query.params[1] === 'source-customer'));
+    for (const table of [
+      'customer_identities',
+      'login_sessions',
+      'qr_login_sessions',
+      'report_runs',
+      'customer_memberships',
+      'customer_addresses',
+      'commerce_orders',
+      'refund_requests',
+      'entitlement_ledger',
+      'points_ledger',
+    ]) {
+      assert.ok(queries.some((query) => query.sql.includes(`update app.${table}`)), `expected ${table} to be moved`);
+    }
+    assert.ok(queries.some((query) => query.sql.includes('insert into app.entitlement_accounts')));
+    assert.ok(queries.some((query) => query.sql.includes('delete from app.entitlement_accounts') && query.params[0] === 'source-customer'));
+    assert.ok(queries.some((query) => query.sql.includes('insert into app.points_accounts')));
+    assert.ok(queries.some((query) => query.sql.includes('delete from app.points_accounts') && query.params[0] === 'source-customer'));
+    assert.ok(queries.some((query) => query.sql.includes('update app.users set status') && query.params[0] === 'source-customer'));
+    assert.ok(queries.some((query) => query.sql.includes('insert into app.audit_logs') && query.params[1] === 'customer.merge' && query.params[3] === 'target-customer'));
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});

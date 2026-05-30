@@ -162,6 +162,15 @@ class AdminScaffoldTests(unittest.TestCase):
         self.assertIn("provider_subject", page)
         self.assertIn("身份已解绑", page)
 
+    def test_users_page_exposes_customer_merge_controls(self):
+        page = (ROOT / "src" / "admin" / "pages" / "UsersPage.tsx").read_text(encoding="utf-8")
+
+        self.assertIn("mergeCustomer", page)
+        self.assertIn("mergeTargetId", page)
+        self.assertIn("/users/${mergeTargetId}/merge-customer", page)
+        self.assertIn("sourceUserId", page)
+        self.assertIn("customer.merge", page)
+
     def test_settings_page_calls_integration_status_endpoint(self):
         page = (ROOT / "src" / "admin" / "pages" / "SettingsPage.tsx").read_text(encoding="utf-8")
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { RefreshCcw, Unlink2 } from 'lucide-react';
+import { GitMerge, RefreshCcw, Unlink2 } from 'lucide-react';
 import { adminRequest } from '../api';
 
 type AccountType = 'all' | 'customer' | 'editor' | 'admin';
@@ -55,6 +55,7 @@ function identityPath(userId: string, identityId: string) {
 export default function UsersPage() {
   const [accountType, setAccountType] = useState<AccountType>('all');
   const [users, setUsers] = useState<UserRow[]>([]);
+  const [mergeTargetId, setMergeTargetId] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
@@ -83,6 +84,30 @@ export default function UsersPage() {
     }
   }
 
+  async function mergeCustomer(sourceUserId: string) {
+    if (!mergeTargetId) {
+      setError('请先填写目标客户 ID');
+      return;
+    }
+    if (mergeTargetId === sourceUserId) {
+      setError('源客户和目标客户不能相同');
+      return;
+    }
+    if (!window.confirm(`确认将客户 ${sourceUserId} 合并到 ${mergeTargetId}？源客户会被禁用。`)) return;
+    setError('');
+    setMessage('');
+    try {
+      await adminRequest(`/users/${mergeTargetId}/merge-customer`, {
+        method: 'POST',
+        body: JSON.stringify({ sourceUserId, reason: 'customer.merge' }),
+      });
+      setMessage('客户已合并，源客户已禁用');
+      await loadUsers(accountType);
+    } catch {
+      setError('客户合并失败，请确认两个客户 ID 都存在且均为客户账号');
+    }
+  }
+
   useEffect(() => {
     void loadUsers(accountType);
   }, [accountType]);
@@ -95,6 +120,12 @@ export default function UsersPage() {
           <p className="mt-1 text-sm text-on-surface-variant">客户、后端编辑人员、平台管理人员统一查看。</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={mergeTargetId}
+            onChange={(event) => setMergeTargetId(event.target.value.trim())}
+            placeholder="目标客户 ID"
+            className="w-56 rounded-md border border-shadow-gray px-3 py-2 text-sm"
+          />
           <select value={accountType} onChange={(event) => setAccountType(event.target.value as AccountType)} className="rounded-md border border-shadow-gray px-3 py-2 text-sm">
             <option value="all">全部账号</option>
             <option value="customer">客户</option>
@@ -112,7 +143,7 @@ export default function UsersPage() {
       {message && <p className="mx-5 mt-4 rounded-md bg-emerald-50 px-3 py-2 text-sm text-serene-teal">{message}</p>}
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[900px] text-sm">
+        <table className="w-full min-w-[1100px] text-sm">
           <thead>
             <tr className="border-b border-shadow-gray bg-surface text-left text-on-surface-variant">
               <th className="px-4 py-3">账号类别</th>
@@ -123,6 +154,7 @@ export default function UsersPage() {
               <th>身份绑定</th>
               <th>状态</th>
               <th>创建时间</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
@@ -161,11 +193,25 @@ export default function UsersPage() {
                 </td>
                 <td>{user.status}</td>
                 <td>{formatDate(user.created_at)}</td>
+                <td>
+                  {user.account_type === 'customer' ? (
+                    <button
+                      type="button"
+                      onClick={() => void mergeCustomer(user.id)}
+                      disabled={!mergeTargetId || mergeTargetId === user.id}
+                      className="inline-flex items-center gap-1 rounded-md border border-shadow-gray px-2 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                      title="将当前客户合并到目标客户"
+                    >
+                      <GitMerge className="h-3 w-3" />
+                      合并客户
+                    </button>
+                  ) : '-'}
+                </td>
               </tr>
             ))}
             {!users.length && (
               <tr>
-                <td className="px-4 py-8 text-center text-on-surface-variant" colSpan={8}>暂无用户</td>
+                <td className="px-4 py-8 text-center text-on-surface-variant" colSpan={9}>暂无用户</td>
               </tr>
             )}
           </tbody>
