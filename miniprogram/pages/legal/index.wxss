@@ -1,76 +1,40 @@
-.page {
-  min-height: 100vh;
-  padding: 32rpx;
-  background: #fdfcf8;
-  color: #24313f;
-}
-
-.hero {
-  padding: 12rpx 0 28rpx;
-}
-
-.eyebrow {
-  font-size: 22rpx;
-  letter-spacing: 0;
-  color: #9a6b22;
-}
-
-.title {
-  margin-top: 12rpx;
-  font-size: 42rpx;
-  font-weight: 700;
-  line-height: 1.25;
-}
-
-.subtitle {
-  margin-top: 16rpx;
-  font-size: 26rpx;
-  line-height: 1.7;
-  color: #64748b;
-}
-
 .legal-card {
   margin-top: 24rpx;
-  padding: 28rpx;
-  border: 1rpx solid #ded8ca;
-  border-radius: 8rpx;
-  background: #ffffff;
 }
 
 .card-title {
-  font-size: 32rpx;
+  color: #1a2f4b;
+  font-size: 34rpx;
   font-weight: 700;
+  line-height: 1.35;
 }
 
 .updated {
-  margin-top: 8rpx;
-  font-size: 22rpx;
-  color: #64748b;
+  margin-top: 14rpx;
 }
 
-.section {
-  margin-top: 24rpx;
+.legal-section {
+  margin-top: 26rpx;
+  border-top: 1rpx solid #e5e7eb;
+  padding-top: 22rpx;
 }
 
 .section-heading {
-  font-size: 26rpx;
+  color: #1a2f4b;
+  font-size: 28rpx;
   font-weight: 700;
 }
 
 .section-content {
-  margin-top: 8rpx;
-  font-size: 25rpx;
-  line-height: 1.7;
+  margin-top: 10rpx;
   color: #4b5563;
+  font-size: 26rpx;
+  line-height: 1.75;
 }
 
-.empty,
-.notice {
+.legal-notice {
+  display: block;
+  text-align: left;
   margin-top: 24rpx;
-  padding: 24rpx;
-  border-radius: 8rpx;
-  background: #f5f0e6;
-  font-size: 24rpx;
   line-height: 1.7;
-  color: #5c4a30;
 }

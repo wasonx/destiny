@@ -5,10 +5,7 @@
 }
 
 .order-card {
-  background: #ffffff;
-  border: 1rpx solid #e5e7eb;
-  border-radius: 16rpx;
-  padding: 28rpx;
+  margin-bottom: 0;
 }
 
 .order-head {
@@ -31,7 +28,6 @@
 }
 
 .order-status {
-  color: #4a7c77;
   font-size: 24rpx;
   font-weight: 700;
   white-space: nowrap;
@@ -54,11 +50,4 @@
 .refund-button {
   margin-top: 20rpx;
   min-height: 78rpx;
-}
-
-.empty {
-  color: #9ca3af;
-  font-size: 28rpx;
-  padding: 80rpx 0;
-  text-align: center;
 }

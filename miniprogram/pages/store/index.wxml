@@ -5,7 +5,7 @@
     <view class="subtitle">支持虚拟权益和实物商品。第一版支付由后台人工确认。</view>
   </view>
 
-  <view class="section value-panel" wx:if="{{valueState}}">
+  <view class="section value-panel zs-card-teal" wx:if="{{valueState}}">
     <view>
       <view class="metric-label">报告次数</view>
       <view class="metric-value">{{valueState.reportQuotaBalance || 0}}</view>
@@ -25,13 +25,13 @@
     <button class="secondary-button quick-button" type="default" bindtap="openOrders">订单记录</button>
   </view>
 
-  <view class="section address-panel">
+  <view class="section address-panel zs-card">
     <view class="address-head">
       <view>
         <view class="address-title">选择收货地址</view>
         <view class="address-desc">实物商品下单会使用这里选中的地址。</view>
       </view>
-      <button class="secondary-button address-button" type="default" bindtap="openAddress">管理</button>
+      <button class="ghost-button address-button" type="default" bindtap="openAddress">管理</button>
     </view>
     <picker wx:if="{{addressOptions.length}}" mode="selector" range="{{addressOptions}}" range-key="label" bindchange="selectAddress">
       <view class="address-picker">
@@ -44,11 +44,12 @@
 
   <view class="product-list">
     <block wx:for="{{products}}" wx:key="sku">
-      <view class="product-card">
+      <view class="product-card zs-card">
         <view class="product-head">
           <view>
             <view class="product-name">{{item.name}}</view>
-            <view class="product-sku">{{item.sku}} · {{item.typeText}}</view>
+            <view class="product-sku">{{item.sku}}</view>
+            <view class="pill pill-gold product-type">{{item.typeText}}</view>
           </view>
           <view class="product-price">¥{{item.priceText}}</view>
         </view>

@@ -7,13 +7,13 @@
 
   <view class="order-list">
     <block wx:for="{{orders}}" wx:key="id">
-      <view class="order-card">
+      <view class="order-card zs-card">
         <view class="order-head">
           <view>
             <view class="order-no">{{item.order_no}}</view>
             <view class="order-items">{{item.itemText}}</view>
           </view>
-          <view class="order-status">{{item.statusText}}</view>
+          <view class="order-status pill pill-teal">{{item.statusText}}</view>
         </view>
         <view class="order-amount">合计 ¥{{item.amountText}}</view>
         <view wx:if="{{item.shipmentText}}" class="shipment">物流：{{item.shipmentText}}</view>

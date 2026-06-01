@@ -5,7 +5,7 @@
     <view class="subtitle">实物商品下单时会使用默认或第一条收货地址。</view>
   </view>
 
-  <view class="section">
+  <view class="section zs-card">
     <view class="section-title">新增地址</view>
     <view class="field">
       <text class="label">收货人</text>
@@ -38,10 +38,10 @@
     </button>
   </view>
 
-  <view class="section">
+  <view class="section zs-card">
     <view class="section-title">已保存地址</view>
     <block wx:for="{{addresses}}" wx:key="id">
-      <view class="address-card">
+      <view class="address-card zs-card-teal">
         <view class="address-name">{{item.receiver_name}} · {{item.phone}}</view>
         <view class="address-detail">{{item.province}}{{item.city}}{{item.district}} {{item.detail_address}}</view>
       </view>

@@ -26,13 +26,5 @@
 }
 
 .login-message {
-  color: #4a7c77;
-  background: #edf7f5;
-  border: 1rpx solid #c8e0dc;
-  border-radius: 14rpx;
-  font-size: 26rpx;
-  line-height: 1.6;
-  padding: 22rpx;
-  margin-top: 24rpx;
   text-align: center;
 }

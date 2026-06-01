@@ -3,9 +3,10 @@
     <view class="brand">甄算</view>
     <view class="title">整理当下信息，获得清晰参考</view>
     <view class="subtitle">基于东方传统文化与 AI，生成个人、关系、事项与空间环境参考报告。</view>
+    <button class="teal-button hero-button" data-url="/pages/life/index" bindtap="goTo">开始生成参考</button>
   </view>
 
-  <view class="login-strip" bindtap="openLogin">
+  <view class="login-strip zs-card-teal" bindtap="openLogin">
     <view>
       <view class="login-title">{{hasToken ? '已登录客户账号' : '登录客户账号'}}</view>
       <view class="login-desc">{{hasToken ? '可查看报告、订单、权益与积分。' : '支持微信登录和手机验证码登录。'}}</view>
@@ -15,10 +16,10 @@
 
   <view class="entry-list">
     <block wx:for="{{entries}}" wx:key="id">
-      <view class="entry-card" data-url="{{item.view}}" bindtap="goTo">
+      <view class="entry-card zs-card-accent {{item.id === 'relationship' ? 'accent-red' : ''}} {{item.id === 'question' ? 'accent-gold' : ''}}" data-url="{{item.view}}" bindtap="goTo">
         <view class="entry-top">
           <view class="entry-title">{{item.title}}</view>
-          <view class="entry-tag">{{item.subtitle}}</view>
+          <view class="entry-tag pill {{item.id === 'question' ? 'pill-gold' : item.id === 'relationship' ? 'pill-red' : 'pill-teal'}}">{{item.subtitle}}</view>
         </view>
         <view class="entry-desc">{{item.description}}</view>
         <view class="entry-action">开启参考</view>

@@ -5,8 +5,11 @@
 }
 
 .address-card {
-  border-top: 1rpx solid #e5e7eb;
-  padding: 22rpx 0;
+  border: 1rpx solid rgba(74, 124, 119, 0.28);
+  border-radius: 16rpx;
+  padding: 22rpx;
+  margin-bottom: 18rpx;
+  box-sizing: border-box;
 }
 
 .address-card:first-of-type {
@@ -24,11 +27,4 @@
   font-size: 26rpx;
   line-height: 1.6;
   margin-top: 10rpx;
-}
-
-.empty {
-  color: #9ca3af;
-  font-size: 26rpx;
-  text-align: center;
-  padding: 36rpx 0;
 }

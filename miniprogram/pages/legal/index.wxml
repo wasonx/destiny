@@ -1,6 +1,6 @@
 <view class="page legal-page">
   <view class="hero">
-    <view class="eyebrow">LEGAL</view>
+    <view class="brand">甄算 · 合规</view>
     <view class="title">用户协议、隐私政策与报告分层与风险边界说明</view>
     <view class="subtitle">甄算报告仅用于自我整理和一般生活参考，不提供医疗、投资、法律等确定性建议。</view>
   </view>
@@ -8,11 +8,11 @@
   <view wx:if="{{loading}}" class="empty">合规文案加载中</view>
 
   <block wx:for="{{documents}}" wx:key="title">
-    <view class="legal-card">
+    <view class="legal-card zs-card">
       <view class="card-title">{{item.title}}</view>
-      <view class="updated">更新日期：{{item.updatedAt}}</view>
+      <view class="updated pill pill-gold">更新日期：{{item.updatedAt}}</view>
       <block wx:for="{{item.sections}}" wx:key="heading" wx:for-item="section">
-        <view class="section">
+        <view class="legal-section">
           <view class="section-heading">{{section.heading}}</view>
           <view class="section-content">{{section.content}}</view>
         </view>
@@ -20,5 +20,5 @@
     </view>
   </block>
 
-  <view class="notice">免费体验版展示摘要和部分建议；完整版会校验并消耗报告权益，展示更完整的规则解释、知识来源、图谱路径和风险边界。</view>
+  <view class="notice pill pill-red legal-notice">免费体验版展示摘要和部分建议；完整版会校验并消耗报告权益，展示更完整的规则解释、知识来源、图谱路径和风险边界。</view>
 </view>

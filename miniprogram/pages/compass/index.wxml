@@ -20,16 +20,16 @@
     <view class="center-cap"></view>
   </view>
 
-  <view class="readout">
+  <view class="readout zs-card">
     <view class="degree">{{degree}}°</view>
     <view class="direction">{{direction}}</view>
     <view class="status" wx:if="{{calibrating}}">校准中</view>
   </view>
 
-  <button class="primary-button" bindtap="recordDirection">记录当前房屋朝向</button>
+  <button class="teal-button" bindtap="recordDirection">记录当前房屋朝向</button>
   <button class="secondary-button" bindtap="calibrate">手动校准</button>
 
-  <view class="recorded" wx:if="{{recorded}}">
+  <view class="recorded message" wx:if="{{recorded}}">
     <text>已记录：</text>
     <text>{{recorded}}</text>
   </view>

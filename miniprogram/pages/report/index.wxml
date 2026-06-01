@@ -1,5 +1,5 @@
 <view class="page report-page" wx:if="{{report}}">
-  <view class="section history-section">
+  <view class="section history-section zs-card">
     <view class="section-title">报告历史</view>
     <view class="history-loading" wx:if="{{loadingHistory}}">正在读取历史报告</view>
     <view class="history-empty" wx:if="{{!loadingHistory && !historyRuns.length}}">暂无历史报告，当前显示本次报告。</view>
@@ -16,20 +16,20 @@
     </scroll-view>
   </view>
 
-  <view class="section report-header">
+  <view class="section report-header zs-card">
     <view class="report-title">{{report.title}}</view>
     <view class="report-subtitle">{{report.subtitle}}</view>
-    <view class="tier-badge">{{report.tier === 'full' ? '完整版' : '免费体验版'}}</view>
+    <view class="tier-badge pill pill-gold">{{report.tier === 'full' ? '完整版' : '免费体验版'}}</view>
     <view class="report-date">生成于 {{report.generatedAt}}</view>
     <view class="source" wx:if="{{report.source === 'fallback'}}">离线示例结果</view>
   </view>
 
-  <view class="section upgrade-card" wx:if="{{report.tier !== 'full' && report.upgradePrompt}}">
+  <view class="section upgrade-card zs-card-gold" wx:if="{{report.tier !== 'full' && report.upgradePrompt}}">
     <view class="section-title">解锁完整版</view>
     <view class="summary">{{report.upgradePrompt}}</view>
   </view>
 
-  <view class="section">
+  <view class="section summary-card zs-card-gold">
     <view class="section-title">核心摘要</view>
     <view class="tags">
       <block wx:for="{{report.keywords}}" wx:key="*this">
@@ -40,7 +40,7 @@
   </view>
 
   <block wx:for="{{report.sections}}" wx:key="title">
-    <view class="section">
+    <view class="section report-section-card">
       <view class="section-title">{{item.title}}</view>
       <view class="summary">{{item.content}}</view>
       <view class="point-list" wx:if="{{item.points && item.points.length}}">
@@ -51,15 +51,18 @@
     </view>
   </block>
 
-  <view class="section">
+  <view class="section action-card zs-card">
     <view class="section-title">接下来可以优先做的事</view>
     <block wx:for="{{report.actions}}" wx:key="*this">
-      <view class="action-item">{{index + 1}}. {{item}}</view>
+      <view class="action-item">
+        <view class="action-index">{{index + 1}}</view>
+        <view class="action-text">{{item}}</view>
+      </view>
     </block>
     <view class="disclaimer">{{report.disclaimer}}</view>
   </view>
 
-  <view class="section provenance-section" wx:if="{{report.provenanceSummary}}">
+  <view class="section provenance-section zs-card" wx:if="{{report.provenanceSummary}}">
     <view class="section-title">报告溯源</view>
     <view class="provenance-group">
       <view class="provenance-title">命中规则</view>

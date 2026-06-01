@@ -6,7 +6,7 @@
   </view>
 
   <form bindsubmit="submit">
-    <view class="section">
+    <view class="section zs-card">
       <view class="field">
         <text class="label">问题方向</text>
         <view class="chips">
@@ -21,7 +21,7 @@
       </view>
     </view>
 
-    <view class="section">
+    <view class="section zs-card-gold">
       <view class="field">
         <text class="label">报告版本</text>
         <view class="chips">
@@ -29,7 +29,7 @@
             <view class="chip {{reportTier === item.value ? 'active' : ''}}" data-value="{{item.value}}" bindtap="setReportTier">{{item.label}}</view>
           </block>
         </view>
-        <view class="notice">免费体验版先看摘要，完整版会校验并消耗报告权益。</view>
+        <view class="form-help">免费体验版先看摘要，完整版会校验并消耗报告权益。</view>
       </view>
     </view>
 

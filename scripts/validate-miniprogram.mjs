@@ -114,6 +114,9 @@ const authJs = readText(path.join(MINI, 'utils', 'auth.js'));
 const loginWxml = readText(path.join(MINI, 'pages', 'login', 'index.wxml'));
 const reportJs = readText(path.join(MINI, 'pages', 'report', 'index.js'));
 const reportWxml = readText(path.join(MINI, 'pages', 'report', 'index.wxml'));
+const appWxss = readText(path.join(MINI, 'app.wxss'));
+const homeWxml = readText(path.join(MINI, 'pages', 'home', 'index.wxml'));
+const reportWxss = readText(path.join(MINI, 'pages', 'report', 'index.wxss'));
 assert(apiJs.includes(EXPECTED_API_BASE), `utils/api.js must use ${EXPECTED_API_BASE}`);
 assert(apiJs.includes('wx.request'), 'utils/api.js must use wx.request');
 assert(apiJs.includes('Authorization'), 'utils/api.js must attach customer token authorization');
@@ -152,6 +155,30 @@ assert(compassJs.includes('wx.startCompass'), 'compass page must call wx.startCo
 assert(compassJs.includes('wx.onCompassChange'), 'compass page must call wx.onCompassChange');
 assert(compassJs.includes('wx.stopCompass'), 'compass page must call wx.stopCompass');
 assert(compassJs.includes("wx.setStorageSync('house_direction'"), 'compass page must store recorded house direction');
+
+const designSystemClasses = [
+  '.zs-card',
+  '.zs-card-accent',
+  '.zs-card-gold',
+  '.zs-card-teal',
+  '.teal-button',
+  '.ghost-button',
+  '.pill',
+  '.pill-gold',
+  '.pill-teal',
+  '.pill-red',
+  '.form-help',
+  '.message',
+];
+for (const className of designSystemClasses) {
+  assert(appWxss.includes(className), `app.wxss must define design system class ${className}`);
+}
+assert(homeWxml.includes('开始生成参考'), 'home page must include Web-aligned primary action');
+assert(homeWxml.includes('zs-card-accent'), 'home page must use accent cards for module entries');
+assert(loginWxml.includes('zs-card-teal'), 'login page must use design system card for WeChat login');
+assert(reportWxml.includes('report-section-card'), 'report page must use section cards for report sections');
+assert(reportWxml.includes('action-index'), 'report page must render numbered action items');
+assert(reportWxss.includes('report-section-card'), 'report wxss must style section cards');
 
 const requiredCommerceText = ['商城', '收货地址', '订单', '申请退款', '/customer/orders'];
 for (const text of requiredCommerceText) {

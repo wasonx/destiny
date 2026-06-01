@@ -90,10 +90,7 @@
 }
 
 .product-card {
-  background: #ffffff;
-  border: 1rpx solid #e5e7eb;
-  border-radius: 16rpx;
-  padding: 28rpx;
+  margin-bottom: 0;
 }
 
 .product-head {
@@ -114,6 +111,10 @@
   font-size: 24rpx;
   line-height: 1.6;
   margin-top: 10rpx;
+}
+
+.product-type {
+  margin-top: 12rpx;
 }
 
 .product-price {
