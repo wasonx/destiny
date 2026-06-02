@@ -6,12 +6,12 @@
         <view class="hero-title">今天想看哪件事？</view>
         <view class="hero-subtitle">把问题说清，把参考算准。</view>
       </view>
-      <view class="status-mini-card" bindtap="openLogin">
+      <view class="status-mini-card" bindtap="openMe">
         <view class="status-line">
           <view class="status-dot {{hasToken ? 'active' : ''}}"></view>
           <text>{{hasToken ? '已登录' : '未登录'}}</text>
         </view>
-        <view class="status-action">{{hasToken ? '切换账号' : '去登录'}}</view>
+        <view class="status-action">{{hasToken ? '查看我的' : '去登录'}}</view>
       </view>
     </view>
 
@@ -43,24 +43,6 @@
         <view class="entry-desc">{{item.description}}</view>
       </view>
     </block>
-  </view>
-
-  <view class="utility-section">
-    <view class="section-heading compact">
-      <view>
-        <view class="section-kicker">更多工具</view>
-        <view class="section-name">辅助功能与服务</view>
-      </view>
-    </view>
-    <view class="utility-strip">
-      <block wx:for="{{utilityEntries}}" wx:key="id">
-        <view class="utility-item" data-url="{{item.view}}" bindtap="goTo">
-          <view class="utility-mark">{{item.mark}}</view>
-          <view class="utility-title">{{item.title}}</view>
-          <view class="utility-desc">{{item.description}}</view>
-        </view>
-      </block>
-    </view>
   </view>
 
   <view class="notice">内容仅作自我探索与生活参考，不构成医疗、投资、法律或重大人生决策建议。</view>

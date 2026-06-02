@@ -10,17 +10,23 @@ const EXPECTED_APPID = 'wxc4ed7c07ce86326c';
 const EXPECTED_API_BASE = 'https://www.goye.cc/destiny-api';
 const REQUIRED_PAGES = [
   'pages/home/index',
+  'pages/store/index',
+  'pages/me/index',
   'pages/login/index',
   'pages/life/index',
   'pages/relationship/index',
   'pages/question/index',
   'pages/space/index',
   'pages/compass/index',
-  'pages/store/index',
   'pages/address/index',
   'pages/orders/index',
   'pages/report/index',
   'pages/legal/index',
+];
+const EXPECTED_TABBAR = [
+  { pagePath: 'pages/home/index', text: '首页' },
+  { pagePath: 'pages/store/index', text: '商城' },
+  { pagePath: 'pages/me/index', text: '我的' },
 ];
 
 const errors = [];
@@ -79,6 +85,8 @@ const projectConfig = readJson(path.join(MINI, 'project.config.json'));
 assert(projectConfig?.appid === EXPECTED_APPID, `project.config.json appid must be ${EXPECTED_APPID}`);
 assert(JSON.stringify(appJson?.pages) === JSON.stringify(REQUIRED_PAGES), 'app.json pages are not the expected native page list');
 assert(appJson?.window?.navigationBarTitleText === '甄算', 'navigation title must be 甄算');
+assert(JSON.stringify(appJson?.tabBar?.list) === JSON.stringify(EXPECTED_TABBAR), 'app.json must define native tabBar 首页/商城/我的');
+assert(appJson?.tabBar?.selectedColor === '#4A7C77', 'tabBar selected color must match Zhensuan teal');
 
 for (const page of REQUIRED_PAGES) {
   for (const suffix of ['js', 'json', 'wxml', 'wxss']) {
@@ -117,6 +125,10 @@ const reportWxml = readText(path.join(MINI, 'pages', 'report', 'index.wxml'));
 const appWxss = readText(path.join(MINI, 'app.wxss'));
 const homeWxml = readText(path.join(MINI, 'pages', 'home', 'index.wxml'));
 const homeWxss = readText(path.join(MINI, 'pages', 'home', 'index.wxss'));
+const homeJs = readText(path.join(MINI, 'pages', 'home', 'index.js'));
+const meWxml = readText(path.join(MINI, 'pages', 'me', 'index.wxml'));
+const spaceJs = readText(path.join(MINI, 'pages', 'space', 'index.js'));
+const spaceWxml = readText(path.join(MINI, 'pages', 'space', 'index.wxml'));
 const reportWxss = readText(path.join(MINI, 'pages', 'report', 'index.wxss'));
 assert(apiJs.includes(EXPECTED_API_BASE), `utils/api.js must use ${EXPECTED_API_BASE}`);
 assert(apiJs.includes('wx.request'), 'utils/api.js must use wx.request');
@@ -178,10 +190,14 @@ assert(homeWxml.includes('开始生成参考'), 'home page must include Web-alig
 assert(homeWxml.includes('zs-card-accent'), 'home page must use accent cards for module entries');
 assert(homeWxml.includes('workbench-hero'), 'home page must use a product workbench hero instead of a plain slogan header');
 assert(homeWxml.includes('primary-grid'), 'home page must group core analysis entries into a compact primary grid');
-assert(homeWxml.includes('utility-strip'), 'home page must separate compass, store, and legal entries as secondary tools');
 assert(homeWxml.includes('status-mini-card'), 'home page must render login state as a compact status card');
 assert(homeWxss.includes('primary-grid'), 'home wxss must style the compact primary grid');
-assert(homeWxss.includes('utility-strip'), 'home wxss must style secondary tool entries');
+assert(!homeWxml.includes('utility-strip'), 'home page must not feature secondary utility strip after tabBar navigation');
+assert(!homeJs.includes('utilityEntries'), 'home page data must not include compass/store/legal utility entries');
+assert(spaceWxml.includes('打开电子罗盘') && spaceJs.includes('/pages/compass/index'), 'space page must keep compass entry inside Anju flow');
+for (const text of ['我的', '报告历史', '我的订单', '收货地址', '协议与隐私']) {
+  assert(meWxml.includes(text), `me page must include ${text}`);
+}
 assert(loginWxml.includes('zs-card-teal'), 'login page must use design system card for WeChat login');
 assert(reportWxml.includes('report-section-card'), 'report page must use section cards for report sections');
 assert(reportWxml.includes('action-index'), 'report page must render numbered action items');

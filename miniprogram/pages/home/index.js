@@ -41,32 +41,6 @@ Page({
         view: '/pages/space/index',
       },
     ],
-    utilityEntries: [
-      {
-        id: 'compass',
-        mark: '向',
-        title: '罗盘',
-        subtitle: '房屋朝向',
-        description: '记录朝向',
-        view: '/pages/compass/index',
-      },
-      {
-        id: 'store',
-        mark: '购',
-        title: '商城',
-        subtitle: '权益与实物',
-        description: '购买权益',
-        view: '/pages/store/index',
-      },
-      {
-        id: 'legal',
-        mark: '规',
-        title: '合规',
-        subtitle: '协议与隐私',
-        description: '协议边界',
-        view: '/pages/legal/index',
-      },
-    ],
   },
 
   onLoad() {
@@ -91,9 +65,9 @@ Page({
     this.setData({ hasToken: Boolean(auth.getToken()) });
   },
 
-  openLogin() {
-    wx.navigateTo({
-      url: '/pages/login/index',
+  openMe() {
+    wx.switchTab({
+      url: '/pages/me/index',
     });
   },
 

@@ -1,0 +1,131 @@
+.me-page {
+  padding-bottom: 42rpx;
+}
+
+.me-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24rpx;
+  padding: 18rpx 0 24rpx;
+}
+
+.account-badge {
+  flex-shrink: 0;
+  border-radius: 999rpx;
+  border: 1rpx solid rgba(200, 75, 49, 0.28);
+  background: rgba(200, 75, 49, 0.08);
+  color: #c84b31;
+  font-size: 23rpx;
+  line-height: 1.4;
+  padding: 8rpx 18rpx;
+}
+
+.account-badge.active {
+  border-color: rgba(74, 124, 119, 0.28);
+  background: rgba(74, 124, 119, 0.1);
+  color: #4a7c77;
+}
+
+.account-card {
+  border-radius: 18rpx;
+}
+
+.account-title {
+  color: #1a2f4b;
+  font-size: 32rpx;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.account-desc {
+  color: #607086;
+  font-size: 25rpx;
+  line-height: 1.6;
+  margin-top: 10rpx;
+}
+
+.account-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 22rpx;
+}
+
+.account-button {
+  flex: 1;
+  min-height: 76rpx;
+  font-size: 26rpx;
+}
+
+.metric-grid {
+  display: flex;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.metric-card {
+  flex: 1;
+  min-width: 0;
+  border: 1rpx solid rgba(184, 145, 80, 0.28);
+  border-radius: 16rpx;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 22rpx 14rpx;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.metric-value {
+  color: #1a2f4b;
+  font-size: 34rpx;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.metric-value.level {
+  font-size: 28rpx;
+}
+
+.metric-label {
+  color: #8a96a8;
+  font-size: 22rpx;
+  line-height: 1.4;
+  margin-top: 8rpx;
+}
+
+.menu-card {
+  padding-bottom: 8rpx;
+}
+
+.menu-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  border-top: 1rpx solid #eef0f3;
+  padding: 22rpx 0;
+}
+
+.menu-row.last {
+  padding-bottom: 18rpx;
+}
+
+.menu-title {
+  color: #1a2f4b;
+  font-size: 29rpx;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.menu-desc {
+  color: #8a96a8;
+  font-size: 23rpx;
+  line-height: 1.5;
+  margin-top: 6rpx;
+}
+
+.menu-arrow {
+  flex-shrink: 0;
+  color: #b89150;
+  font-size: 38rpx;
+  line-height: 1;
+}
