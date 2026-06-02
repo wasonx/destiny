@@ -136,6 +136,7 @@ assert(apiJs.includes('wx.request'), 'utils/api.js must use wx.request');
 assert(apiJs.includes('Authorization'), 'utils/api.js must attach customer token authorization');
 assert(apiJs.includes('handleUnauthorized'), 'utils/api.js must handle expired customer sessions');
 assert(apiJs.includes("wx.removeStorageSync('customer_token')"), 'utils/api.js must clear expired customer token');
+assert(apiJs.includes('if (options.skipUnauthorizedRedirect)'), 'utils/api.js must let callers suppress only the relogin navigation');
 assert(apiJs.includes('登录已失效，请重新登录'), 'utils/api.js must show relogin prompt');
 assert(apiJs.includes("url: '/pages/login/index'"), 'utils/api.js must navigate to native login page after 401');
 assert(apiJs.includes('listReportRuns'), 'utils/api.js must include report history list helper');
@@ -201,9 +202,13 @@ for (const text of ['我的', '报告历史', '我的订单', '收货地址', '�
   assert(meWxml.includes(text), `me page must include ${text}`);
 }
 assert(meJs.includes('promptWechatLogin'), 'me page must prompt unauthenticated users to log in with WeChat');
+assert(meJs.includes('scheduleLoginPrompt'), 'me page must schedule login prompt after tab switch rendering');
+assert(meJs.includes('setTimeout'), 'me page must delay login prompt slightly to survive tab switch timing');
+assert(meJs.includes('fetchValueState({ skipUnauthorizedRedirect: true })'), 'me page must handle expired token locally instead of navigating away');
 assert(meJs.includes('wx.showModal'), 'me page must visibly ask unauthenticated users to log in');
 assert(meJs.includes('loginPromptVisible'), 'me page must avoid repeated login prompts while the modal is open');
 assert(meJs.includes('loginWithWechat()'), 'me page login prompt must reuse the WeChat login flow');
+assert(meJs.includes('if (!auth.getToken())'), 'me page must re-check token after value-state loading fails');
 assert(loginWxml.includes('zs-card-teal'), 'login page must use design system card for WeChat login');
 assert(reportWxml.includes('report-section-card'), 'report page must use section cards for report sections');
 assert(reportWxml.includes('action-index'), 'report page must render numbered action items');

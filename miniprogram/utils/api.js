@@ -1,13 +1,13 @@
 const API_BASE = 'https://www.goye.cc/destiny-api';
 
 function handleUnauthorized(options = {}) {
-  if (options.skipUnauthorizedRedirect) {
-    return;
-  }
   try {
     wx.removeStorageSync('customer_token');
   } catch (error) {
     // Ignore storage cleanup failures; the next login will overwrite the token.
+  }
+  if (options.skipUnauthorizedRedirect) {
+    return;
   }
   try {
     wx.showToast({
@@ -70,8 +70,8 @@ function checkHealth() {
   return request('/health');
 }
 
-function fetchValueState() {
-  return request('/customer/value-state');
+function fetchValueState(options = {}) {
+  return request('/customer/value-state', options);
 }
 
 function listProducts() {

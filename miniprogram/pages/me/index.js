@@ -30,10 +30,20 @@ Page({
         pointsBalance: 0,
         growthLevel: '启蒙',
       });
-      this.promptWechatLogin();
+      this.scheduleLoginPrompt();
       return;
     }
     this.loadValueState();
+  },
+
+  scheduleLoginPrompt() {
+    if (this.loginPromptTimer) {
+      clearTimeout(this.loginPromptTimer);
+    }
+    this.loginPromptTimer = setTimeout(() => {
+      this.loginPromptTimer = null;
+      this.promptWechatLogin();
+    }, 100);
   },
 
   promptWechatLogin() {
@@ -57,7 +67,7 @@ Page({
 
   loadValueState() {
     this.setData({ loading: true });
-    api.fetchValueState()
+    api.fetchValueState({ skipUnauthorizedRedirect: true })
       .then((valueState) => {
         this.setData({
           valueState,
@@ -67,6 +77,10 @@ Page({
         });
       })
       .catch(() => {
+        if (!auth.getToken()) {
+          this.setData({ hasToken: false });
+          this.scheduleLoginPrompt();
+        }
         this.setData({
           reportQuota: 0,
           pointsBalance: 0,
