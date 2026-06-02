@@ -6,13 +6,6 @@
         <view class="hero-title">今天想看哪件事？</view>
         <view class="hero-subtitle">把问题说清，把参考算准。</view>
       </view>
-      <view class="status-mini-card" bindtap="openMe">
-        <view class="status-line">
-          <view class="status-dot {{hasToken ? 'active' : ''}}"></view>
-          <text>{{hasToken ? '已登录' : '未登录'}}</text>
-        </view>
-        <view class="status-action">{{hasToken ? '查看我的' : '去登录'}}</view>
-      </view>
     </view>
 
     <view class="hero-panel">

@@ -190,7 +190,8 @@ assert(homeWxml.includes('开始生成参考'), 'home page must include Web-alig
 assert(homeWxml.includes('zs-card-accent'), 'home page must use accent cards for module entries');
 assert(homeWxml.includes('workbench-hero'), 'home page must use a product workbench hero instead of a plain slogan header');
 assert(homeWxml.includes('primary-grid'), 'home page must group core analysis entries into a compact primary grid');
-assert(homeWxml.includes('status-mini-card'), 'home page must render login state as a compact status card');
+assert(!homeWxml.includes('status-mini-card'), 'home page must not render a top-right login status card');
+assert(!homeJs.includes('hasToken') && !homeJs.includes('loginWithWechatCode'), 'home page must leave login state to the Me tab');
 assert(homeWxss.includes('primary-grid'), 'home wxss must style the compact primary grid');
 assert(!homeWxml.includes('utility-strip'), 'home page must not feature secondary utility strip after tabBar navigation');
 assert(!homeJs.includes('utilityEntries'), 'home page data must not include compass/store/legal utility entries');
