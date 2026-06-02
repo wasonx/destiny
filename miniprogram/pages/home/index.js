@@ -3,9 +3,11 @@ const auth = require('../../utils/auth');
 Page({
   data: {
     hasToken: false,
-    entries: [
+    primaryEntries: [
       {
         id: 'life',
+        tone: 'teal',
+        mark: '命',
         title: '照见',
         subtitle: '个人节奏',
         description: '整理基础信息与关注方向，生成个人节奏参考报告。',
@@ -13,6 +15,8 @@ Page({
       },
       {
         id: 'relationship',
+        tone: 'red',
+        mark: '缘',
         title: '合缘',
         subtitle: '关系理解',
         description: '记录双方信息和关系类型，梳理相处节奏与沟通重点。',
@@ -20,6 +24,8 @@ Page({
       },
       {
         id: 'question',
+        tone: 'gold',
+        mark: '问',
         title: '问时',
         subtitle: '事项分析',
         description: '围绕一个具体问题，生成当下事项参考与行动提醒。',
@@ -27,30 +33,37 @@ Page({
       },
       {
         id: 'space',
+        tone: 'teal',
+        mark: '宅',
         title: '安居',
         subtitle: '空间建议',
         description: '结合空间类型和关注问题，生成居住或办公环境参考建议。',
         view: '/pages/space/index',
       },
+    ],
+    utilityEntries: [
       {
         id: 'compass',
+        mark: '向',
         title: '罗盘',
         subtitle: '房屋朝向',
-        description: '使用手机电子罗盘记录房屋朝向，为安居分析提供基础数据。',
+        description: '记录朝向',
         view: '/pages/compass/index',
       },
       {
         id: 'store',
+        mark: '购',
         title: '商城',
         subtitle: '权益与实物',
-        description: '购买报告次数包或实物产品，查看订单和退款进度。',
+        description: '购买权益',
         view: '/pages/store/index',
       },
       {
         id: 'legal',
+        mark: '规',
         title: '合规',
         subtitle: '协议与隐私',
-        description: '查看用户协议、隐私政策、报告分层和风险边界说明。',
+        description: '协议边界',
         view: '/pages/legal/index',
       },
     ],

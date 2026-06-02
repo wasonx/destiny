@@ -12,35 +12,36 @@ page {
 
 .page {
   min-height: 100vh;
-  padding: 32rpx;
+  padding: 28rpx;
   box-sizing: border-box;
   background: #fdfcf8;
 }
 
 .hero {
-  padding: 36rpx 0 28rpx;
-  text-align: center;
+  padding: 18rpx 0 24rpx;
+  text-align: left;
 }
 
 .brand {
   color: #b89150;
   font-size: 23rpx;
-  letter-spacing: 4rpx;
-  margin-bottom: 18rpx;
+  letter-spacing: 0;
+  margin-bottom: 12rpx;
+  font-weight: 700;
 }
 
 .title {
   color: #1a2f4b;
-  font-size: 42rpx;
-  font-weight: 700;
-  line-height: 1.35;
+  font-size: 40rpx;
+  font-weight: 800;
+  line-height: 1.28;
 }
 
 .subtitle {
   color: #6b7280;
-  font-size: 27rpx;
-  line-height: 1.7;
-  margin-top: 18rpx;
+  font-size: 26rpx;
+  line-height: 1.58;
+  margin-top: 14rpx;
 }
 
 .section,
@@ -48,8 +49,8 @@ page {
   background: #ffffff;
   border: 1rpx solid #e5e7eb;
   border-radius: 16rpx;
-  padding: 30rpx;
-  margin-bottom: 24rpx;
+  padding: 26rpx;
+  margin-bottom: 20rpx;
   box-sizing: border-box;
 }
 
@@ -58,8 +59,8 @@ page {
   background: #ffffff;
   border: 1rpx solid #e5e7eb;
   border-radius: 16rpx;
-  padding: 30rpx 30rpx 30rpx 38rpx;
-  margin-bottom: 24rpx;
+  padding: 26rpx 26rpx 26rpx 34rpx;
+  margin-bottom: 20rpx;
   overflow: hidden;
   box-sizing: border-box;
 }
@@ -94,14 +95,14 @@ page {
 
 .section-title {
   color: #1a2f4b;
-  font-size: 34rpx;
-  font-weight: 700;
+  font-size: 31rpx;
+  font-weight: 800;
   line-height: 1.35;
-  margin-bottom: 20rpx;
+  margin-bottom: 18rpx;
 }
 
 .field {
-  margin-bottom: 26rpx;
+  margin-bottom: 22rpx;
 }
 
 .label {
@@ -115,10 +116,10 @@ page {
 .input,
 .textarea {
   width: 100%;
-  min-height: 84rpx;
+  min-height: 78rpx;
   border: 1rpx solid #e5e7eb;
   border-radius: 12rpx;
-  padding: 20rpx;
+  padding: 18rpx 20rpx;
   box-sizing: border-box;
   color: #1a2f4b;
   background: #f9fafb;
@@ -126,7 +127,7 @@ page {
 }
 
 .textarea {
-  min-height: 180rpx;
+  min-height: 168rpx;
   line-height: 1.6;
 }
 
@@ -154,7 +155,7 @@ page {
   background: #ffffff;
   font-size: 24rpx;
   line-height: 1.4;
-  padding: 12rpx 22rpx;
+  padding: 10rpx 20rpx;
   box-sizing: border-box;
 }
 
@@ -181,9 +182,9 @@ page {
 .teal-button,
 .secondary-button,
 .ghost-button {
-  min-height: 92rpx;
+  min-height: 86rpx;
   border-radius: 16rpx;
-  font-size: 30rpx;
+  font-size: 29rpx;
   display: flex;
   align-items: center;
   justify-content: center;

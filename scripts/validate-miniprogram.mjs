@@ -116,6 +116,7 @@ const reportJs = readText(path.join(MINI, 'pages', 'report', 'index.js'));
 const reportWxml = readText(path.join(MINI, 'pages', 'report', 'index.wxml'));
 const appWxss = readText(path.join(MINI, 'app.wxss'));
 const homeWxml = readText(path.join(MINI, 'pages', 'home', 'index.wxml'));
+const homeWxss = readText(path.join(MINI, 'pages', 'home', 'index.wxss'));
 const reportWxss = readText(path.join(MINI, 'pages', 'report', 'index.wxss'));
 assert(apiJs.includes(EXPECTED_API_BASE), `utils/api.js must use ${EXPECTED_API_BASE}`);
 assert(apiJs.includes('wx.request'), 'utils/api.js must use wx.request');
@@ -175,6 +176,12 @@ for (const className of designSystemClasses) {
 }
 assert(homeWxml.includes('开始生成参考'), 'home page must include Web-aligned primary action');
 assert(homeWxml.includes('zs-card-accent'), 'home page must use accent cards for module entries');
+assert(homeWxml.includes('workbench-hero'), 'home page must use a product workbench hero instead of a plain slogan header');
+assert(homeWxml.includes('primary-grid'), 'home page must group core analysis entries into a compact primary grid');
+assert(homeWxml.includes('utility-strip'), 'home page must separate compass, store, and legal entries as secondary tools');
+assert(homeWxml.includes('status-mini-card'), 'home page must render login state as a compact status card');
+assert(homeWxss.includes('primary-grid'), 'home wxss must style the compact primary grid');
+assert(homeWxss.includes('utility-strip'), 'home wxss must style secondary tool entries');
 assert(loginWxml.includes('zs-card-teal'), 'login page must use design system card for WeChat login');
 assert(reportWxml.includes('report-section-card'), 'report page must use section cards for report sections');
 assert(reportWxml.includes('action-index'), 'report page must render numbered action items');

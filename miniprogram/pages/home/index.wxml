@@ -1,30 +1,66 @@
 <view class="page home-page">
-  <view class="hero">
-    <view class="brand">甄算</view>
-    <view class="title">整理当下信息，获得清晰参考</view>
-    <view class="subtitle">基于东方传统文化与 AI，生成个人、关系、事项与空间环境参考报告。</view>
-    <button class="teal-button hero-button" data-url="/pages/life/index" bindtap="goTo">开始生成参考</button>
-  </view>
-
-  <view class="login-strip zs-card-teal" bindtap="openLogin">
-    <view>
-      <view class="login-title">{{hasToken ? '已登录客户账号' : '登录客户账号'}}</view>
-      <view class="login-desc">{{hasToken ? '可查看报告、订单、权益与积分。' : '支持微信登录和手机验证码登录。'}}</view>
-    </view>
-    <view class="login-action">{{hasToken ? '切换' : '登录'}}</view>
-  </view>
-
-  <view class="entry-list">
-    <block wx:for="{{entries}}" wx:key="id">
-      <view class="entry-card zs-card-accent {{item.id === 'relationship' ? 'accent-red' : ''}} {{item.id === 'question' ? 'accent-gold' : ''}}" data-url="{{item.view}}" bindtap="goTo">
-        <view class="entry-top">
-          <view class="entry-title">{{item.title}}</view>
-          <view class="entry-tag pill {{item.id === 'question' ? 'pill-gold' : item.id === 'relationship' ? 'pill-red' : 'pill-teal'}}">{{item.subtitle}}</view>
+  <view class="workbench-hero">
+    <view class="hero-top">
+      <view class="hero-copy-block">
+        <view class="brand">甄算</view>
+        <view class="hero-title">今天想看哪件事？</view>
+        <view class="hero-subtitle">把问题说清，把参考算准。</view>
+      </view>
+      <view class="status-mini-card" bindtap="openLogin">
+        <view class="status-line">
+          <view class="status-dot {{hasToken ? 'active' : ''}}"></view>
+          <text>{{hasToken ? '已登录' : '未登录'}}</text>
         </view>
+        <view class="status-action">{{hasToken ? '切换账号' : '去登录'}}</view>
+      </view>
+    </view>
+
+    <view class="hero-panel">
+      <view class="hero-panel-main">
+        <view class="hero-panel-title">东方知识库 + AI 报告</view>
+        <view class="hero-panel-desc">先整理信息，再生成个人、关系、事项与空间参考。</view>
+      </view>
+      <button class="teal-button hero-button" data-url="/pages/life/index" bindtap="goTo">开始生成参考</button>
+    </view>
+  </view>
+
+  <view class="section-heading">
+    <view>
+      <view class="section-kicker">核心分析</view>
+      <view class="section-name">选择一个方向开始</view>
+    </view>
+    <view class="section-note">4 类主场景</view>
+  </view>
+
+  <view class="primary-grid">
+    <block wx:for="{{primaryEntries}}" wx:key="id">
+      <view class="primary-card zs-card-accent {{item.tone === 'red' ? 'accent-red' : ''}} {{item.tone === 'gold' ? 'accent-gold' : ''}}" data-url="{{item.view}}" bindtap="goTo">
+        <view class="primary-top">
+          <view class="entry-mark {{item.tone}}">{{item.mark}}</view>
+          <view class="entry-tag pill {{item.tone === 'gold' ? 'pill-gold' : item.tone === 'red' ? 'pill-red' : 'pill-teal'}}">{{item.subtitle}}</view>
+        </view>
+        <view class="entry-title">{{item.title}}</view>
         <view class="entry-desc">{{item.description}}</view>
-        <view class="entry-action">开启参考</view>
       </view>
     </block>
+  </view>
+
+  <view class="utility-section">
+    <view class="section-heading compact">
+      <view>
+        <view class="section-kicker">更多工具</view>
+        <view class="section-name">辅助功能与服务</view>
+      </view>
+    </view>
+    <view class="utility-strip">
+      <block wx:for="{{utilityEntries}}" wx:key="id">
+        <view class="utility-item" data-url="{{item.view}}" bindtap="goTo">
+          <view class="utility-mark">{{item.mark}}</view>
+          <view class="utility-title">{{item.title}}</view>
+          <view class="utility-desc">{{item.description}}</view>
+        </view>
+      </block>
+    </view>
   </view>
 
   <view class="notice">内容仅作自我探索与生活参考，不构成医疗、投资、法律或重大人生决策建议。</view>

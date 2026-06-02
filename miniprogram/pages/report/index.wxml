@@ -1,8 +1,18 @@
 <view class="page report-page" wx:if="{{report}}">
-  <view class="section history-section zs-card">
+  <view class="section report-header zs-card">
+    <view class="report-eyebrow">甄算参考报告</view>
+    <view class="report-title">{{report.title}}</view>
+    <view class="report-subtitle">{{report.subtitle}}</view>
+    <view class="report-meta-row">
+      <view class="tier-badge pill pill-gold">{{report.tier === 'full' ? '完整版' : '免费体验版'}}</view>
+      <view class="report-date">生成于 {{report.generatedAt}}</view>
+    </view>
+    <view class="source" wx:if="{{report.source === 'fallback'}}">离线示例结果</view>
+  </view>
+
+  <view class="section history-section zs-card" wx:if="{{loadingHistory || historyRuns.length}}">
     <view class="section-title">报告历史</view>
     <view class="history-loading" wx:if="{{loadingHistory}}">正在读取历史报告</view>
-    <view class="history-empty" wx:if="{{!loadingHistory && !historyRuns.length}}">暂无历史报告，当前显示本次报告。</view>
     <scroll-view wx:if="{{historyRuns.length}}" scroll-x class="history-scroll">
       <view class="history-list">
         <block wx:for="{{historyRuns}}" wx:key="id">
@@ -14,14 +24,6 @@
         </block>
       </view>
     </scroll-view>
-  </view>
-
-  <view class="section report-header zs-card">
-    <view class="report-title">{{report.title}}</view>
-    <view class="report-subtitle">{{report.subtitle}}</view>
-    <view class="tier-badge pill pill-gold">{{report.tier === 'full' ? '完整版' : '免费体验版'}}</view>
-    <view class="report-date">生成于 {{report.generatedAt}}</view>
-    <view class="source" wx:if="{{report.source === 'fallback'}}">离线示例结果</view>
   </view>
 
   <view class="section upgrade-card zs-card-gold" wx:if="{{report.tier !== 'full' && report.upgradePrompt}}">

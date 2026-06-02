@@ -1,9 +1,15 @@
+.report-page {
+  padding-top: 24rpx;
+}
+
 .report-header {
   text-align: left;
+  border-color: rgba(74, 124, 119, 0.24);
+  background: linear-gradient(180deg, rgba(74, 124, 119, 0.1), rgba(255, 255, 255, 0.94));
 }
 
 .history-section {
-  padding-bottom: 20rpx;
+  padding-bottom: 18rpx;
 }
 
 .history-loading,
@@ -25,12 +31,12 @@
 }
 
 .history-card {
-  width: 300rpx;
+  width: 272rpx;
   white-space: normal;
   border: 1rpx solid #e5e7eb;
   border-radius: 14rpx;
   background: #f9fafb;
-  padding: 20rpx;
+  padding: 18rpx;
   box-sizing: border-box;
 }
 
@@ -41,7 +47,7 @@
 
 .history-title {
   color: #1a2f4b;
-  font-size: 28rpx;
+  font-size: 26rpx;
   font-weight: 700;
   line-height: 1.4;
 }
@@ -49,15 +55,24 @@
 .history-meta,
 .history-time {
   color: #6b7280;
-  font-size: 23rpx;
+  font-size: 22rpx;
   line-height: 1.5;
   margin-top: 8rpx;
 }
 
+.report-eyebrow {
+  color: #b89150;
+  font-size: 23rpx;
+  font-weight: 700;
+  line-height: 1.4;
+  margin-bottom: 10rpx;
+}
+
 .report-title {
   color: #1a2f4b;
-  font-size: 44rpx;
-  font-weight: 700;
+  font-size: 42rpx;
+  font-weight: 800;
+  line-height: 1.25;
   margin-bottom: 12rpx;
 }
 
@@ -65,17 +80,24 @@
 .report-date,
 .source {
   color: #6b7280;
-  font-size: 26rpx;
-  line-height: 1.6;
+  font-size: 24rpx;
+  line-height: 1.55;
 }
 
 .source {
   color: #b89150;
 }
 
+.report-meta-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 16rpx;
+}
+
 .tier-badge {
   display: inline-flex;
-  margin: 12rpx 0;
 }
 
 .upgrade-card {
@@ -87,21 +109,10 @@
   overflow: hidden;
 }
 
-.summary-card::after {
-  content: "";
-  position: absolute;
-  right: -56rpx;
-  top: -56rpx;
-  width: 180rpx;
-  height: 180rpx;
-  border-radius: 50%;
-  background: rgba(74, 124, 119, 0.08);
-}
-
 .report-section-card {
   position: relative;
   overflow: hidden;
-  padding-left: 38rpx;
+  padding-left: 34rpx;
 }
 
 .report-section-card::before {
@@ -126,14 +137,14 @@
   border: 1rpx solid #e5e7eb;
   border-radius: 999rpx;
   color: #1a2f4b;
-  font-size: 24rpx;
-  padding: 8rpx 18rpx;
+  font-size: 23rpx;
+  padding: 7rpx 16rpx;
 }
 
 .summary {
   color: #4b5563;
-  font-size: 29rpx;
-  line-height: 1.8;
+  font-size: 28rpx;
+  line-height: 1.72;
 }
 
 .point-list {
@@ -142,8 +153,8 @@
 
 .point {
   color: #4b5563;
-  font-size: 28rpx;
-  line-height: 1.8;
+  font-size: 27rpx;
+  line-height: 1.72;
 }
 
 .action-item {
@@ -151,9 +162,9 @@
   align-items: flex-start;
   gap: 16rpx;
   color: #4b5563;
-  font-size: 28rpx;
-  line-height: 1.8;
-  margin-top: 18rpx;
+  font-size: 27rpx;
+  line-height: 1.72;
+  margin-top: 16rpx;
 }
 
 .action-index {
