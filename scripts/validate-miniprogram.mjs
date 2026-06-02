@@ -127,6 +127,7 @@ const homeWxml = readText(path.join(MINI, 'pages', 'home', 'index.wxml'));
 const homeWxss = readText(path.join(MINI, 'pages', 'home', 'index.wxss'));
 const homeJs = readText(path.join(MINI, 'pages', 'home', 'index.js'));
 const meWxml = readText(path.join(MINI, 'pages', 'me', 'index.wxml'));
+const meJs = readText(path.join(MINI, 'pages', 'me', 'index.js'));
 const spaceJs = readText(path.join(MINI, 'pages', 'space', 'index.js'));
 const spaceWxml = readText(path.join(MINI, 'pages', 'space', 'index.wxml'));
 const reportWxss = readText(path.join(MINI, 'pages', 'report', 'index.wxss'));
@@ -199,6 +200,10 @@ assert(spaceWxml.includes('打开电子罗盘') && spaceJs.includes('/pages/comp
 for (const text of ['我的', '报告历史', '我的订单', '收货地址', '协议与隐私']) {
   assert(meWxml.includes(text), `me page must include ${text}`);
 }
+assert(meJs.includes('promptWechatLogin'), 'me page must prompt unauthenticated users to log in with WeChat');
+assert(meJs.includes('wx.showModal'), 'me page must visibly ask unauthenticated users to log in');
+assert(meJs.includes('loginPromptVisible'), 'me page must avoid repeated login prompts while the modal is open');
+assert(meJs.includes('loginWithWechat()'), 'me page login prompt must reuse the WeChat login flow');
 assert(loginWxml.includes('zs-card-teal'), 'login page must use design system card for WeChat login');
 assert(reportWxml.includes('report-section-card'), 'report page must use section cards for report sections');
 assert(reportWxml.includes('action-index'), 'report page must render numbered action items');

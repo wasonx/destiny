@@ -9,6 +9,7 @@ Page({
   data: {
     hasToken: false,
     loading: false,
+    loginPromptVisible: false,
     valueState: null,
     reportQuota: 0,
     pointsBalance: 0,
@@ -29,9 +30,29 @@ Page({
         pointsBalance: 0,
         growthLevel: '启蒙',
       });
+      this.promptWechatLogin();
       return;
     }
     this.loadValueState();
+  },
+
+  promptWechatLogin() {
+    if (this.data.loginPromptVisible || this.data.loading || auth.getToken()) return;
+    this.setData({ loginPromptVisible: true });
+    wx.showModal({
+      title: '登录后查看我的',
+      content: '登录后可以查看报告历史、订单、收货地址、权益和积分。',
+      confirmText: '微信登录',
+      cancelText: '稍后再说',
+      success: (res) => {
+        if (res.confirm) {
+          this.loginWithWechat();
+        }
+      },
+      complete: () => {
+        this.setData({ loginPromptVisible: false });
+      },
+    });
   },
 
   loadValueState() {
