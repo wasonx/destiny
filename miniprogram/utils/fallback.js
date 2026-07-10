@@ -12,6 +12,17 @@ function text(value, fallback) {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback;
 }
 
+// 免费体验版只展示摘要级内容，与后端 applyReportTier 切片保持一致
+function slicePreview(report) {
+  if (!report.isPreview) return report;
+  return {
+    ...report,
+    keywords: (report.keywords || []).slice(0, 3),
+    sections: (report.sections || []).slice(0, 2),
+    actions: (report.actions || []).slice(0, 3),
+  };
+}
+
 function buildFallbackReport(kind, payload = {}, tier = 'free') {
   const focus = text(payload.concern || payload.category || payload.focus, '整体');
   const isPreview = tier !== 'full';
@@ -26,8 +37,10 @@ function buildFallbackReport(kind, payload = {}, tier = 'free') {
     source: 'fallback',
   };
 
+  let report;
+
   if (kind === 'relationship') {
-    return {
+    report = {
       ...common,
       title: '合缘 · 双人关系',
       subtitle: `关系类型：${text(payload.relationType, '关系')}`,
@@ -39,10 +52,8 @@ function buildFallbackReport(kind, payload = {}, tier = 'free') {
       ],
       actions: ['把当前最在意的问题写成一句话', '约定一次不超过 30 分钟的沟通', '观察未来两周是否有实际调整'],
     };
-  }
-
-  if (kind === 'question') {
-    return {
+  } else if (kind === 'question') {
+    report = {
       ...common,
       title: '问时 · 一事一解',
       subtitle: `问题方向：${focus}`,
@@ -54,10 +65,8 @@ function buildFallbackReport(kind, payload = {}, tier = 'free') {
       ],
       actions: ['先做一个低成本验证动作', '记录 3 个现实反馈', '至少间隔 1-2 周或出现新变化后再问'],
     };
-  }
-
-  if (kind === 'space') {
-    return {
+  } else if (kind === 'space') {
+    report = {
       ...common,
       title: '安居 · 环境分析',
       subtitle: `空间类型：${text(payload.spaceType, '居家环境')}`,
@@ -69,21 +78,23 @@ function buildFallbackReport(kind, payload = {}, tier = 'free') {
       ],
       actions: ['拍摄入户门、客厅、卧室三张照片复核', '清理主通道和入口堆物', '列出 3 个最影响日常体验的问题'],
     };
+  } else {
+    report = {
+      ...common,
+      title: '照见 · 人生全景',
+      subtitle: `关注方向：${focus}`,
+      keywords: ['行动力', '责任感', '稳步积累'],
+      summary: '你的整体节奏更适合通过长期积累建立稳定优势。当前阶段不宜频繁切换方向，更适合围绕一个核心目标持续推进。',
+      sections: [
+        { title: '性格底色', content: '你倾向于在明确目标后持续投入，对责任和结果较敏感。', points: ['目标感较强', '重视承诺', '需要稳定节奏'] },
+        { title: '事业节奏', content: '事业上适合深耕一条主线，先稳住核心能力和资源，再逐步扩展。', points: ['减少频繁试错', '重视长期合作', '建立可复用能力'] },
+        { title: '年度提醒', content: '未来一年适合做结构化整理，先稳定，再扩张。', points: ['整理资源', '推进关键计划', '避免冲动决策'] },
+      ],
+      actions: ['写下一个年度主目标', '减少 2 个消耗型任务', '每月复盘一次事业、关系和财务状态'],
+    };
   }
 
-  return {
-    ...common,
-    title: '照见 · 人生全景',
-    subtitle: `关注方向：${focus}`,
-    keywords: ['行动力', '责任感', '稳步积累'],
-    summary: '你的整体节奏更适合通过长期积累建立稳定优势。当前阶段不宜频繁切换方向，更适合围绕一个核心目标持续推进。',
-    sections: [
-      { title: '性格底色', content: '你倾向于在明确目标后持续投入，对责任和结果较敏感。', points: ['目标感较强', '重视承诺', '需要稳定节奏'] },
-      { title: '事业节奏', content: '事业上适合深耕一条主线，先稳住核心能力和资源，再逐步扩展。', points: ['减少频繁试错', '重视长期合作', '建立可复用能力'] },
-      { title: '年度提醒', content: '未来一年适合做结构化整理，先稳定，再扩张。', points: ['整理资源', '推进关键计划', '避免冲动决策'] },
-    ],
-    actions: ['写下一个年度主目标', '减少 2 个消耗型任务', '每月复盘一次事业、关系和财务状态'],
-  };
+  return slicePreview(report);
 }
 
 module.exports = {

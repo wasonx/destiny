@@ -30,20 +30,21 @@ class MiniprogramScaffoldTests(unittest.TestCase):
             app_json["pages"],
             [
                 "pages/home/index",
+                "pages/store/index",
+                "pages/me/index",
                 "pages/login/index",
                 "pages/life/index",
                 "pages/relationship/index",
                 "pages/question/index",
                 "pages/space/index",
                 "pages/compass/index",
-                "pages/store/index",
                 "pages/address/index",
                 "pages/orders/index",
                 "pages/report/index",
                 "pages/legal/index",
             ],
         )
-        self.assertEqual(app_json["window"]["navigationBarTitleText"], "甄算")
+        self.assertEqual(app_json["window"]["navigationBarTitleText"], "甄好算")
 
     def test_native_commerce_pages_and_api_helpers_exist(self):
         app_json = json.loads((MINI / "app.json").read_text(encoding="utf-8"))
@@ -125,7 +126,7 @@ class MiniprogramScaffoldTests(unittest.TestCase):
             if path.is_file() and path.suffix in {".js", ".json", ".wxml", ".wxss"}
         )
 
-        self.assertIn("甄算", combined)
+        self.assertIn("甄好算", combined)
         self.assertIn("https://www.goye.cc/destiny-api", combined)
         self.assertIn("wx.request", combined)
         self.assertNotIn("元启东方", combined)

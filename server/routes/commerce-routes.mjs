@@ -1,6 +1,12 @@
 import { closeOrder, createOrder, createPaymentIntent, markOrderShipped, markPaymentPaid } from '../commerce/order-service.mjs';
 import { buildEntitlementPayload } from '../commerce/product-mapping-service.mjs';
 import { createRefundRequest, reviewRefundRequest } from '../commerce/refund-service.mjs';
+import {
+  createWechatJsapiPaymentIntent,
+  getWechatPayConfigState,
+  parseWechatPayNotification,
+  WechatPayError,
+} from '../commerce/payment-providers/wechat-jsapi-provider.mjs';
 import { requireSession } from '../middleware/require-session.mjs';
 import { requirePlatformAdmin } from '../middleware/roles.mjs';
 import { memory, nextId } from './memory-state.mjs';
@@ -10,6 +16,11 @@ function asyncRoute(handler) {
 }
 
 function knownCommerceStatus(error) {
+  if (error instanceof WechatPayError) {
+    if (['WECHAT_PAY_DISABLED', 'WECHAT_PAY_NOT_CONFIGURED', 'WECHAT_PAY_OPENID_REQUIRED'].includes(error.code)) return 503;
+    if (['WECHAT_PAY_SIGNATURE_HEADERS_MISSING', 'WECHAT_PAY_SIGNATURE_INVALID'].includes(error.code)) return 401;
+    return 502;
+  }
   if (['INVALID_ORDER', 'ADDRESS_REQUIRED', 'PRODUCT_NOT_AVAILABLE', 'INSUFFICIENT_INVENTORY', 'INVALID_ORDER_STATUS', 'INVALID_REFUND_ORDER_STATUS', 'INVALID_SHIPMENT'].includes(error.code)) {
     return 400;
   }
@@ -17,6 +28,28 @@ function knownCommerceStatus(error) {
   if (error.message?.startsWith('INVALID_PAYMENT_TRANSITION')) return 400;
   if (error.message === 'PAYMENT_NOT_FOUND' || error.message === 'ORDER_NOT_FOUND') return 404;
   return 500;
+}
+
+function summarizeOrderForPayment(order) {
+  const items = Array.isArray(order.items) ? order.items : [];
+  const names = items.map((item) => item.name).filter(Boolean);
+  return names.length ? names.slice(0, 2).join('、') : '甄好算订单';
+}
+
+async function loadCustomerWechatOpenid(client, customerId) {
+  const result = await client.query(
+    `
+      select openid
+      from app.customer_identities
+      where user_id = $1
+        and provider = 'wechat'
+        and openid is not null
+      order by created_at desc
+      limit 1
+    `,
+    [customerId],
+  );
+  return result.rows[0]?.openid || '';
 }
 
 function mountDatabaseCommerceRoutes(app, { pool, config }) {
@@ -105,6 +138,19 @@ function mountDatabaseCommerceRoutes(app, { pool, config }) {
   }));
 
   app.post('/destiny-api/customer/orders', customerOnly, asyncRoute(async (req, res) => {
+    const provider = req.body?.provider || 'manual';
+    if (provider === 'wechat_jsapi') {
+      const state = getWechatPayConfigState(config);
+      if (!state.enabled) {
+        res.status(503).json({ error: 'WECHAT_PAY_DISABLED' });
+        return;
+      }
+      if (!state.configured) {
+        res.status(503).json({ error: 'WECHAT_PAY_NOT_CONFIGURED', missing: state.missing });
+        return;
+      }
+    }
+
     const client = await pool.connect();
     try {
       await client.query('begin');
@@ -114,16 +160,101 @@ function mountDatabaseCommerceRoutes(app, { pool, config }) {
         address: req.body?.address || null,
         freightCents: Number(req.body?.freight_cents || req.body?.freightCents || 800),
       });
+      const amountCents = Number(order.amount_cents) + Number(order.freight_cents || 0);
+      let providerResult = null;
+      if (provider === 'wechat_jsapi') {
+        const openid = await loadCustomerWechatOpenid(client, req.session.user_id);
+        providerResult = await createWechatJsapiPaymentIntent({
+          config,
+          order,
+          amountCents,
+          openid,
+          description: summarizeOrderForPayment(order),
+        });
+      }
       const payment = await createPaymentIntent(client, {
         orderId: order.id,
-        amountCents: Number(order.amount_cents) + Number(order.freight_cents || 0),
-        provider: req.body?.provider || 'manual',
+        amountCents,
+        provider,
+        providerResult,
       });
       await client.query('commit');
-      res.status(201).json({ order, payment });
+      res.status(201).json({
+        order,
+        payment,
+        paymentParams: payment.provider_payload?.paymentParams || null,
+      });
     } catch (error) {
       await client.query('rollback');
       res.status(knownCommerceStatus(error)).json({ error: error.code || error.message });
+    } finally {
+      client.release();
+    }
+  }));
+
+  app.post('/destiny-api/payments/wechat/notify', asyncRoute(async (req, res) => {
+    const rawBody = req.rawBody || JSON.stringify(req.body || {});
+    let parsed;
+    try {
+      parsed = await parseWechatPayNotification({
+        config,
+        headers: req.headers,
+        rawBody,
+      });
+    } catch (error) {
+      const status = knownCommerceStatus(error);
+      res.status(status).json({ code: 'FAIL', message: error.code || 'WECHAT_PAY_NOTIFY_FAILED' });
+      return;
+    }
+
+    const { notification, transaction } = parsed;
+    if (transaction.trade_state !== 'SUCCESS') {
+      res.json({ code: 'SUCCESS', message: 'ignored' });
+      return;
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('begin');
+      const paymentResult = await client.query(
+        `
+          select *
+          from app.payment_intents
+          where provider = 'wechat_jsapi'
+            and provider_payload->>'outTradeNo' = $1
+          for update
+        `,
+        [transaction.out_trade_no],
+      );
+      const payment = paymentResult.rows[0];
+      if (!payment) {
+        await client.query('rollback');
+        res.status(404).json({ code: 'FAIL', message: 'PAYMENT_NOT_FOUND' });
+        return;
+      }
+      const paidAmount = Number(transaction.amount?.total || 0);
+      if (paidAmount !== Number(payment.amount_cents)) {
+        await client.query('rollback');
+        res.status(400).json({ code: 'FAIL', message: 'PAYMENT_AMOUNT_MISMATCH' });
+        return;
+      }
+      await markPaymentPaid(client, {
+        paymentIntentId: payment.id,
+        actorUserId: null,
+        idempotent: true,
+        providerPayloadPatch: {
+          notifyId: notification.id,
+          transactionId: transaction.transaction_id,
+          tradeState: transaction.trade_state,
+          successTime: transaction.success_time,
+          payer: transaction.payer || {},
+        },
+      });
+      await client.query('commit');
+      res.json({ code: 'SUCCESS', message: '成功' });
+    } catch (error) {
+      await client.query('rollback');
+      res.status(knownCommerceStatus(error)).json({ code: 'FAIL', message: error.code || error.message });
     } finally {
       client.release();
     }
@@ -167,6 +298,39 @@ function mountDatabaseCommerceRoutes(app, { pool, config }) {
       [req.params.id, req.session.user_id],
     );
     res.json({ order: result.rows[0] || null });
+  }));
+
+  app.post('/destiny-api/customer/orders/:id/pay', customerOnly, asyncRoute(async (req, res) => {
+    const client = await pool.connect();
+    try {
+      const orderResult = await client.query('select * from app.commerce_orders where id = $1 and customer_id = $2', [req.params.id, req.session.user_id]);
+      const order = orderResult.rows[0];
+      if (!order) {
+        res.status(404).json({ error: 'ORDER_NOT_FOUND' });
+        return;
+      }
+      if (order.status !== 'pending_payment') {
+        res.status(400).json({ error: 'INVALID_ORDER_STATUS' });
+        return;
+      }
+      const amountCents = Number(order.amount_cents) + Number(order.freight_cents || 0);
+      const openid = await loadCustomerWechatOpenid(client, req.session.user_id);
+      const providerResult = await createWechatJsapiPaymentIntent({
+        config,
+        order,
+        amountCents,
+        openid,
+        description: summarizeOrderForPayment(order),
+      });
+      console.log('[wechat-pay] paymentParams returned:', JSON.stringify(providerResult.providerPayload?.paymentParams || null));
+      res.json({
+        paymentParams: providerResult.providerPayload?.paymentParams || null,
+      });
+    } catch (error) {
+      res.status(knownCommerceStatus(error)).json({ error: error.code || error.message });
+    } finally {
+      client.release();
+    }
   }));
 
   app.post('/destiny-api/customer/orders/:id/refund-requests', customerOnly, asyncRoute(async (req, res) => {
@@ -405,6 +569,10 @@ function mountMemoryCommerceRoutes(app) {
   });
 
   app.post('/destiny-api/customer/orders', (req, res) => {
+    if (req.body?.provider === 'wechat_jsapi') {
+      res.status(503).json({ error: 'WECHAT_PAY_DISABLED' });
+      return;
+    }
     const items = req.body?.items || [];
     const amount = items.reduce((sum, item) => sum + Number(item.price_cents || 0) * Number(item.quantity || 1), 0);
     const order = {

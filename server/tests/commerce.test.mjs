@@ -30,7 +30,7 @@ function createCommerceClient({ cardInventory = 2 } = {}) {
       {
         id: 'product-card',
         sku: 'CARD-001',
-        name: '甄算罗盘卡',
+        name: '甄好算罗盘卡',
         product_type: 'physical_goods',
         price_cents: 3900,
         currency: 'CNY',
@@ -604,6 +604,39 @@ test('customer order routes include latest shipment details', async () => {
     const detailData = await detailResponse.json();
     assert.equal(detailResponse.status, 200);
     assert.equal(detailData.order.shipment.carrier, 'SF Express');
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test('customer order route rejects real wechat payment when switch is disabled', async () => {
+  const pool = {
+    async query(sql) {
+      const text = normalizeSql(sql);
+      if (text.includes('from app.login_sessions')) {
+        return { rows: [{ session_id: 'session-1', account_type: 'customer', user_id: 'customer-1', status: 'active', display_name: '客户' }] };
+      }
+      throw new Error(`Wechat disabled path should not reach commerce query: ${text}`);
+    },
+    async connect() {
+      throw new Error('Wechat disabled path should not open commerce transaction');
+    },
+  };
+  const app = createApp({ config: loadConfig({ SESSION_SECRET: 'test-secret', WECHAT_PAY_ENABLED: 'false' }), pool });
+  const server = app.listen(0);
+  const { port } = server.address();
+
+  try {
+    const response = await fetch(`http://127.0.0.1:${port}/destiny-api/customer/orders`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer customer-token', 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        provider: 'wechat_jsapi',
+        items: [{ sku: 'REPORT-3', quantity: 1 }],
+      }),
+    });
+    assert.equal(response.status, 503);
+    assert.deepEqual(await response.json(), { error: 'WECHAT_PAY_DISABLED' });
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }

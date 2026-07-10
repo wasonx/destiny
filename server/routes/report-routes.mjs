@@ -5,7 +5,7 @@ import { buildReportProvenance, saveReportProvenance } from '../graph/report-pro
 import { findSession, getBearerToken } from '../middleware/require-session.mjs';
 import { buildReportContext } from '../reports/context-builder.mjs';
 import { reviewReportSafety } from '../reports/safety-review.mjs';
-import { summarizeBirthInput, summarizeFourPillars } from '../rules/bazi-features.mjs';
+import { summarizeBirthInput, summarizeFourPillars, summarizeRelationship } from '../rules/bazi-features.mjs';
 import { runRules } from '../rules/rule-engine.mjs';
 import { memory, nextId } from './memory-state.mjs';
 
@@ -99,7 +99,7 @@ function applyReportTier(report, tier) {
 }
 
 function buildPrompt(kind, payload) {
-  return `请生成甄算${kind}报告。必须输出 JSON，避免绝对化和高风险承诺。用户输入：${JSON.stringify(payload)}`;
+  return `请生成甄好算${kind}报告。必须输出 JSON，避免绝对化和高风险承诺。用户输入：${JSON.stringify(payload)}`;
 }
 
 function graphEmpty() {
@@ -179,9 +179,15 @@ function collectConceptKeys(publishedContent = {}) {
 
 function buildReportFacts(kind, payload = {}) {
   const baziInput = payload.fourPillars || payload.pillars || payload;
-  const baziFacts = kind === 'life'
-    ? (payload.birthdate ? summarizeBirthInput(payload) : summarizeFourPillars(baziInput))
-    : {};
+  let baziFacts = {};
+  if (kind === 'life') {
+    baziFacts = payload.birthdate ? summarizeBirthInput(payload) : summarizeFourPillars(baziInput);
+  } else if (kind === 'relationship') {
+    baziFacts = summarizeRelationship(
+      { birthdate: payload.selfBirthdate, birthtime: payload.selfBirthtime },
+      { birthdate: payload.otherBirthdate, birthtime: payload.otherBirthtime },
+    );
+  }
   const tags = [
     kind,
     payload.concern,
@@ -401,6 +407,7 @@ export function mountReportRoutes(app, { config, pool, graphDriver = null }) {
           ...fallback,
           ...parsed,
           kind,
+          ...(kind === 'life' && facts?.elements ? { elements: facts.elements } : {}),
           title: parsed.title || fallback.title,
           subtitle: parsed.subtitle || fallback.subtitle,
           keywords: Array.isArray(parsed.keywords) && parsed.keywords.length ? parsed.keywords : fallback.keywords,

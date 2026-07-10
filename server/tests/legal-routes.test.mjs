@@ -14,8 +14,8 @@ test('public legal route returns agreement privacy and report tier compliance do
     const body = await response.json();
 
     assert.equal(body.version, '2026-05-30');
-    assert.equal(body.documents.userAgreement.title, '甄算用户协议');
-    assert.equal(body.documents.privacyPolicy.title, '甄算隐私政策');
+    assert.equal(body.documents.userAgreement.title, '甄好算用户协议');
+    assert.equal(body.documents.privacyPolicy.title, '甄好算隐私政策');
     assert.equal(body.documents.reportCompliance.title, '报告分层与风险边界说明');
     assert.ok(body.documents.userAgreement.sections.some((section) => section.heading === '服务性质'));
     assert.ok(body.documents.privacyPolicy.sections.some((section) => section.heading === '信息使用范围'));

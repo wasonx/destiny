@@ -13,7 +13,7 @@ class AdminScaffoldTests(unittest.TestCase):
         )
 
         for text in [
-            "甄算后台",
+            "甄好算后台",
             "总览",
             "用户管理",
             "八字本体图谱",

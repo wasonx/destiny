@@ -1,11 +1,14 @@
-const { generateInsight } = require('../../utils/api');
-const { buildFallbackReport } = require('../../utils/fallback');
+const { createReport } = require('../../utils/report-generator');
+const { uploadImage } = require('../../utils/api');
 
 Page({
   data: {
     spaceType: '居家环境',
     focus: '整体格局',
-    photoCount: 0,
+    direction: '',
+    photos: [],
+    uploading: false,
+    maxPhotos: 6,
     reportTier: 'free',
     loading: false,
     spaceTypes: ['居家环境', '办公环境'],
@@ -14,6 +17,15 @@ Page({
       { value: 'free', label: '免费体验版' },
       { value: 'full', label: '完整版' },
     ],
+  },
+
+  onShow() {
+    try {
+      const saved = wx.getStorageSync('house_direction');
+      if (saved) this.setData({ direction: saved });
+    } catch (e) {
+      // storage read failure is non-fatal
+    }
   },
 
   setSpaceType(event) {
@@ -29,15 +41,48 @@ Page({
   },
 
   choosePhotos() {
+    const remain = this.data.maxPhotos - this.data.photos.length;
+    if (remain <= 0) {
+      wx.showToast({ title: `最多 ${this.data.maxPhotos} 张`, icon: 'none' });
+      return;
+    }
     wx.chooseMedia({
-      count: 6,
+      count: remain,
       mediaType: ['image'],
       sourceType: ['album', 'camera'],
       success: (res) => {
-        this.setData({ photoCount: res.tempFiles.length });
+        const tempFiles = res.tempFiles || [];
+        this.setData({ uploading: true });
+        const uploaded = [];
+        Promise.all(
+          tempFiles.map((file) =>
+            uploadImage(file.tempFilePath)
+              .then((result) => {
+                if (result && result.url) uploaded.push(result.url);
+              })
+              .catch(() => null)
+          )
+        ).then(() => {
+          if (uploaded.length) {
+            this.setData({ photos: this.data.photos.concat(uploaded) });
+          }
+          if (uploaded.length < tempFiles.length) {
+            wx.showToast({ title: '部分照片上传失败已跳过', icon: 'none' });
+          }
+          this.setData({ uploading: false });
+        });
       },
-      fail: () => {},
+      fail: () => {
+        this.setData({ uploading: false });
+      },
     });
+  },
+
+  removePhoto(event) {
+    const index = event.currentTarget.dataset.index;
+    const photos = this.data.photos.slice();
+    photos.splice(index, 1);
+    this.setData({ photos });
   },
 
   openCompass() {
@@ -47,28 +92,27 @@ Page({
   },
 
   submit(event) {
+    if (this.data.uploading) {
+      wx.showToast({ title: '照片上传中，请稍候', icon: 'none' });
+      return;
+    }
+    const inputDirection = event.detail.value.direction || '';
+    let direction = inputDirection;
+    if (!direction) {
+      try {
+        direction = wx.getStorageSync('house_direction') || '';
+      } catch (e) {
+        direction = '';
+      }
+    }
     const payload = {
       ...event.detail.value,
       spaceType: this.data.spaceType,
       focus: this.data.focus,
-      photoCount: this.data.photoCount,
+      direction,
+      photos: this.data.photos,
+      photoCount: this.data.photos.length,
     };
-
-    this.createReport('space', payload);
-  },
-
-  createReport(kind, payload) {
-    this.setData({ loading: true });
-    generateInsight(kind, payload, this.data.reportTier)
-      .catch(() => buildFallbackReport(kind, payload, this.data.reportTier))
-      .then((report) => {
-        const app = getApp();
-        app.globalData.currentReport = report;
-        wx.setStorageSync('lastReport', report);
-        wx.navigateTo({ url: '/pages/report/index' });
-      })
-      .finally(() => {
-        this.setData({ loading: false });
-      });
+    createReport(this, 'space', payload, this.data.reportTier);
   },
 });

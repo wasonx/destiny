@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "甄算 · 照见"
+  "navigationBarTitleText": "甄好算 · 照见",
+  "usingComponents": {
+    "t-button": "tdesign-miniprogram/button/button"
+  }
 }

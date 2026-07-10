@@ -141,6 +141,9 @@ class OnlineIntegrationScaffoldTests(unittest.TestCase):
         self.assertIn('range="{{addressOptions}}"', store_wxml)
 
     def test_miniprogram_generation_pages_can_request_full_reports(self):
+        report_generator = (MINI / "utils" / "report-generator.js").read_text(encoding="utf-8")
+        self.assertIn("generateInsight(kind, payload, tier)", report_generator)
+
         for page in ["life", "relationship", "question", "space"]:
             with self.subTest(page=page):
                 page_js = (MINI / "pages" / page / "index.js").read_text(encoding="utf-8")
@@ -148,7 +151,8 @@ class OnlineIntegrationScaffoldTests(unittest.TestCase):
 
                 self.assertIn("reportTier", page_js)
                 self.assertIn("setReportTier", page_js)
-                self.assertIn("generateInsight(kind, payload, this.data.reportTier)", page_js)
+                self.assertIn("createReport(this,", page_js)
+                self.assertIn("this.data.reportTier)", page_js)
                 self.assertIn("免费体验版", page_wxml)
                 self.assertIn("完整版", page_wxml)
                 self.assertIn('bindtap="setReportTier"', page_wxml)

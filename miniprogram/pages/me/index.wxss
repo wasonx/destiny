@@ -1,131 +1,241 @@
+/* 我的页面 — 深色玄学风 */
+
 .me-page {
-  padding-bottom: 42rpx;
+  background:
+    radial-gradient(ellipse at 30% 0%, rgba(74, 124, 119, 0.08) 0%, transparent 50%),
+    #0C0F1A;
+  padding-bottom: 60rpx;
 }
 
-.me-hero {
+/* ---- 顶部用户区域 ---- */
+.me-header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24rpx;
-  padding: 18rpx 0 24rpx;
+  align-items: center;
+  gap: 28rpx;
+  padding: 48rpx 0 36rpx;
 }
 
-.account-badge {
+.me-avatar {
+  position: relative;
   flex-shrink: 0;
-  border-radius: 999rpx;
-  border: 1rpx solid rgba(200, 75, 49, 0.28);
-  background: rgba(200, 75, 49, 0.08);
-  color: #c84b31;
-  font-size: 23rpx;
-  line-height: 1.4;
-  padding: 8rpx 18rpx;
 }
 
-.account-badge.active {
-  border-color: rgba(74, 124, 119, 0.28);
-  background: rgba(74, 124, 119, 0.1);
-  color: #4a7c77;
-}
-
-.account-card {
-  border-radius: 18rpx;
-}
-
-.account-title {
-  color: #1a2f4b;
-  font-size: 32rpx;
+.me-avatar-inner {
+  width: 104rpx;
+  height: 104rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1A2140, #13192B);
+  border: 2rpx solid rgba(201, 168, 76, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #C9A84C;
+  font-size: 40rpx;
   font-weight: 800;
-  line-height: 1.35;
 }
 
-.account-desc {
-  color: #607086;
-  font-size: 25rpx;
-  line-height: 1.6;
-  margin-top: 10rpx;
+.me-avatar-ring {
+  position: absolute;
+  inset: -6rpx;
+  border-radius: 50%;
+  border: 1rpx solid rgba(201, 168, 76, 0.15);
 }
 
-.account-actions {
-  display: flex;
-  gap: 16rpx;
-  margin-top: 22rpx;
-}
-
-.account-button {
+.me-user-info {
   flex: 1;
-  min-height: 76rpx;
-  font-size: 26rpx;
+  min-width: 0;
 }
 
-.metric-grid {
-  display: flex;
-  gap: 16rpx;
+.me-username {
+  color: #E8EAF0;
+  font-size: 36rpx;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.me-status-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  font-weight: 600;
+  padding: 6rpx 18rpx;
+  border-radius: 999rpx;
+}
+
+.badge-active {
+  color: #4A7C77;
+  background: rgba(74, 124, 119, 0.12);
+  border: 1rpx solid rgba(74, 124, 119, 0.3);
+}
+
+.badge-inactive {
+  color: #C84B31;
+  background: rgba(200, 75, 49, 0.1);
+  border: 1rpx solid rgba(200, 75, 49, 0.25);
+}
+
+/* ---- 未登录卡片 ---- */
+.login-card {
   margin-bottom: 20rpx;
 }
 
-.metric-card {
-  flex: 1;
-  min-width: 0;
-  border: 1rpx solid rgba(184, 145, 80, 0.28);
-  border-radius: 16rpx;
-  background: rgba(255, 255, 255, 0.78);
-  padding: 22rpx 14rpx;
+.login-card-text {
+  color: #7E8BAA;
+  font-size: 26rpx;
+  line-height: 1.6;
+  margin-bottom: 24rpx;
   text-align: center;
-  box-sizing: border-box;
 }
 
-.metric-value {
-  color: #1a2f4b;
-  font-size: 34rpx;
+.login-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+/* ---- 权益数据行 ---- */
+.stat-row {
+  display: flex;
+  align-items: center;
+  background: #13192B;
+  border: 1rpx solid rgba(201, 168, 76, 0.18);
+  border-radius: 20rpx;
+  padding: 26rpx 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.stat-item {
+  flex: 1;
+  text-align: center;
+}
+
+.stat-num {
+  color: #C9A84C;
+  font-size: 44rpx;
   font-weight: 800;
-  line-height: 1.25;
+  line-height: 1.1;
 }
 
-.metric-value.level {
+.stat-level {
   font-size: 28rpx;
 }
 
-.metric-label {
-  color: #8a96a8;
-  font-size: 22rpx;
-  line-height: 1.4;
+.stat-label {
+  color: #7E8BAA;
+  font-size: 21rpx;
   margin-top: 8rpx;
+  letter-spacing: 2rpx;
 }
 
+.stat-sep {
+  width: 1rpx;
+  height: 52rpx;
+  background: rgba(201, 168, 76, 0.15);
+}
+
+/* ---- 菜单卡片 ---- */
 .menu-card {
-  padding-bottom: 8rpx;
-}
-
-.menu-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18rpx;
-  border-top: 1rpx solid #eef0f3;
-  padding: 22rpx 0;
-}
-
-.menu-row.last {
-  padding-bottom: 18rpx;
+  padding: 0;
+  overflow: hidden;
+  margin-bottom: 16rpx;
 }
 
 .menu-title {
-  color: #1a2f4b;
-  font-size: 29rpx;
-  font-weight: 800;
-  line-height: 1.35;
+  color: #7E8BAA;
+  font-size: 21rpx;
+  letter-spacing: 4rpx;
+  font-weight: 700;
+  padding: 22rpx 28rpx 16rpx;
+  border-bottom: 1rpx solid rgba(201, 168, 76, 0.1);
 }
 
-.menu-desc {
-  color: #8a96a8;
-  font-size: 23rpx;
-  line-height: 1.5;
-  margin-top: 6rpx;
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22rpx 28rpx;
+  border-bottom: 1rpx solid rgba(255, 255, 255, 0.04);
+}
+
+.menu-item:active {
+  background: rgba(201, 168, 76, 0.04);
+}
+
+.menu-item-last {
+  border-bottom: none;
+}
+
+.menu-item-left {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.menu-icon {
+  width: 68rpx;
+  height: 68rpx;
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+  flex-shrink: 0;
+}
+
+.menu-icon-teal {
+  background: rgba(74, 124, 119, 0.15);
+  border: 1rpx solid rgba(74, 124, 119, 0.25);
+}
+
+.menu-icon-gold {
+  background: rgba(201, 168, 76, 0.1);
+  border: 1rpx solid rgba(201, 168, 76, 0.25);
+}
+
+.menu-icon-dim {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
+}
+
+.menu-item-name {
+  color: #E8EAF0;
+  font-size: 28rpx;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.menu-item-desc {
+  color: #7E8BAA;
+  font-size: 22rpx;
+  margin-top: 4rpx;
+  line-height: 1.4;
 }
 
 .menu-arrow {
-  flex-shrink: 0;
-  color: #b89150;
-  font-size: 38rpx;
+  color: rgba(201, 168, 76, 0.4);
+  font-size: 42rpx;
   line-height: 1;
+  margin-right: -4rpx;
+}
+
+/* ---- 退出登录 ---- */
+.logout-area {
+  margin-top: 32rpx;
+  display: flex;
+  justify-content: center;
+}
+
+.logout-btn {
+  color: rgba(200, 75, 49, 0.6);
+  font-size: 26rpx;
+  font-weight: 600;
+  padding: 18rpx 60rpx;
+  border: 1rpx solid rgba(200, 75, 49, 0.2);
+  border-radius: 999rpx;
+  background: rgba(200, 75, 49, 0.04);
+}
+
+.logout-btn:active {
+  background: rgba(200, 75, 49, 0.08);
 }

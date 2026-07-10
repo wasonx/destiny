@@ -1,6 +1,6 @@
 <view class="page">
   <view class="hero">
-    <view class="brand">甄算 · 照见</view>
+    <view class="brand">甄好算 · 照见</view>
     <view class="title">个人节奏参考</view>
     <view class="subtitle">填写基础信息与当前关注方向，生成结构化生活参考报告。</view>
   </view>
@@ -9,11 +9,15 @@
     <view class="section zs-card">
       <view class="field">
         <text class="label">出生日期</text>
-        <input class="input" name="birthdate" placeholder="例如：1990-01-01" />
+        <picker mode="date" value="{{birthdate}}" bindchange="onBirthDateChange">
+          <view class="input" style="color:{{birthdate ? '#1f2329' : '#9aa0a6'}}">{{birthdate || '请选择出生日期'}}</view>
+        </picker>
       </view>
       <view class="field">
         <text class="label">出生时间</text>
-        <input class="input" name="birthtime" placeholder="例如：08:30，不确定可留空" />
+        <picker mode="time" value="{{birthtime}}" bindchange="onBirthTimeChange">
+          <view class="input" style="color:{{birthtime ? '#1f2329' : '#9aa0a6'}}">{{birthtime || '请选择出生时间（不确定可留空）'}}</view>
+        </picker>
       </view>
       <view class="field">
         <text class="label">出生地点</text>
@@ -49,9 +53,9 @@
       </view>
     </view>
 
-    <button class="primary-button" form-type="submit" loading="{{loading}}" disabled="{{loading}}">
+    <t-button theme="primary" block form-type="submit" loading="{{loading}}" disabled="{{loading}}">
       {{loading ? '正在生成' : '生成个人参考报告'}}
-    </button>
+    </t-button>
   </form>
 
   <view class="notice">你的信息仅用于生成本次参考报告，请避免填写身份证号等敏感信息。</view>

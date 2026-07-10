@@ -1,4 +1,16 @@
-const API_BASE = 'https://www.goye.cc/destiny-api';
+function getApiBase() {
+  try {
+    const app = getApp();
+    if (app && app.globalData && app.globalData.apiBase) {
+      return app.globalData.apiBase;
+    }
+  } catch (e) {
+    // getApp() may return undefined before App is registered; fall back below.
+  }
+  return 'https://www.goye.cc/destiny-api';
+}
+
+const API_BASE = getApiBase();
 
 function handleUnauthorized(options = {}) {
   try {
@@ -38,32 +50,47 @@ function request(path, options = {}) {
     token = '';
   }
 
-  return new Promise((resolve, reject) => {
-    wx.request({
-      url: `${API_BASE}${path}`,
-      method: options.method || 'GET',
-      data: options.data,
-      header: {
-        'content-type': 'application/json',
-        Authorization: token ? `Bearer ${token}` : '',
-        ...(options.header || {}),
-      },
-      success(res) {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          resolve(res.data);
-          return;
-        }
+  const maxAttempts = options.retry === false ? 1 : 2;
+  let attempt = 0;
 
-        if (res.statusCode === 401) {
-          handleUnauthorized(options);
-        }
-        reject(new Error(`HTTP ${res.statusCode}`));
-      },
-      fail(error) {
-        reject(error);
-      },
+  function run() {
+    return new Promise((resolve, reject) => {
+      wx.request({
+        url: `${getApiBase()}${path}`,
+        method: options.method || 'GET',
+        data: options.data,
+        timeout: options.timeout || 20000,
+        header: {
+          'content-type': 'application/json',
+          Authorization: token ? `Bearer ${token}` : '',
+          ...(options.header || {}),
+        },
+        success(res) {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            resolve(res.data);
+            return;
+          }
+
+          if (res.statusCode === 401) {
+            handleUnauthorized(options);
+          }
+          const error = new Error(res.data && res.data.error ? res.data.error : `HTTP ${res.statusCode}`);
+          error.statusCode = res.statusCode;
+          error.data = res.data || null;
+          reject(error);
+        },
+        fail(error) {
+          attempt += 1;
+          if (attempt < maxAttempts) {
+            return resolve(run());
+          }
+          reject(error);
+        },
+      });
     });
-  });
+  }
+
+  return run();
 }
 
 function checkHealth() {
@@ -104,6 +131,12 @@ function createOrder({ items, address, provider = 'manual' }) {
       items,
       address,
     },
+  });
+}
+
+function payOrder(orderId) {
+  return request(`/customer/orders/${orderId}/pay`, {
+    method: 'POST',
   });
 }
 
@@ -151,6 +184,45 @@ function applyReportTier(report, tier) {
   return next;
 }
 
+function uploadImage(filePath) {
+  let token = '';
+  try {
+    token = wx.getStorageSync('customer_token') || '';
+  } catch (error) {
+    token = '';
+  }
+  return new Promise((resolve, reject) => {
+    wx.uploadFile({
+      url: `${getApiBase()}/customer/uploads`,
+      filePath,
+      name: 'file',
+      header: {
+        Authorization: token ? `Bearer ${token}` : '',
+      },
+      success(res) {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          try {
+            resolve(JSON.parse(res.data));
+          } catch (error) {
+            reject(new Error('BAD_UPLOAD_RESPONSE'));
+          }
+          return;
+        }
+        let message = `HTTP ${res.statusCode}`;
+        try {
+          message = JSON.parse(res.data).error || message;
+        } catch (error) {
+          // keep default message
+        }
+        reject(new Error(message));
+      },
+      fail(error) {
+        reject(error);
+      },
+    });
+  });
+}
+
 function generateInsight(kind, payload, tier = 'free') {
   return request('/generate', {
     method: 'POST',
@@ -182,6 +254,7 @@ module.exports = {
   createAddress,
   updateAddress,
   createOrder,
+  payOrder,
   listOrders,
   getOrder,
   createRefundRequest,
@@ -189,4 +262,6 @@ module.exports = {
   getReportRun,
   getLegalDocuments,
   generateInsight,
+  applyReportTier,
+  uploadImage,
 };

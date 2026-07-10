@@ -1,0 +1,8 @@
+{
+  "name": "zhensuan-miniprogram",
+  "version": "1.0.0",
+  "description": "甄好算微信小程序",
+  "dependencies": {
+    "tdesign-miniprogram": "^1.15.2"
+  }
+}

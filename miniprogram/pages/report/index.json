@@ -1,3 +1,7 @@
 {
-  "navigationBarTitleText": "甄算 · 报告"
+  "navigationBarTitleText": "甄好算 · 报告",
+  "usingComponents": {
+    "t-button": "tdesign-miniprogram/button/button",
+    "t-tag": "tdesign-miniprogram/tag/tag"
+  }
 }

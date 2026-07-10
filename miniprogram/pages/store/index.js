@@ -104,13 +104,7 @@ Page({
     if (!product || this.data.creating) return;
 
     this.setData({ creating: true });
-    const create = (address) => api.createOrder({
-      provider: 'manual',
-      items: [{ sku: product.sku, quantity: 1 }],
-      address,
-    });
-
-    const orderTask = isPhysicalProduct(product)
+    const addressTask = isPhysicalProduct(product)
       ? Promise.resolve().then(() => {
         const address = this.data.selectedAddress;
         if (!address) {
@@ -118,22 +112,64 @@ Page({
           wx.navigateTo({ url: '/pages/address/index' });
           throw new Error('ADDRESS_REQUIRED');
         }
-        return create({
+        return {
           ...address,
           address_snapshot: formatAddress(address),
-        });
+        };
       })
-      : create(null);
+      : Promise.resolve(null);
 
-    orderTask.then(() => {
-      wx.showToast({ title: '订单已创建', icon: 'success' });
-      wx.navigateTo({ url: '/pages/orders/index' });
-    }).catch((error) => {
+    addressTask.then((address) => this.createWechatOrder(product, address))
+      .then((result) => {
+        if (result && result.manualFallback) {
+          wx.showToast({ title: '订单已创建', icon: 'success' });
+          wx.navigateTo({ url: '/pages/orders/index' });
+          return;
+        }
+        wx.showToast({ title: '支付完成', icon: 'success' });
+        wx.navigateTo({ url: '/pages/orders/index' });
+      }).catch((error) => {
       if (error.message !== 'ADDRESS_REQUIRED') {
-        wx.showToast({ title: '下单失败', icon: 'none' });
+        wx.showToast({ title: error.message && error.message.indexOf('cancel') >= 0 ? '已取消支付' : '下单失败', icon: 'none' });
+        if (error.orderCreated) {
+          wx.navigateTo({ url: '/pages/orders/index' });
+        }
       }
     }).finally(() => {
       this.setData({ creating: false });
+    });
+  },
+
+  createWechatOrder(product, address) {
+    return api.createOrder({
+      provider: 'wechat_jsapi',
+      items: [{ sku: product.sku, quantity: 1 }],
+      address,
+    }).then((data) => {
+      if (!data.paymentParams) {
+        return data;
+      }
+      return new Promise((resolve, reject) => {
+        wx.requestPayment({
+          ...data.paymentParams,
+          success: () => resolve(data),
+          fail: (error) => {
+            const next = new Error(error.errMsg || 'PAYMENT_CANCELLED');
+            next.orderCreated = true;
+            reject(next);
+          },
+        });
+      });
+    }).catch((error) => {
+      const code = error.data && error.data.error ? error.data.error : error.message;
+      if (code === 'WECHAT_PAY_DISABLED' || code === 'WECHAT_PAY_NOT_CONFIGURED') {
+        return api.createOrder({
+          provider: 'manual',
+          items: [{ sku: product.sku, quantity: 1 }],
+          address,
+        }).then((data) => ({ ...data, manualFallback: true }));
+      }
+      throw error;
     });
   },
 

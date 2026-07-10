@@ -23,7 +23,8 @@ test('admin integration settings expose provider status without secrets', async 
       SESSION_SECRET: 'test-secret',
       WECHAT_MINIPROGRAM_APP_ID: 'wx-app',
       WECHAT_MINIPROGRAM_SECRET: 'should-not-leak',
-      TENCENT_SMS_SIGN_NAME: '甄算',
+      WECHAT_PAY_API_V3_KEY: 'pay-key-should-not-leak-1234567',
+      TENCENT_SMS_SIGN_NAME: '甄好算',
       TENCENT_SMS_LOGIN_TEMPLATE_ID: 'login-template',
     }),
     pool,
@@ -50,9 +51,12 @@ test('admin integration settings expose provider status without secrets', async 
     assert.equal(data.integrations.sms.realProviderEnabled, false);
     assert.equal(data.integrations.payment.provider, 'manual');
     assert.equal(data.integrations.payment.realProviderEnabled, false);
+    assert.equal(data.integrations.payment.configured, false);
+    assert.ok(data.integrations.payment.missing.includes('WECHAT_PAY_MCH_ID'));
     assert.equal(data.integrations.refund.realProviderEnabled, false);
     assert.equal(data.integrations.courier.realProviderEnabled, false);
     assert.ok(!serialized.includes('should-not-leak'));
+    assert.ok(!serialized.includes('pay-key-should-not-leak'));
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
@@ -77,7 +81,7 @@ test('admin sms delivery logs route requires platform admin and filters mock sen
             provider: 'mock',
             status: 'mock_sent',
             template_id: 'login-template',
-            sign_name: '甄算',
+            sign_name: '甄好算',
             provider_payload: { realProviderEnabled: false },
             created_at: '2026-05-30T00:00:00.000Z',
           }],

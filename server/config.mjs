@@ -15,10 +15,26 @@ export function loadConfig(env = process.env) {
     wechatMiniProgramSecret: env.WECHAT_MINIPROGRAM_SECRET || '',
     wechatCode2SessionUrl: env.WECHAT_CODE2SESSION_URL || 'https://api.weixin.qq.com/sns/jscode2session',
     wechatLoginMocksEnabled: env.WECHAT_LOGIN_MOCKS_ENABLED === 'true',
+    wechatPayEnabled: env.WECHAT_PAY_ENABLED === 'true',
+    wechatPayMchId: env.WECHAT_PAY_MCH_ID || '',
+    wechatPayApiV3Key: env.WECHAT_PAY_API_V3_KEY || '',
+    wechatPayCertSerialNo: env.WECHAT_PAY_CERT_SERIAL_NO || '',
+    wechatPayPrivateKeyPath: env.WECHAT_PAY_PRIVATE_KEY_PATH || '',
+    wechatPayNotifyUrl: env.WECHAT_PAY_NOTIFY_URL || 'https://www.goye.cc/destiny-api/payments/wechat/notify',
+    wechatPayApiBaseUrl: env.WECHAT_PAY_API_BASE_URL || 'https://api.mch.weixin.qq.com',
     tencentSmsSdkAppId: env.TENCENT_SMS_SDK_APP_ID || '',
-    tencentSmsSignName: env.TENCENT_SMS_SIGN_NAME || '甄算',
+    tencentSmsSecretId: env.TENCENT_SMS_SECRET_ID || '',
+    tencentSmsSecretKey: env.TENCENT_SMS_SECRET_KEY || '',
+    tencentSmsSignName: env.TENCENT_SMS_SIGN_NAME || '甄好算',
     tencentSmsLoginTemplateId: env.TENCENT_SMS_LOGIN_TEMPLATE_ID || '',
     tencentSmsBindTemplateId: env.TENCENT_SMS_BIND_TEMPLATE_ID || '',
+    smsRealProviderEnabled: Boolean(
+      (env.TENCENT_SMS_SDK_APP_ID || '') &&
+      (env.TENCENT_SMS_SECRET_ID || '') &&
+      (env.TENCENT_SMS_SECRET_KEY || '') &&
+      (env.TENCENT_SMS_LOGIN_TEMPLATE_ID || '') &&
+      (env.TENCENT_SMS_SIGN_NAME || ''),
+    ),
     neo4jUri: env.NEO4J_URI || 'bolt://127.0.0.1:7687',
     neo4jUsername: env.NEO4J_USERNAME || 'neo4j',
     neo4jPassword: env.NEO4J_PASSWORD || '',

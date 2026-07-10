@@ -4,6 +4,14 @@
   gap: 22rpx;
 }
 
+.privacy-hint {
+  margin-top: 8rpx;
+  text-align: center;
+  font-size: 24rpx;
+  color: #4A7C77;
+  text-decoration: underline;
+}
+
 .login-copy {
   color: #6b7280;
   font-size: 26rpx;

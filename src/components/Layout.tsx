@@ -16,7 +16,7 @@ export default function Layout({
   children, 
   activeTab, 
   onTabChange, 
-  title = "甄算",
+  title = "甄好算",
   showBack = false,
   onBack,
   hideBottomNav = false

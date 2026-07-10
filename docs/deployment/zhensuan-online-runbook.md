@@ -1,4 +1,4 @@
-# 甄算线上运行手册
+# 甄好算线上运行手册
 
 ## 服务组成
 
@@ -21,7 +21,7 @@ CUSTOMER_AUTH_MOCKS_ENABLED=true
 SMS_CODE_TTL_SECONDS=300
 QR_LOGIN_TTL_SECONDS=180
 TENCENT_SMS_SDK_APP_ID=
-TENCENT_SMS_SIGN_NAME=甄算
+TENCENT_SMS_SIGN_NAME=甄好算
 TENCENT_SMS_LOGIN_TEMPLATE_ID=
 TENCENT_SMS_BIND_TEMPLATE_ID=
 NEO4J_URI=bolt://127.0.0.1:7687
@@ -65,7 +65,7 @@ pm2 status zhensuan-medusa
 curl http://127.0.0.1:9000/health
 ```
 
-甄算主应用通过以下环境变量检查 Medusa：
+甄好算主应用通过以下环境变量检查 Medusa：
 
 ```env
 MEDUSA_HEALTH_URL="http://127.0.0.1:9000/health"
@@ -127,3 +127,54 @@ curl https://www.goye.cc/destiny-api/health
 - 微信支付：已保留占位 provider，第一版后台人工标记支付成功。
 - 快递接口：第一版不接真实接口，后台人工填写快递公司和单号。
 - 退款接口：第一版记录人工审核和处理结果，不调用真实支付退款。
+
+## 微信支付 JSAPI 接入开关
+
+代码已支持小程序微信支付 JSAPI 通道。默认不开启，避免未配置商户资料时影响已上线版本。
+
+服务器环境变量：
+
+```text
+WECHAT_PAY_ENABLED=false
+WECHAT_PAY_MCH_ID=微信支付商户号
+WECHAT_PAY_API_V3_KEY=商户平台设置的 32 位 API v3 密钥
+WECHAT_PAY_CERT_SERIAL_NO=商户 API 证书序列号
+WECHAT_PAY_PRIVATE_KEY_PATH=/root/certs/wechatpay/apiclient_key.pem
+WECHAT_PAY_NOTIFY_URL=https://www.goye.cc/destiny-api/payments/wechat/notify
+```
+
+证书文件建议路径：
+
+```text
+/root/certs/wechatpay/apiclient_key.pem
+```
+
+目录权限建议：
+
+```bash
+mkdir -p /root/certs/wechatpay
+chmod 700 /root/certs/wechatpay
+chmod 600 /root/certs/wechatpay/apiclient_key.pem
+```
+
+打开真实支付前检查：
+
+1. 微信支付商户号已经开通 JSAPI/小程序支付。
+2. 小程序 AppID 已经绑定该商户号。
+3. 商户平台已设置 API v3 密钥。
+4. 服务器已放置 `apiclient_key.pem`。
+5. 已把 `WECHAT_PAY_ENABLED=true` 写入服务器环境配置。
+6. 重启 `destiny-api` 后，在小程序商城创建订单能拉起 `wx.requestPayment`。
+
+支付回调地址：
+
+```text
+https://www.goye.cc/destiny-api/payments/wechat/notify
+```
+
+说明：
+
+- 支付成功回调会验签、解密，并调用现有支付成功流程。
+- 虚拟商品支付成功后自动发放权益。
+- 实物商品支付成功后进入待发货。
+- 微信退款接口仍未开启，退款继续走后台人工审核。

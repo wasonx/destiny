@@ -1,10 +1,11 @@
-const { generateInsight } = require('../../utils/api');
-const { buildFallbackReport } = require('../../utils/fallback');
+const { createReport } = require('../../utils/report-generator');
 
 Page({
   data: {
     concern: '整体',
     gender: 'male',
+    birthdate: '',
+    birthtime: '',
     reportTier: 'free',
     loading: false,
     concerns: ['整体', '感情', '事业', '财富', '学业', '家庭', '身心'],
@@ -30,28 +31,26 @@ Page({
     this.setData({ reportTier: event.currentTarget.dataset.value });
   },
 
+  onBirthDateChange(event) {
+    this.setData({ birthdate: event.detail.value });
+  },
+
+  onBirthTimeChange(event) {
+    this.setData({ birthtime: event.detail.value });
+  },
+
   submit(event) {
+    if (!this.data.birthdate) {
+      wx.showToast({ title: '请选择出生日期', icon: 'none' });
+      return;
+    }
     const payload = {
-      ...event.detail.value,
+      birthdate: this.data.birthdate,
+      birthtime: this.data.birthtime,
+      birthplace: event.detail.value.birthplace,
       concern: this.data.concern,
       gender: this.data.gender,
     };
-
-    this.createReport('life', payload);
-  },
-
-  createReport(kind, payload) {
-    this.setData({ loading: true });
-    generateInsight(kind, payload, this.data.reportTier)
-      .catch(() => buildFallbackReport(kind, payload, this.data.reportTier))
-      .then((report) => {
-        const app = getApp();
-        app.globalData.currentReport = report;
-        wx.setStorageSync('lastReport', report);
-        wx.navigateTo({ url: '/pages/report/index' });
-      })
-      .finally(() => {
-        this.setData({ loading: false });
-      });
+    createReport(this, 'life', payload, this.data.reportTier);
   },
 });

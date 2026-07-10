@@ -1,10 +1,32 @@
 import { createHash } from 'node:crypto';
+import { mkdirSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import multer from 'multer';
 import { createLoginSession, createSessionToken } from '../auth/sessions.mjs';
 import { createWechatSessionProvider, WechatSessionError } from '../auth/wechat-session-provider.mjs';
 import { findSession } from '../middleware/require-session.mjs';
+import { generateOtpCode, isRealSmsProvider, sendLoginOtp } from '../auth/sms-provider.mjs';
 import { memory, nextId } from './memory-state.mjs';
 
-const mockCode = '246810';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadsDir = path.resolve(__dirname, '..', '..', 'uploads');
+try {
+  mkdirSync(uploadsDir, { recursive: true });
+} catch (error) {
+  // uploads dir creation is best-effort; request handler surfaces failures
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadsDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname) || '.jpg';
+    const name = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${ext}`;
+    cb(null, name);
+  },
+});
+const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
 function hashOtp(phone, code) {
   return createHash('sha256').update(`${phone}:${code}`).digest('hex');
@@ -18,13 +40,14 @@ function normalizeCode(code) {
   return String(code || '').trim();
 }
 
-function buildMockSmsPayload(config) {
+function buildSmsProviderPayload(config) {
+  const realProvider = isRealSmsProvider(config);
   return {
-    provider: 'mock',
+    provider: realProvider ? 'tencent' : 'mock',
     smsSign: config.tencentSmsSignName,
-    templateId: config.tencentSmsLoginTemplateId || 'mock-login-template',
+    templateId: config.tencentSmsLoginTemplateId || '',
     template: '您的登录验证码为 {code}，5 分钟内有效。如非本人操作，请忽略。',
-    realProviderEnabled: false,
+    realProviderEnabled: realProvider,
   };
 }
 
@@ -164,43 +187,105 @@ export function mountCustomerAuthRoutes(app, { config, pool, wechatSessionProvid
       res.status(400).json({ error: 'PHONE_REQUIRED' });
       return;
     }
-    const provider = 'mock';
-    const templateId = config.tencentSmsLoginTemplateId || 'mock-login-template';
-    const signName = config.tencentSmsSignName;
-    const providerPayload = buildMockSmsPayload(config);
-    if (pool) {
-      const recent = await pool.query(
-        `
-          select count(*)::int as send_count
-          from app.sms_otp_challenges
-          where phone = $1
-            and purpose = 'login'
-            and created_at > now() - ($2 || ' seconds')::interval
-        `,
-        [phone, config.smsSendCooldownSeconds],
-      );
-      if (Number(recent.rows[0]?.send_count || 0) > 0) {
-        res.status(429).json({ error: 'OTP_SEND_TOO_FREQUENT' });
+
+    const code = generateOtpCode();
+    const realProvider = isRealSmsProvider(config);
+    const providerPayload = buildSmsProviderPayload(config);
+
+    // dev / no-DB mode: keep working for local development without a database
+    if (!pool) {
+      if (!realProvider && !config.customerAuthMocksEnabled) {
+        res.status(503).json({ error: 'SMS_NOT_CONFIGURED' });
         return;
       }
-
-      const challenge = await pool.query(
-        `
-          insert into app.sms_otp_challenges(phone, purpose, code_hash, expires_at, provider, provider_payload)
-          values ($1, 'login', $2, now() + ($3 || ' seconds')::interval, $4, $5)
-          returning id
-        `,
-        [phone, hashOtp(phone, mockCode), config.smsCodeTtlSeconds, provider, providerPayload],
-      );
-      await pool.query(
-        `
-          insert into app.sms_delivery_logs(challenge_id, phone, purpose, provider, status, template_id, sign_name, provider_payload)
-          values ($1, $2, 'login', $3, 'mock_sent', $4, $5, $6)
-        `,
-        [challenge.rows[0]?.id || null, phone, provider, templateId, signName, providerPayload],
-      );
+      memory.phoneOtp = {
+        phone,
+        code,
+        expiresAt: Date.now() + config.smsCodeTtlSeconds * 1000,
+      };
+      let provider = 'mock';
+      if (realProvider) {
+        try {
+          await sendLoginOtp({ phone, code, config });
+          provider = 'tencent';
+        } catch {
+          provider = 'mock';
+        }
+      }
+      res.json({
+        ok: true,
+        provider,
+        devCode: provider === 'tencent' ? undefined : code,
+        expiresInSeconds: config.smsCodeTtlSeconds,
+      });
+      return;
     }
-    res.json({ ok: true, provider, devCode: mockCode, expiresInSeconds: config.smsCodeTtlSeconds });
+
+    const recent = await pool.query(
+      `
+        select count(*)::int as send_count
+        from app.sms_otp_challenges
+        where phone = $1
+          and purpose = 'login'
+          and created_at > now() - ($2 || ' seconds')::interval
+      `,
+      [phone, config.smsSendCooldownSeconds],
+    );
+    if (Number(recent.rows[0]?.send_count || 0) > 0) {
+      res.status(429).json({ error: 'OTP_SEND_TOO_FREQUENT' });
+      return;
+    }
+
+    // Real provider path: send via Tencent Cloud SMS, never leak the code
+    if (realProvider) {
+      try {
+        await sendLoginOtp({ phone, code, config });
+        const challenge = await pool.query(
+          `
+            insert into app.sms_otp_challenges(phone, purpose, code_hash, expires_at, provider, provider_payload)
+            values ($1, 'login', $2, now() + ($3 || ' seconds')::interval, $4, $5)
+            returning id
+          `,
+          [phone, hashOtp(phone, code), config.smsCodeTtlSeconds, 'tencent', providerPayload],
+        );
+        await pool.query(
+          `
+            insert into app.sms_delivery_logs(challenge_id, phone, purpose, provider, status, template_id, sign_name, provider_payload)
+            values ($1, $2, 'login', $3, 'sent', $4, $5, $6)
+          `,
+          [challenge.rows[0]?.id || null, phone, 'tencent', config.tencentSmsLoginTemplateId, config.tencentSmsSignName, providerPayload],
+        );
+        res.json({ ok: true, provider: 'tencent', expiresInSeconds: config.smsCodeTtlSeconds });
+        return;
+      } catch (error) {
+        if (!config.customerAuthMocksEnabled) {
+          res.status(502).json({ error: 'SMS_SEND_FAILED', detail: error.meta?.code || undefined });
+          return;
+        }
+        // fall through to mock/dev fallback so local testing still works
+      }
+    } else if (!config.customerAuthMocksEnabled) {
+      res.status(503).json({ error: 'SMS_NOT_CONFIGURED' });
+      return;
+    }
+
+    // mock / dev fallback
+    const challenge = await pool.query(
+      `
+        insert into app.sms_otp_challenges(phone, purpose, code_hash, expires_at, provider, provider_payload)
+        values ($1, 'login', $2, now() + ($3 || ' seconds')::interval, $4, $5)
+        returning id
+      `,
+      [phone, hashOtp(phone, code), config.smsCodeTtlSeconds, 'mock', providerPayload],
+    );
+    await pool.query(
+      `
+        insert into app.sms_delivery_logs(challenge_id, phone, purpose, provider, status, template_id, sign_name, provider_payload)
+        values ($1, $2, 'login', $3, 'mock_sent', $4, $5, $6)
+      `,
+      [challenge.rows[0]?.id || null, phone, 'mock', config.tencentSmsLoginTemplateId, config.tencentSmsSignName, providerPayload],
+    );
+    res.json({ ok: true, provider: 'mock', devCode: code, expiresInSeconds: config.smsCodeTtlSeconds });
   });
 
   app.post('/destiny-api/customer/otp/verify', async (req, res) => {
@@ -215,10 +300,13 @@ export function mountCustomerAuthRoutes(app, { config, pool, wechatSessionProvid
       return;
     }
     if (!pool) {
-      if (code !== mockCode) {
+      const stored = memory.phoneOtp;
+      const expired = !stored || stored.expiresAt < Date.now();
+      if (expired || stored.phone !== phone || stored.code !== code) {
         res.status(400).json({ error: 'INVALID_CODE' });
         return;
       }
+      memory.phoneOtp = null;
       res.json({ token: memory.customerToken, customer: { id: 'dev-customer', phone } });
       return;
     }
@@ -402,5 +490,27 @@ export function mountCustomerAuthRoutes(app, { config, pool, wechatSessionProvid
       return;
     }
     res.json({ ok: true, status: 'confirmed', customerId: result.rows[0].customer_id });
+  });
+
+  app.post('/destiny-api/customer/uploads', (req, res) => {
+    (async () => {
+      const session = pool ? await findSession(req, { pool, config, accountTypes: ['customer'] }) : null;
+      if (pool && !session) {
+        res.status(401).json({ error: 'UNAUTHORIZED' });
+        return;
+      }
+      upload.single('file')(req, res, (err) => {
+        if (err) {
+          res.status(400).json({ error: 'UPLOAD_FAILED', detail: err.message });
+          return;
+        }
+        if (!req.file) {
+          res.status(400).json({ error: 'NO_FILE' });
+          return;
+        }
+        const url = `/destiny-api/uploads/${req.file.filename}`;
+        res.json({ ok: true, url, id: req.file.filename, size: req.file.size });
+      });
+    })();
   });
 }

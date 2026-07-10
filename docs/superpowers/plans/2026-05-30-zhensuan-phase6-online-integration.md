@@ -1,4 +1,4 @@
-﻿# 甄算 阶段 6：线上联调与发布闭环实施计划
+﻿# 甄好算 阶段 6：线上联调与发布闭环实施计划
 
 > **给执行代理看的要求：** 按任务逐项执行。执行时优先使用 `superpowers:subagent-driven-development`，也可以使用 `superpowers:executing-plans`。每个任务完成后都要测试、提交，再进入下一项。
 

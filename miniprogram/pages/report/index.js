@@ -76,9 +76,24 @@ function formatHistoryRun(run) {
   };
 }
 
+function formatElements(elements) {
+  if (!elements || typeof elements !== 'object') return [];
+  const entries = Object.keys(elements).map((name) => ({ name, value: Number(elements[name]) || 0 }));
+  const max = Math.max(1, ...entries.map((e) => e.value));
+  return entries.map((e) => ({ ...e, percent: Math.round((e.value / max) * 100) }));
+}
+
+const reTestPages = {
+  life: 'life',
+  relationship: 'relationship',
+  question: 'question',
+  space: 'space',
+};
+
 Page({
   data: {
     report: null,
+    elementList: [],
     historyRuns: [],
     selectedRunId: '',
     loadingHistory: false,
@@ -87,7 +102,7 @@ Page({
   onLoad() {
     const app = getApp();
     const report = app.globalData.currentReport || wx.getStorageSync('lastReport') || buildFallbackReport('life');
-    this.setData({ report });
+    this.setReport(report);
     this.loadHistory();
   },
 
@@ -95,16 +110,24 @@ Page({
     this.loadHistory();
   },
 
+  // 统一设置当前报告，并派生五行可视化数据
+  setReport(report) {
+    if (!report) return;
+    this.setData({
+      report,
+      elementList: formatElements(report.elements),
+    });
+  },
+
   loadHistory() {
     this.setData({ loadingHistory: true });
     api.listReportRuns()
       .then((data) => {
         const historyRuns = (data.reportRuns || []).map(formatHistoryRun);
-        const firstReport = historyRuns[0] ? formatReportRun(historyRuns[0]) : null;
         this.setData({
           historyRuns,
-          report: firstReport || this.data.report,
-          selectedRunId: historyRuns[0]?.id || this.data.selectedRunId,
+          // 仅在尚未选择时默认选中第一条历史，绝不覆盖当前正在查看的报告
+          selectedRunId: this.data.selectedRunId || historyRuns[0]?.id || '',
         });
       })
       .catch(() => {
@@ -124,16 +147,31 @@ Page({
         const run = data.reportRun || null;
         const report = formatReportRun(run);
         if (report) {
-          this.setData({ report });
+          this.setReport(report);
         }
       })
       .catch(() => {
         const run = this.data.historyRuns.find((item) => item.id === id);
         const report = formatReportRun(run);
         if (report) {
-          this.setData({ report });
+          this.setReport(report);
         }
       });
+  },
+
+  reTest() {
+    const kind = this.data.report && this.data.report.kind;
+    const page = reTestPages[kind];
+    if (!page) return;
+    wx.navigateTo({ url: `/pages/${page}/index` });
+  },
+
+  onShareAppMessage() {
+    const report = this.data.report || {};
+    return {
+      title: report.title ? `${report.title} · 甄好算` : '甄好算参考报告',
+      path: '/pages/home/index',
+    };
   },
 
   goHome() {

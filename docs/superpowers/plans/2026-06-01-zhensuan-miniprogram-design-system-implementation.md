@@ -1,8 +1,8 @@
-# 甄算小程序设计系统 Implementation Plan
+# 甄好算小程序设计系统 Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 将原生微信小程序界面统一到 Web 端甄算视觉语言，建立可复用的小程序设计系统，并保持现有业务逻辑不变。
+**Goal:** 将原生微信小程序界面统一到 Web 端甄好算视觉语言，建立可复用的小程序设计系统，并保持现有业务逻辑不变。
 
 **Architecture:** 先扩展 `scripts/validate-miniprogram.mjs`，让静态验收覆盖设计系统类、页面覆盖和关键业务能力。再改 `miniprogram/app.wxss` 提供统一 token、卡片、按钮、表单、标签和状态类。最后按页面分组改 WXML/WXSS，尽量复用全局类，页面样式只保留局部布局。
 

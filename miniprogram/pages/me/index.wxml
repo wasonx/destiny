@@ -1,77 +1,109 @@
 <view class="page me-page">
-  <view class="me-hero">
-    <view>
-      <view class="brand">甄算 · 我的</view>
-      <view class="title">客户中心</view>
-      <view class="subtitle">查看报告、订单、收货地址和权益积分。</view>
-    </view>
-    <view class="account-badge {{hasToken ? 'active' : ''}}">{{hasToken ? '已登录' : '未登录'}}</view>
-  </view>
 
-  <view class="section account-card zs-card-teal">
-    <view class="account-title">{{hasToken ? '甄算客户账号' : '登录后查看权益'}}</view>
-    <view class="account-desc">{{hasToken ? '你的报告权益和积分会在这里汇总。' : '支持微信登录，也可以进入登录页使用手机验证码。'}}</view>
-    <view class="account-actions" wx:if="{{!hasToken}}">
-      <button class="teal-button account-button" type="default" bindtap="loginWithWechat" loading="{{loading}}" disabled="{{loading}}">微信登录</button>
-      <button class="ghost-button account-button" type="default" bindtap="openLogin">手机验证码</button>
+  <!-- 顶部用户区域 -->
+  <view class="me-header">
+    <view class="me-avatar">
+      <view class="me-avatar-inner">{{hasToken ? '甄' : '?'}}</view>
+      <view class="me-avatar-ring" />
+    </view>
+    <view class="me-user-info">
+      <view class="me-username">{{hasToken ? '甄好算客户' : '未登录'}}</view>
+      <view class="me-status-badge {{hasToken ? 'badge-active' : 'badge-inactive'}}">
+        {{hasToken ? '✓ 已登录' : '● 未登录'}}
+      </view>
     </view>
   </view>
 
-  <view class="metric-grid">
-    <view class="metric-card">
-      <view class="metric-value">{{reportQuota}}</view>
-      <view class="metric-label">报告次数</view>
-    </view>
-    <view class="metric-card">
-      <view class="metric-value">{{pointsBalance}}</view>
-      <view class="metric-label">积分余额</view>
-    </view>
-    <view class="metric-card">
-      <view class="metric-value level">{{growthLevel}}</view>
-      <view class="metric-label">会员等级</view>
+  <!-- 未登录：登录区域 -->
+  <view class="login-card zs-card" wx:if="{{!hasToken}}">
+    <view class="login-card-text">登录后查看报告次数、订单与积分</view>
+    <view class="login-buttons">
+      <t-button theme="primary" size="medium" block loading="{{loading}}" disabled="{{loading}}" bindtap="loginWithWechat">微信一键登录</t-button>
+      <t-button theme="default" variant="outline" size="medium" block bindtap="openLogin">手机验证码</t-button>
     </view>
   </view>
 
-  <view class="section menu-card zs-card">
-    <view class="section-title">常用功能</view>
-    <view class="menu-row" bindtap="openReports">
-      <view>
-        <view class="menu-title">报告历史</view>
-        <view class="menu-desc">查看已生成的参考报告</view>
+  <!-- 已登录：权益数据 -->
+  <view class="stat-row" wx:if="{{hasToken}}">
+    <view class="stat-item">
+      <view class="stat-num">{{reportQuota}}</view>
+      <view class="stat-label">报告次数</view>
+    </view>
+    <view class="stat-sep" />
+    <view class="stat-item">
+      <view class="stat-num">{{pointsBalance}}</view>
+      <view class="stat-label">积 分</view>
+    </view>
+    <view class="stat-sep" />
+    <view class="stat-item">
+      <view class="stat-num stat-level">{{growthLevel}}</view>
+      <view class="stat-label">等 级</view>
+    </view>
+  </view>
+
+  <!-- 常用功能菜单 -->
+  <view class="menu-card zs-card">
+    <view class="menu-title">常用功能</view>
+    <view class="menu-item" bindtap="openReports">
+      <view class="menu-item-left">
+        <view class="menu-icon menu-icon-teal">📄</view>
+        <view>
+          <view class="menu-item-name">报告历史</view>
+          <view class="menu-item-desc">查看已生成的参考报告</view>
+        </view>
       </view>
       <view class="menu-arrow">›</view>
     </view>
-    <view class="menu-row" bindtap="openOrders">
-      <view>
-        <view class="menu-title">我的订单</view>
-        <view class="menu-desc">查看支付、发货与退款进度</view>
+    <view class="menu-item" bindtap="openOrders">
+      <view class="menu-item-left">
+        <view class="menu-icon menu-icon-gold">🧾</view>
+        <view>
+          <view class="menu-item-name">我的订单</view>
+          <view class="menu-item-desc">支付、发货与退款进度</view>
+        </view>
       </view>
       <view class="menu-arrow">›</view>
     </view>
-    <view class="menu-row" bindtap="openAddress">
-      <view>
-        <view class="menu-title">收货地址</view>
-        <view class="menu-desc">管理实物商品收货信息</view>
+    <view class="menu-item" bindtap="openAddress">
+      <view class="menu-item-left">
+        <view class="menu-icon menu-icon-teal">📍</view>
+        <view>
+          <view class="menu-item-name">收货地址</view>
+          <view class="menu-item-desc">管理实物商品收货信息</view>
+        </view>
       </view>
       <view class="menu-arrow">›</view>
     </view>
-    <view class="menu-row" bindtap="openStore">
-      <view>
-        <view class="menu-title">购买权益</view>
-        <view class="menu-desc">进入商城购买报告次数或实物商品</view>
+    <view class="menu-item menu-item-last" bindtap="openStore">
+      <view class="menu-item-left">
+        <view class="menu-icon menu-icon-gold">✦</view>
+        <view>
+          <view class="menu-item-name">购买权益</view>
+          <view class="menu-item-desc">商城：报告次数与精选好物</view>
+        </view>
       </view>
       <view class="menu-arrow">›</view>
     </view>
   </view>
 
-  <view class="section menu-card zs-card">
-    <view class="section-title">服务说明</view>
-    <view class="menu-row last" bindtap="openLegal">
-      <view>
-        <view class="menu-title">协议与隐私</view>
-        <view class="menu-desc">查看用户协议、隐私政策与风险边界</view>
+  <!-- 服务说明菜单 -->
+  <view class="menu-card zs-card">
+    <view class="menu-title">关于</view>
+    <view class="menu-item menu-item-last" bindtap="openLegal">
+      <view class="menu-item-left">
+        <view class="menu-icon menu-icon-dim">📜</view>
+        <view>
+          <view class="menu-item-name">协议与隐私</view>
+          <view class="menu-item-desc">用户协议、隐私政策与风险边界</view>
+        </view>
       </view>
       <view class="menu-arrow">›</view>
     </view>
   </view>
+
+  <!-- 退出登录 -->
+  <view class="logout-area" wx:if="{{hasToken}}">
+    <view class="logout-btn" bindtap="logout">退出登录</view>
+  </view>
+
 </view>

@@ -1,6 +1,6 @@
 <view class="page">
   <view class="hero">
-    <view class="brand">甄算 · 订单</view>
+    <view class="brand">甄好算 · 订单</view>
     <view class="title">查看订单与退款进度</view>
     <view class="subtitle">支付、发货和退款由后台人工确认处理。</view>
   </view>
@@ -17,16 +17,31 @@
         </view>
         <view class="order-amount">合计 ¥{{item.amountText}}</view>
         <view wx:if="{{item.shipmentText}}" class="shipment">物流：{{item.shipmentText}}</view>
-        <button
-          wx:if="{{item.status !== 'refund_requested' && item.status !== 'refunded' && item.status !== 'closed'}}"
-          class="secondary-button refund-button"
-          data-id="{{item.id}}"
-          bindtap="requestRefund"
-          loading="{{refundingId === item.id}}"
-          disabled="{{!!refundingId}}"
-        >
-          申请退款
-        </button>
+        <view class="order-actions">
+          <t-button
+            wx:if="{{item.status === 'pending_payment'}}"
+            theme="primary"
+            size="small"
+            data-id="{{item.id}}"
+            bindtap="payOrder"
+            loading="{{payingId === item.id}}"
+            disabled="{{!!payingId}}"
+          >
+            去支付
+          </t-button>
+          <t-button
+            wx:if="{{item.status !== 'refund_requested' && item.status !== 'refunded' && item.status !== 'closed'}}"
+            theme="light"
+            size="small"
+            variant="outline"
+            data-id="{{item.id}}"
+            bindtap="requestRefund"
+            loading="{{refundingId === item.id}}"
+            disabled="{{!!refundingId}}"
+          >
+            申请退款
+          </t-button>
+        </view>
       </view>
     </block>
   </view>

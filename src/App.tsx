@@ -87,15 +87,15 @@ export default function App() {
   };
 
   const getTitle = () => {
-    if (reportsView) return "甄算 · 报告";
+    if (reportsView) return "甄好算 · 报告";
     switch (view) {
-      case 'input': return "甄算 · 照见";
-      case 'report': return "甄算 · 照见";
-      case 'relationship': return "甄算 · 合缘";
-      case 'questions': return "甄算 · 问时";
-      case 'anju': return "甄算 · 安居";
-      case 'profile': return "甄算 · 我";
-      default: return "甄算";
+      case 'input': return "甄好算 · 照见";
+      case 'report': return "甄好算 · 照见";
+      case 'relationship': return "甄好算 · 合缘";
+      case 'questions': return "甄好算 · 问时";
+      case 'anju': return "甄好算 · 安居";
+      case 'profile': return "甄好算 · 我";
+      default: return "甄好算";
     }
   };
 

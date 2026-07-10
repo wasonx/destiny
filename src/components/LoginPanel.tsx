@@ -114,7 +114,7 @@ export default function LoginPanel({ onLoggedIn }: Props) {
         {qrImage ? (
           <div className="mt-4 flex flex-col items-center gap-2 rounded-md bg-rice-paper p-4 text-center">
             <img src={qrImage} alt="扫码登录二维码" className="h-[180px] w-[180px]" />
-            <p className="text-xs text-mist-gray">{qrStatus === 'pending' ? '请用甄算微信小程序扫码确认' : qrStatus}</p>
+            <p className="text-xs text-mist-gray">{qrStatus === 'pending' ? '请用甄好算微信小程序扫码确认' : qrStatus}</p>
           </div>
         ) : null}
       </div>

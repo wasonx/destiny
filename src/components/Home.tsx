@@ -54,7 +54,7 @@ export default function Home({ onNavigate }: HomeProps) {
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col items-center text-center mt-4 mb-2"
       >
-        <p className="font-mono text-xs text-wisdom-gold mb-3 uppercase tracking-widest">甄算</p>
+        <p className="font-mono text-xs text-wisdom-gold mb-3 uppercase tracking-widest">甄好算</p>
         <h2 className="font-serif text-2xl md:text-3xl text-ink-blue mb-4">整理当下信息，获得清晰参考</h2>
         <p className="text-secondary-fixed-dim text-sm md:text-base max-w-md mx-auto mb-8">
           基于东方传统文化与 AI，生成个人、关系、事项与空间环境参考报告

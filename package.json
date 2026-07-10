@@ -1,5 +1,5 @@
 {
-  "name": "react-example",
+  "name": "zhensuan",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -12,8 +12,10 @@
     "admin:create": "node server/scripts/create-admin.mjs",
     "graph:seed": "node server/graph/seed-bazi-ontology.mjs",
     "test:server": "node --test server/tests/*.test.mjs",
-    "test:py": "python -m unittest tests.test_branding tests.test_miniprogram_scaffold tests.test_phase_admin_scaffold tests.test_phase6_online_integration_scaffold",
+    "test:py": "python -m unittest tests.test_branding tests.test_miniprogram_scaffold tests.test_phase_admin_scaffold tests.test_phase6_online_integration_scaffold tests.test_wechat_pay_config_script",
     "test:miniprogram": "node scripts/validate-miniprogram.mjs",
+    "prune:tdesign": "node scripts/prune-tdesign.mjs",
+    "sync:tdesign": "node scripts/sync-tdesign.mjs",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit"
   },
@@ -26,6 +28,7 @@
     "lucide-react": "^0.546.0",
     "lunar-javascript": "^1.7.7",
     "motion": "^12.23.24",
+    "multer": "^2.2.0",
     "neo4j-driver": "^5.28.1",
     "pg": "^8.13.1",
     "qrcode": "^1.5.4",

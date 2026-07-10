@@ -1,5 +1,4 @@
-const { generateInsight } = require('../../utils/api');
-const { buildFallbackReport } = require('../../utils/fallback');
+const { createReport } = require('../../utils/report-generator');
 
 Page({
   data: {
@@ -37,21 +36,6 @@ Page({
       askedAt: new Date().toISOString(),
     };
 
-    this.createReport('question', payload);
-  },
-
-  createReport(kind, payload) {
-    this.setData({ loading: true });
-    generateInsight(kind, payload, this.data.reportTier)
-      .catch(() => buildFallbackReport(kind, payload, this.data.reportTier))
-      .then((report) => {
-        const app = getApp();
-        app.globalData.currentReport = report;
-        wx.setStorageSync('lastReport', report);
-        wx.navigateTo({ url: '/pages/report/index' });
-      })
-      .finally(() => {
-        this.setData({ loading: false });
-      });
+    createReport(this, 'question', payload, this.data.reportTier);
   },
 });

@@ -2,12 +2,12 @@ export const legalDocuments = {
   version: '2026-05-30',
   documents: {
     userAgreement: {
-      title: '甄算用户协议',
+      title: '甄好算用户协议',
       updatedAt: '2026-05-30',
       sections: [
         {
           heading: '服务性质',
-          content: '甄算提供基于用户输入、本地知识库、图谱关系和大模型表达生成的生活参考报告。报告用于自我整理、沟通辅助和一般生活参考，不构成事实承诺或结果保证。',
+          content: '甄好算提供基于用户输入、本地知识库、图谱关系和大模型表达生成的生活参考报告。报告用于自我整理、沟通辅助和一般生活参考，不构成事实承诺或结果保证。',
         },
         {
           heading: '用户责任',
@@ -20,12 +20,12 @@ export const legalDocuments = {
       ],
     },
     privacyPolicy: {
-      title: '甄算隐私政策',
+      title: '甄好算隐私政策',
       updatedAt: '2026-05-30',
       sections: [
         {
           heading: '信息收集范围',
-          content: '甄算会收集用户主动填写的出生信息、关系信息、事项问题、空间信息、收货地址、手机号登录标识、微信 openid 或 unionid，以及报告生成和订单履约所需记录。',
+          content: '甄好算会收集用户主动填写的出生信息、关系信息、事项问题、空间信息、收货地址、手机号登录标识、微信 openid 或 unionid，以及报告生成和订单履约所需记录。',
         },
         {
           heading: '信息使用范围',
@@ -33,7 +33,7 @@ export const legalDocuments = {
         },
         {
           heading: '信息保护',
-          content: '后台访问受账号和角色权限限制，敏感运营操作写入审计日志。甄算不会在 1.0 中接入真实腾讯云短信或真实微信支付密钥。',
+          content: '后台访问受账号和角色权限限制，敏感运营操作写入审计日志。甄好算不会在 1.0 中接入真实腾讯云短信或真实微信支付密钥。',
         },
       ],
     },

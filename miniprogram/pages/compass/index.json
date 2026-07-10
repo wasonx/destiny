@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "甄算 · 罗盘"
+  "navigationBarTitleText": "甄好算 · 罗盘",
+  "usingComponents": {
+    "t-button": "tdesign-miniprogram/button/button"
+  }
 }

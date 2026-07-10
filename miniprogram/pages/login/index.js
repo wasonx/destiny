@@ -39,6 +39,10 @@ Page({
     this.setData({ code: event.detail.value.trim() });
   },
 
+  openLegal() {
+    wx.navigateTo({ url: '/pages/legal/index' });
+  },
+
   finishLogin(message) {
     this.setData({ message });
     wx.showToast({ title: message, icon: 'success' });
@@ -106,8 +110,8 @@ Page({
     this.setData({ sending: true, message: '' });
     auth.sendPhoneOtp(this.data.phone)
       .then((data) => {
-        const suffix = data && data.devCode ? `，测试码 ${data.devCode}` : '';
-        this.setData({ message: `验证码已模拟发送${suffix}` });
+        const suffix = data && data.devCode ? `（测试码 ${data.devCode}）` : '';
+        this.setData({ message: `验证码已发送${suffix}` });
         wx.showToast({ title: '验证码已发送', icon: 'success' });
       })
       .catch(() => {

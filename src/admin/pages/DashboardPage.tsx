@@ -12,7 +12,7 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <section>
         <h2 className="font-serif text-2xl mb-2">总览</h2>
-        <p className="text-sm text-on-surface-variant">甄算知识库、报告、会员、订单和运维状态集中视图。</p>
+        <p className="text-sm text-on-surface-variant">甄好算知识库、报告、会员、订单和运维状态集中视图。</p>
       </section>
       <div className="grid gap-4 md:grid-cols-4">
         {stats.map(([label, value]) => (

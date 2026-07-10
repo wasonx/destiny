@@ -37,7 +37,7 @@ export default function LoginPage({ onLoggedIn }: Props) {
     <div className="min-h-screen bg-[#f7f7f4] flex items-center justify-center px-4">
       <form onSubmit={submit} className="w-full max-w-sm rounded-lg border border-shadow-gray bg-white p-6 shadow-sm">
         <p className="text-xs text-wisdom-gold mb-2">ZHENSUAN ADMIN</p>
-        <h1 className="font-serif text-2xl text-ink-blue mb-6">甄算后台登录</h1>
+        <h1 className="font-serif text-2xl text-ink-blue mb-6">甄好算后台登录</h1>
         <label className="block text-sm mb-2">账号</label>
         <div className="mb-4 flex items-center gap-2 rounded-md border border-shadow-gray px-3">
           <User className="h-4 w-4 text-serene-teal" />

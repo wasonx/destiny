@@ -45,4 +45,10 @@ Page({
       url: event.currentTarget.dataset.url,
     });
   },
+
+  goToTab(event) {
+    wx.switchTab({
+      url: event.currentTarget.dataset.url,
+    });
+  },
 });

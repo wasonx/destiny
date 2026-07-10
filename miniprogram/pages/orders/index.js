@@ -29,6 +29,7 @@ Page({
     orders: [],
     loading: false,
     refundingId: '',
+    payingId: '',
   },
 
   onShow() {
@@ -55,6 +56,56 @@ Page({
       wx.showToast({ title: '订单加载失败', icon: 'none' });
     }).finally(() => {
       this.setData({ loading: false });
+    });
+  },
+
+  payOrder(event) {
+    const orderId = event.currentTarget.dataset.id;
+    if (this.data.payingId) return;
+    this.setData({ payingId: orderId });
+    api.payOrder(orderId).then((data) => {
+      if (!data || !data.paymentParams) {
+        wx.showToast({ title: '支付参数获取失败', icon: 'none' });
+        return;
+      }
+      console.log('[pay] paymentParams:', JSON.stringify(data.paymentParams));
+      console.log('[pay] keys:', Object.keys(data.paymentParams).join(','));
+      console.log('[pay] package:', data.paymentParams.package);
+      console.log('[pay] signType:', data.paymentParams.signType);
+      return new Promise((resolve, reject) => {
+        wx.requestPayment({
+          ...data.paymentParams,
+          success: () => resolve(),
+          fail: (error) => {
+            console.error('[pay] requestPayment error:', JSON.stringify(error));
+            const errMsg = error.errMsg || '';
+            if (errMsg.indexOf('cancel') >= 0) {
+              wx.showToast({ title: '已取消支付', icon: 'none' });
+            } else {
+              const detail = [
+                '支付调用失败',
+                '',
+                '错误信息:',
+                errMsg || '(无)',
+                '',
+                '请截图发给开发者排查',
+              ].join('\n');
+              wx.showModal({
+                title: '支付失败',
+                content: detail,
+                showCancel: false,
+                confirmText: '知道了',
+              });
+            }
+            reject(error);
+          },
+        });
+      });
+    }).then(() => {
+      wx.showToast({ title: '支付成功', icon: 'success' });
+      this.loadOrders();
+    }).catch(() => {}).finally(() => {
+      this.setData({ payingId: '' });
     });
   },
 

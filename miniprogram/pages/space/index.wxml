@@ -1,6 +1,6 @@
 <view class="page">
   <view class="hero">
-    <view class="brand">甄算 · 安居</view>
+    <view class="brand">甄好算 · 安居</view>
     <view class="title">空间环境参考</view>
     <view class="subtitle">填写空间信息与关注问题，生成居住或办公环境调整建议。</view>
   </view>
@@ -21,8 +21,8 @@
       </view>
       <view class="field">
         <text class="label">房屋朝向</text>
-        <input class="input" name="direction" placeholder="例如：坐北朝南" />
-        <button class="secondary-button compass-link" type="default" bindtap="openCompass">打开电子罗盘</button>
+        <input class="input" name="direction" placeholder="坐北朝南，或点下方罗盘测量" value="{{direction}}" />
+        <t-button theme="light" size="small" variant="outline" bindtap="openCompass">打开电子罗盘</t-button>
       </view>
       <view class="field">
         <text class="label">入户门位置</text>
@@ -43,10 +43,17 @@
           </block>
         </view>
       </view>
-      <button class="secondary-button" type="default" bindtap="choosePhotos">
-        <block wx:if="{{photoCount}}">已选择 {{photoCount}} 张照片</block>
+      <t-button theme="default" variant="outline" type="default" bindtap="choosePhotos" disabled="{{uploading}}">
+        <block wx:if="{{photos.length}}">已选择 {{photos.length}}/{{maxPhotos}} 张照片</block>
+        <block wx:elif="{{uploading}}">上传中…</block>
         <block wx:else>选择环境照片</block>
-      </button>
+      </t-button>
+      <view wx:if="{{photos.length}}" style="display:flex;flex-wrap:wrap;gap:12rpx;margin-top:16rpx;">
+        <view wx:for="{{photos}}" wx:key="*this" data-index="{{index}}" bindtap="removePhoto" style="position:relative;width:120rpx;height:120rpx;">
+          <image src="{{item}}" mode="aspectFill" style="width:120rpx;height:120rpx;border-radius:12rpx;" />
+          <view style="position:absolute;top:-8rpx;right:-8rpx;width:32rpx;height:32rpx;line-height:32rpx;text-align:center;background:rgba(0,0,0,0.6);color:#fff;border-radius:50%;font-size:24rpx;">×</view>
+        </view>
+      </view>
     </view>
 
     <view class="section zs-card-gold">
@@ -61,9 +68,9 @@
       </view>
     </view>
 
-    <button class="primary-button" form-type="submit" loading="{{loading}}" disabled="{{loading}}">
+    <t-button theme="primary" block form-type="submit" loading="{{loading}}" disabled="{{loading}}">
       {{loading ? '正在生成' : '生成环境参考报告'}}
-    </button>
+    </t-button>
   </form>
 
   <view class="notice">可隐藏详细门牌号，资料仅用于生成本次环境参考报告。</view>

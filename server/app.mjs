@@ -1,4 +1,6 @@
 import express from 'express';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { mountAdminAuthRoutes } from './routes/admin-auth-routes.mjs';
 import { mountAuditRoutes } from './routes/audit-routes.mjs';
 import { mountCommerceRoutes } from './routes/commerce-routes.mjs';
@@ -20,9 +22,19 @@ import { createPublishingGraphSyncService } from './graph/publishing-graph-sync-
 
 export function createApp({ config, pool = null, graphDriver = null, wechatSessionProvider = null } = {}) {
   const app = express();
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const uploadsDir = path.resolve(__dirname, '..', 'uploads');
+  app.use('/destiny-api/uploads', express.static(uploadsDir, { maxAge: '7d' }));
   const publishingGraphSync = createPublishingGraphSyncService({ graphDriver, database: config.neo4jDatabase });
 
-  app.use(express.json({ limit: '1mb' }));
+  app.use(express.json({
+    limit: '1mb',
+    verify: (req, _res, buffer) => {
+      if (req.originalUrl === '/destiny-api/payments/wechat/notify') {
+        req.rawBody = buffer.toString('utf8');
+      }
+    },
+  }));
 
   mountReportRoutes(app, { config, pool, graphDriver });
   mountLegalRoutes(app);

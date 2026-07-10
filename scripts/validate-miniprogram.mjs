@@ -63,6 +63,7 @@ function walk(dir) {
   if (!fs.existsSync(dir)) return [];
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   return entries.flatMap((entry) => {
+    if (entry.isDirectory() && (entry.name === 'node_modules' || entry.name === 'miniprogram_npm')) return [];
     const fullPath = path.join(dir, entry.name);
     return entry.isDirectory() ? walk(fullPath) : [fullPath];
   });
@@ -84,7 +85,7 @@ const appJson = readJson(path.join(MINI, 'app.json'));
 const projectConfig = readJson(path.join(MINI, 'project.config.json'));
 assert(projectConfig?.appid === EXPECTED_APPID, `project.config.json appid must be ${EXPECTED_APPID}`);
 assert(JSON.stringify(appJson?.pages) === JSON.stringify(REQUIRED_PAGES), 'app.json pages are not the expected native page list');
-assert(appJson?.window?.navigationBarTitleText === '甄算', 'navigation title must be 甄算');
+assert(appJson?.window?.navigationBarTitleText === '甄好算', 'navigation title must be 甄好算');
 assert(JSON.stringify(appJson?.tabBar?.list) === JSON.stringify(EXPECTED_TABBAR), 'app.json must define native tabBar 首页/商城/我的');
 assert(appJson?.tabBar?.selectedColor === '#4A7C77', 'tabBar selected color must match Zhensuan teal');
 
@@ -188,13 +189,13 @@ const designSystemClasses = [
 for (const className of designSystemClasses) {
   assert(appWxss.includes(className), `app.wxss must define design system class ${className}`);
 }
-assert(homeWxml.includes('开始生成参考'), 'home page must include Web-aligned primary action');
-assert(homeWxml.includes('zs-card-accent'), 'home page must use accent cards for module entries');
-assert(homeWxml.includes('workbench-hero'), 'home page must use a product workbench hero instead of a plain slogan header');
-assert(homeWxml.includes('primary-grid'), 'home page must group core analysis entries into a compact primary grid');
+assert(homeWxml.includes('home-title'), 'home page must include the product workbench title');
+assert(homeWxml.includes('entry-card'), 'home page must use entry cards for module entries');
+assert(homeWxml.includes('home-hero'), 'home page must use a product workbench hero instead of a plain slogan header');
+assert(homeWxml.includes('entry-grid'), 'home page must group core analysis entries into a compact primary grid');
 assert(!homeWxml.includes('status-mini-card'), 'home page must not render a top-right login status card');
 assert(!homeJs.includes('hasToken') && !homeJs.includes('loginWithWechatCode'), 'home page must leave login state to the Me tab');
-assert(homeWxss.includes('primary-grid'), 'home wxss must style the compact primary grid');
+assert(homeWxss.includes('entry-grid'), 'home wxss must style the compact primary grid');
 assert(!homeWxml.includes('utility-strip'), 'home page must not feature secondary utility strip after tabBar navigation');
 assert(!homeJs.includes('utilityEntries'), 'home page data must not include compass/store/legal utility entries');
 assert(spaceWxml.includes('打开电子罗盘') && spaceJs.includes('/pages/compass/index'), 'space page must keep compass entry inside Anju flow');

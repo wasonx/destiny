@@ -47,7 +47,7 @@ test('mock OTP send records provider boundary and enforces cooldown', async () =
       SESSION_SECRET: 'test-secret',
       SMS_SEND_COOLDOWN_SECONDS: '60',
       TENCENT_SMS_LOGIN_TEMPLATE_ID: 'login-template',
-      TENCENT_SMS_SIGN_NAME: '甄算',
+      TENCENT_SMS_SIGN_NAME: '甄好算',
     }),
     pool,
   });
@@ -63,7 +63,7 @@ test('mock OTP send records provider boundary and enforces cooldown', async () =
     const firstData = await first.json();
     assert.equal(first.status, 200);
     assert.equal(firstData.provider, 'mock');
-    assert.equal(firstData.devCode, '246810');
+    assert.match(firstData.devCode, /^\d{6}$/);
 
     const second = await fetch(`http://127.0.0.1:${port}/destiny-api/customer/otp/send`, {
       method: 'POST',

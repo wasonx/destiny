@@ -15,7 +15,7 @@
     "pages/legal/index"
   ],
   "window": {
-    "navigationBarTitleText": "甄算",
+    "navigationBarTitleText": "甄好算",
     "navigationBarBackgroundColor": "#FDFCF8",
     "navigationBarTextStyle": "black",
     "backgroundColor": "#FDFCF8"
@@ -40,6 +40,10 @@
       }
     ]
   },
-  "style": "v2",
+  "permission": {
+    "scope.writePhotosAlbum": {
+      "desc": "用于保存报告图片到相册"
+    }
+  },
   "sitemapLocation": "sitemap.json"
 }

@@ -1,8 +1,8 @@
 <view class="page legal-page">
   <view class="hero">
-    <view class="brand">甄算 · 合规</view>
+    <view class="brand">甄好算 · 合规</view>
     <view class="title">用户协议、隐私政策与报告分层与风险边界说明</view>
-    <view class="subtitle">甄算报告仅用于自我整理和一般生活参考，不提供医疗、投资、法律等确定性建议。</view>
+    <view class="subtitle">甄好算报告仅用于自我整理和一般生活参考，不提供医疗、投资、法律等确定性建议。</view>
   </view>
 
   <view wx:if="{{loading}}" class="empty">合规文案加载中</view>

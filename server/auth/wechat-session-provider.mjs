@@ -58,7 +58,21 @@ export function createWechatSessionProvider({ config, fetchImpl = fetch } = {}) 
         throw new WechatSessionError('WECHAT_CODE_SESSION_FAILED', 'WeChat code2session HTTP request failed', { status: response.status });
       }
 
-      const payload = await response.json();
+      const rawText = await response.text();
+      let payload = {};
+      try {
+        payload = JSON.parse(rawText);
+      } catch {
+        // WeChat sometimes returns non-standard JSON like {code:invalid_code_for_verification}
+        // Extract errcode/errmsg using regex as a fallback
+        const codeMatch = rawText.match(/errcode["\s]*[:=]["\s]*([^,}\s"]+)/i) || rawText.match(/code["\s]*[:=]["\s]*([^,}\s"]+)/i);
+        const msgMatch = rawText.match(/errmsg["\s]*[:=]["\s]*["']?([^,"}']+)["']?/i);
+        if (codeMatch) {
+          payload = { errcode: codeMatch[1], errmsg: msgMatch?.[1] || rawText };
+        } else {
+          throw new WechatSessionError('WECHAT_CODE_SESSION_FAILED', 'WeChat code2session returned unparseable response', { raw: rawText.slice(0, 200) });
+        }
+      }
       if (payload.errcode) {
         throw new WechatSessionError('WECHAT_CODE_SESSION_FAILED', 'WeChat code2session returned an error', {
           wechatCode: payload.errcode,

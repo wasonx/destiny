@@ -1,6 +1,6 @@
 <view class="page">
   <view class="hero">
-    <view class="brand">甄算 · 合缘</view>
+    <view class="brand">甄好算 · 合缘</view>
     <view class="title">关系理解参考</view>
     <view class="subtitle">填写双方基础信息，梳理吸引点、摩擦点与沟通节奏。</view>
   </view>
@@ -10,11 +10,15 @@
       <view class="section-title">我的信息</view>
       <view class="field">
         <text class="label">出生日期</text>
-        <input class="input" name="selfBirthdate" placeholder="例如：1990-01-01" />
+        <picker mode="date" value="{{selfBirthdate}}" bindchange="onSelfBirthDateChange">
+          <view class="input" style="color:{{selfBirthdate ? '#1f2329' : '#9aa0a6'}}">{{selfBirthdate || '请选择出生日期'}}</view>
+        </picker>
       </view>
       <view class="field">
         <text class="label">出生时间</text>
-        <input class="input" name="selfBirthtime" placeholder="例如：08:30，不确定可留空" />
+        <picker mode="time" value="{{selfBirthtime}}" bindchange="onSelfBirthTimeChange">
+          <view class="input" style="color:{{selfBirthtime ? '#1f2329' : '#9aa0a6'}}">{{selfBirthtime || '不确定可留空'}}</view>
+        </picker>
       </view>
       <view class="field">
         <text class="label">出生地点</text>
@@ -26,11 +30,15 @@
       <view class="section-title">对方信息</view>
       <view class="field">
         <text class="label">出生日期</text>
-        <input class="input" name="otherBirthdate" placeholder="例如：1992-06-15" />
+        <picker mode="date" value="{{otherBirthdate}}" bindchange="onOtherBirthDateChange">
+          <view class="input" style="color:{{otherBirthdate ? '#1f2329' : '#9aa0a6'}}">{{otherBirthdate || '请选择（可选）'}}</view>
+        </picker>
       </view>
       <view class="field">
         <text class="label">出生时间</text>
-        <input class="input" name="otherBirthtime" placeholder="不确定可留空" />
+        <picker mode="time" value="{{otherBirthtime}}" bindchange="onOtherBirthTimeChange">
+          <view class="input" style="color:{{otherBirthtime ? '#1f2329' : '#9aa0a6'}}">{{otherBirthtime || '不确定可留空'}}</view>
+        </picker>
       </view>
       <view class="field">
         <text class="label">出生地点</text>
@@ -65,8 +73,8 @@
       </view>
     </view>
 
-    <button class="primary-button" form-type="submit" loading="{{loading}}" disabled="{{loading}}">
+    <t-button theme="primary" block form-type="submit" loading="{{loading}}" disabled="{{loading}}">
       {{loading ? '正在生成' : '生成关系参考报告'}}
-    </button>
+    </t-button>
   </form>
 </view>

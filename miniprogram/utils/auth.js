@@ -1,4 +1,5 @@
 const api = require('./api');
+const privacy = require('./privacy');
 
 const TOKEN_KEY = 'customer_token';
 
@@ -10,8 +11,12 @@ function setToken(token) {
   wx.setStorageSync(TOKEN_KEY, token);
 }
 
+function logout() {
+  wx.removeStorageSync(TOKEN_KEY);
+}
+
 function loginWithWechatCode() {
-  return new Promise((resolve, reject) => {
+  return privacy.ensurePrivacyAuthorized().then(() => new Promise((resolve, reject) => {
     wx.login({
       success(loginRes) {
         if (!loginRes.code) {
@@ -35,7 +40,7 @@ function loginWithWechatCode() {
         reject(error);
       },
     });
-  });
+  }));
 }
 
 function sendPhoneOtp(phone) {
@@ -49,14 +54,14 @@ function sendPhoneOtp(phone) {
 }
 
 function verifyPhoneOtp(phone, code) {
-  return api.request('/customer/otp/verify', {
+  return privacy.ensurePrivacyAuthorized().then(() => api.request('/customer/otp/verify', {
     method: 'POST',
     skipUnauthorizedRedirect: true,
     data: {
       phone,
       code,
     },
-  }).then((data) => {
+  })).then((data) => {
     if (data && data.token) {
       setToken(data.token);
     }
@@ -77,6 +82,7 @@ module.exports = {
   TOKEN_KEY,
   getToken,
   setToken,
+  logout,
   loginWithWechatCode,
   sendPhoneOtp,
   verifyPhoneOtp,

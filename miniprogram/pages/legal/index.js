@@ -26,14 +26,14 @@ Page({
           loading: false,
           documents: [
             {
-              title: '甄算用户协议',
+              title: '甄好算用户协议',
               updatedAt: '2026-05-30',
               sections: [
                 { heading: '服务性质', content: '报告仅用于自我整理和一般生活参考。' },
               ],
             },
             {
-              title: '甄算隐私政策',
+              title: '甄好算隐私政策',
               updatedAt: '2026-05-30',
               sections: [
                 { heading: '信息使用范围', content: '信息仅用于登录识别、报告生成、权益扣减、订单履约和安全审查。' },

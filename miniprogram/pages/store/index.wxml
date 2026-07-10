@@ -1,66 +1,88 @@
-<view class="page">
-  <view class="hero">
-    <view class="brand">甄算 · 商城</view>
-    <view class="title">报告权益与甄算产品</view>
-    <view class="subtitle">支持虚拟权益和实物商品。第一版支付由后台人工确认。</view>
+<view class="page store-page">
+
+  <!-- Hero -->
+  <view class="store-hero">
+    <view>
+      <view class="brand">甄 好 算 · 商 城</view>
+      <view class="title">权益与好物</view>
+      <view class="subtitle">开通报告次数，探索甄好算精选商品</view>
+    </view>
+    <view class="store-hero-icon">✦</view>
   </view>
 
-  <view class="section value-panel zs-card-teal" wx:if="{{valueState}}">
-    <view>
-      <view class="metric-label">报告次数</view>
-      <view class="metric-value">{{valueState.reportQuotaBalance || 0}}</view>
+  <!-- 权益状态栏 -->
+  <view class="value-bar zs-card" wx:if="{{valueState}}">
+    <view class="value-item">
+      <view class="value-num">{{valueState.reportQuotaBalance || 0}}</view>
+      <view class="value-label">报告次数</view>
     </view>
-    <view>
-      <view class="metric-label">积分余额</view>
-      <view class="metric-value">{{valueState.points.points_balance || 0}}</view>
+    <view class="value-sep" />
+    <view class="value-item">
+      <view class="value-num">{{valueState.points.points_balance || 0}}</view>
+      <view class="value-label">积 分</view>
     </view>
-    <view>
-      <view class="metric-label">成长等级</view>
-      <view class="metric-value">{{valueState.points.growth_level || '启蒙'}}</view>
+    <view class="value-sep" />
+    <view class="value-item">
+      <view class="value-num value-level">{{valueState.points.growth_level || '启蒙'}}</view>
+      <view class="value-label">等 级</view>
     </view>
   </view>
 
-  <view class="quick-actions">
-    <button class="secondary-button quick-button" type="default" bindtap="openAddress">收货地址</button>
-    <button class="secondary-button quick-button" type="default" bindtap="openOrders">订单记录</button>
+  <!-- 快捷操作 -->
+  <view class="store-actions">
+    <view class="store-action-btn" bindtap="openOrders">
+      <view class="store-action-icon">📋</view>
+      <view class="store-action-text">订单记录</view>
+    </view>
+    <view class="store-action-btn" bindtap="openAddress">
+      <view class="store-action-icon">📍</view>
+      <view class="store-action-text">收货地址</view>
+    </view>
   </view>
 
-  <view class="section address-panel zs-card">
-    <view class="address-head">
-      <view>
-        <view class="address-title">选择收货地址</view>
-        <view class="address-desc">实物商品下单会使用这里选中的地址。</view>
+  <!-- 收货地址选择 -->
+  <view class="address-block zs-card" wx:if="{{addressOptions.length}}">
+    <view class="address-block-head">
+      <view class="address-block-icon">📍</view>
+      <view class="address-block-info">
+        <view class="address-label">{{selectedAddressLabel || '请选择收货地址'}}</view>
+        <view class="address-detail">{{selectedAddressDetail || ''}}</view>
       </view>
-      <button class="ghost-button address-button" type="default" bindtap="openAddress">管理</button>
+      <picker mode="selector" range="{{addressOptions}}" range-key="label" bindchange="selectAddress">
+        <view class="address-change-btn">切换</view>
+      </picker>
     </view>
-    <picker wx:if="{{addressOptions.length}}" mode="selector" range="{{addressOptions}}" range-key="label" bindchange="selectAddress">
-      <view class="address-picker">
-        <view class="address-label">{{selectedAddressLabel || '请选择地址'}}</view>
-        <view class="address-detail">{{selectedAddressDetail || '暂无地址'}}</view>
-      </view>
-    </picker>
-    <view wx:else class="address-empty" bindtap="openAddress">还没有收货地址，点这里去填写。</view>
   </view>
 
+  <!-- 商品列表 -->
+  <view class="store-section-title">精选商品</view>
   <view class="product-list">
     <block wx:for="{{products}}" wx:key="sku">
-      <view class="product-card zs-card">
-        <view class="product-head">
-          <view>
-            <view class="product-name">{{item.name}}</view>
-            <view class="product-sku">{{item.sku}}</view>
-            <view class="pill pill-gold product-type">{{item.typeText}}</view>
+      <view class="product-card product-card-{{index % 2 === 0 ? 'gold' : 'teal'}}">
+        <view class="product-card-inner">
+          <view class="product-top">
+            <view class="product-type-badge">{{item.typeText}}</view>
           </view>
-          <view class="product-price">¥{{item.priceText}}</view>
+          <view class="product-name">{{item.name}}</view>
+          <view class="product-desc">{{item.entitlement_payload.amount ? '报告次数 ×' + item.entitlement_payload.amount : '专属权益'}}</view>
+          <view class="product-bottom">
+            <view class="product-price">¥<text class="product-price-num">{{item.priceText}}</text></view>
+            <t-button
+              theme="primary"
+              size="small"
+              shape="round"
+              loading="{{creating}}"
+              disabled="{{creating}}"
+              bindtap="buyProduct"
+              data-sku="{{item.sku}}"
+            >{{creating ? '处理中' : '立即购买'}}</t-button>
+          </view>
         </view>
-        <view class="product-payload">权益配置：{{item.entitlement_payload.amount || item.entitlement_payload.inventorySku || '人工履约'}}</view>
-        <button class="primary-button" data-sku="{{item.sku}}" bindtap="buyProduct" loading="{{creating}}" disabled="{{creating}}">
-          {{creating ? '处理中' : '创建订单'}}
-        </button>
       </view>
     </block>
   </view>
 
   <view wx:if="{{!products.length && !loading}}" class="empty">暂无可售商品</view>
-  <view class="notice">下单后请等待后台确认支付；实物商品会进入人工发货流程。</view>
+  <view class="notice">微信支付完成后权益立即到账 · 实物商品支付后进入发货流程</view>
+
 </view>

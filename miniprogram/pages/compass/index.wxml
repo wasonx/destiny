@@ -1,6 +1,6 @@
 <view class="page compass-page">
   <view class="hero">
-    <view class="brand">甄算 · 罗盘</view>
+    <view class="brand">甄好算 · 罗盘</view>
     <view class="title">房屋朝向</view>
     <view class="subtitle">读取手机电子罗盘，记录当前空间朝向。</view>
   </view>
@@ -23,11 +23,12 @@
   <view class="readout zs-card">
     <view class="degree">{{degree}}°</view>
     <view class="direction">{{direction}}</view>
+    <view class="interpretation">{{interpretation}}</view>
     <view class="status" wx:if="{{calibrating}}">校准中</view>
   </view>
 
-  <button class="teal-button" bindtap="recordDirection">记录当前房屋朝向</button>
-  <button class="secondary-button" bindtap="calibrate">手动校准</button>
+  <t-button theme="primary" bindtap="recordDirection">记录当前房屋朝向</t-button>
+  <t-button theme="default" variant="outline" bindtap="calibrate">手动校准</t-button>
 
   <view class="recorded message" wx:if="{{recorded}}">
     <text>已记录：</text>

@@ -287,7 +287,7 @@ export default function CustomerCenter() {
       <section className="space-y-4">
         <div>
           <h3 className="font-serif text-xl text-ink-blue">用户协议、隐私政策与报告分层与风险边界说明</h3>
-          <p className="mt-1 text-sm text-on-surface-variant">查看甄算服务性质、信息使用范围、免费体验版与完整版边界。</p>
+          <p className="mt-1 text-sm text-on-surface-variant">查看甄好算服务性质、信息使用范围、免费体验版与完整版边界。</p>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
           {legal ? [

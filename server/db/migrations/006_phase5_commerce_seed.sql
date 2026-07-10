@@ -12,7 +12,7 @@ set name = excluded.name,
 insert into app.commerce_products(sku, name, product_type, price_cents, currency, entitlement_payload, requires_shipping, status)
 values
   ('REPORT-3', '报告次数包 3 次', 'report_quota', 990, 'CNY', '{"amount":3}'::jsonb, false, 'active'),
-  ('CARD-001', '甄算罗盘卡', 'physical_goods', 3900, 'CNY', '{"inventorySku":"CARD-001"}'::jsonb, true, 'active')
+  ('CARD-001', '甄好算罗盘卡', 'physical_goods', 3900, 'CNY', '{"inventorySku":"CARD-001"}'::jsonb, true, 'active')
 on conflict (sku) do update
 set name = excluded.name,
     product_type = excluded.product_type,

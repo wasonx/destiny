@@ -30,7 +30,7 @@ export default function InputForm({ onSubmit }: InputFormProps) {
     >
       <div className="mb-10 text-center">
         <p className="text-on-surface-variant text-base md:text-lg tracking-wide leading-relaxed">
-          输入您的基础信息，<br />开启甄算个人节奏参考。
+          输入您的基础信息，<br />开启甄好算个人节奏参考。
         </p>
         <div className="w-12 h-[2px] bg-wisdom-gold mx-auto mt-6 rounded-full opacity-60" />
       </div>

@@ -1,8 +1,8 @@
-# 甄算 1.0 Final Release Upload And Email Notification Implementation Plan
+# 甄好算 1.0 Final Release Upload And Email Notification Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Complete the final 甄算 1.0 delivery loop after the A+B scope is implemented: verify the deployed system, upload the native mini-program to the current WeChat mini-program account, and email the user.
+**Goal:** Complete the final 甄好算 1.0 delivery loop after the A+B scope is implemented: verify the deployed system, upload the native mini-program to the current WeChat mini-program account, and email the user.
 
 **Architecture:** Treat final delivery as a release gate, not as a feature shortcut. The gate reads the frozen scope, runs local and server verification, uploads only the native `miniprogram/` project with AppID `wxc4ed7c07ce86326c`, records evidence, then sends a concise completion email.
 
@@ -64,7 +64,7 @@ Do not modify unless explicitly needed:
 Create `docs/deployment/zhensuan-1.0-final-release-record.md`:
 
 ```markdown
-# 甄算 1.0 最终交付记录
+# 甄好算 1.0 最终交付记录
 
 日期：2026-05-30
 
@@ -116,7 +116,7 @@ Create `docs/deployment/zhensuan-1.0-final-release-record.md`:
 | 项目 | 值 |
 | --- | --- |
 | 收件人 | 未确认，完成 Task 5 Step 1 后替换为真实邮箱 |
-| 邮件主题 | `甄算 1.0 小程序已上传` |
+| 邮件主题 | `甄好算 1.0 小程序已上传` |
 | 发送状态 | 未执行，完成 Task 5 Step 3 后替换为“已发送” |
 
 ## 结论
@@ -309,7 +309,7 @@ Log in as a platform admin and verify:
 Append a new section to `docs/deployment/zhensuan-online-verification.md`:
 
 ```markdown
-## 2026-05-30 甄算 1.0 最终上线前验证
+## 2026-05-30 甄好算 1.0 最终上线前验证
 
 - API 健康检查：通过，`/destiny-api/health` 返回 `ok: true`。
 - H5 首页：通过，`https://www.goye.cc` 返回 200。
@@ -398,7 +398,7 @@ Expected: preview compile succeeds and prints a package size.
 Run:
 
 ```powershell
-& $wechatCli upload --project "D:\Projects\destiny\miniprogram" -v "1.0.0" -d "甄算1.0正式版：真实微信登录、知识库后台、图计算、图谱可视化、报告分层、商城、会员积分、罗盘、订单退款发货闭环"
+& $wechatCli upload --project "D:\Projects\destiny\miniprogram" -v "1.0.0" -d "甄好算1.0正式版：真实微信登录、知识库后台、图计算、图谱可视化、报告分层、商城、会员积分、罗盘、订单退款发货闭环"
 ```
 
 Expected: upload succeeds and prints an upload success result.
@@ -424,7 +424,7 @@ Do not submit for review or publish unless the user explicitly asks for those ad
 Update `docs/miniprogram-release.md` so the upload section records:
 
 ```markdown
-当前已通过 CLI 上传开发版本 `1.0.0`，备注为“甄算1.0正式版：真实微信登录、知识库后台、图计算、图谱可视化、报告分层、商城、会员积分、罗盘、订单退款发货闭环”。
+当前已通过 CLI 上传开发版本 `1.0.0`，备注为“甄好算1.0正式版：真实微信登录、知识库后台、图计算、图谱可视化、报告分层、商城、会员积分、罗盘、订单退款发货闭环”。
 ```
 
 Also update `docs/deployment/zhensuan-1.0-final-release-record.md` with the version, description, and upload result.
@@ -455,13 +455,13 @@ Use the email address explicitly provided by the user for final notifications. I
 Use this subject:
 
 ```text
-甄算 1.0 小程序已上传
+甄好算 1.0 小程序已上传
 ```
 
 Use this body:
 
 ```text
-甄算 1.0 已完成最终上传。
+甄好算 1.0 已完成最终上传。
 
 完成内容：
 1. A 商业运营版与 B 专业知识库版已按冻结范围完成验证。
@@ -481,7 +481,7 @@ API 健康检查：https://www.goye.cc/destiny-api/health
 
 Use the connected Gmail tool or a user-approved mail client. If using Gmail, send only after the user has authorized the recipient and content.
 
-Expected: the email is sent successfully, with subject `甄算 1.0 小程序已上传`.
+Expected: the email is sent successfully, with subject `甄好算 1.0 小程序已上传`.
 
 - [ ] **Step 4: Record email evidence**
 
@@ -489,7 +489,7 @@ Update `docs/deployment/zhensuan-1.0-final-release-record.md`:
 
 ```markdown
 | 收件人 | user@example.com |
-| 邮件主题 | `甄算 1.0 小程序已上传` |
+| 邮件主题 | `甄好算 1.0 小程序已上传` |
 | 发送状态 | 已发送 |
 ```
 

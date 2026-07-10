@@ -9,12 +9,12 @@ test('wechat provider exchanges code with configured code2session endpoint', asy
     requestedUrl = String(url);
     return {
       ok: true,
-      async json() {
-        return {
+      async text() {
+        return JSON.stringify({
           openid: 'openid-1',
           unionid: 'unionid-1',
           session_key: 'do-not-store-or-return',
-        };
+        });
       },
     };
   };
@@ -81,8 +81,8 @@ test('wechat provider maps WeChat API errors to typed error', async () => {
     config,
     fetchImpl: async () => ({
       ok: true,
-      async json() {
-        return { errcode: 40029, errmsg: 'invalid code' };
+      async text() {
+        return JSON.stringify({ errcode: 40029, errmsg: 'invalid code' });
       },
     }),
   });

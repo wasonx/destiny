@@ -1,64 +1,102 @@
-/* Zhensuan mini-program design system.
- * Web palette reference:
- * paper #FDFCF8, surface #fbf9fb, report #F9FAFB,
- * ink #1A2F4B, teal #4A7C77, gold #B89150, vermillion #C84B31.
- */
+/* =====================================================
+ * 甄好算 · 全局设计系统 v2 — 深色玄学风
+ * 色板：
+ *   bg-deep    #0C0F1A  最深背景
+ *   bg-card    #13192B  卡片底色
+ *   bg-raised  #1A2140  浮层底色
+ *   gold       #C9A84C  金色主调
+ *   gold-dim   rgba(201,168,76,0.15)  金色遮罩
+ *   teal       #4A7C77  青绿辅助
+ *   red        #C84B31  朱红辅助
+ *   ink        #E8EAF0  主文字
+ *   muted      #7E8BAA  次文字
+ * ===================================================== */
+
+/* TDesign 主题变量覆盖 */
+page {
+  --td-brand-color-1: #0D1E1C;
+  --td-brand-color-2: #122420;
+  --td-brand-color-3: #1A3430;
+  --td-brand-color-4: #224540;
+  --td-brand-color-5: #2E5F58;
+  --td-brand-color-6: #3D7870;
+  --td-brand-color-7: #4A7C77;
+  --td-brand-color-8: #5E948F;
+  --td-brand-color-9: #78ABA6;
+  --td-brand-color-10: #A0C5C1;
+
+  --td-warning-color-7: #C9A84C;
+  --td-error-color-7:   #C84B31;
+
+  --td-text-color-primary:     #E8EAF0;
+  --td-text-color-secondary:   #7E8BAA;
+  --td-text-color-placeholder: #4A5470;
+
+  --td-bg-color-page:      #0C0F1A;
+  --td-bg-color-container: #13192B;
+}
 
 page {
-  background: #fdfcf8;
-  color: #1a2f4b;
+  background: #0C0F1A;
+  color: #E8EAF0;
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
+/* ---- 全局容器 ---- */
 .page {
   min-height: 100vh;
-  padding: 28rpx;
+  padding: 28rpx 28rpx 48rpx;
   box-sizing: border-box;
-  background: #fdfcf8;
+  background: #0C0F1A;
+  position: relative;
 }
 
+/* ---- Hero 区域 ---- */
 .hero {
-  padding: 18rpx 0 24rpx;
+  padding: 16rpx 0 28rpx;
   text-align: left;
 }
 
 .brand {
-  color: #b89150;
-  font-size: 23rpx;
-  letter-spacing: 0;
-  margin-bottom: 12rpx;
+  color: #C9A84C;
+  font-size: 22rpx;
+  letter-spacing: 6rpx;
+  margin-bottom: 14rpx;
   font-weight: 700;
+  text-transform: uppercase;
 }
 
 .title {
-  color: #1a2f4b;
-  font-size: 40rpx;
+  color: #E8EAF0;
+  font-size: 42rpx;
   font-weight: 800;
-  line-height: 1.28;
+  line-height: 1.25;
 }
 
 .subtitle {
-  color: #6b7280;
+  color: #7E8BAA;
   font-size: 26rpx;
-  line-height: 1.58;
+  line-height: 1.6;
   margin-top: 14rpx;
 }
 
+/* ---- 通用卡片 ---- */
 .section,
 .zs-card {
-  background: #ffffff;
-  border: 1rpx solid #e5e7eb;
-  border-radius: 16rpx;
+  background: #13192B;
+  border: 1rpx solid rgba(201, 168, 76, 0.18);
+  border-radius: 20rpx;
   padding: 26rpx;
   margin-bottom: 20rpx;
   box-sizing: border-box;
 }
 
+/* 金边强调卡片 */
 .zs-card-accent {
   position: relative;
-  background: #ffffff;
-  border: 1rpx solid #e5e7eb;
-  border-radius: 16rpx;
+  background: #13192B;
+  border: 1rpx solid rgba(201, 168, 76, 0.22);
+  border-radius: 20rpx;
   padding: 26rpx 26rpx 26rpx 34rpx;
   margin-bottom: 20rpx;
   overflow: hidden;
@@ -71,43 +109,48 @@ page {
   left: 0;
   top: 0;
   bottom: 0;
-  width: 8rpx;
-  background: #4a7c77;
+  width: 6rpx;
+  background: linear-gradient(180deg, #C9A84C, #8B6B2A);
+  border-radius: 4rpx 0 0 4rpx;
 }
 
 .zs-card-accent.accent-red::before {
-  background: #c84b31;
+  background: linear-gradient(180deg, #C84B31, #8B2E1C);
 }
 
 .zs-card-accent.accent-gold::before {
-  background: #b89150;
+  background: linear-gradient(180deg, #C9A84C, #8B6B2A);
 }
 
+/* 青绿色调卡片 */
 .zs-card-teal {
-  border-color: rgba(74, 124, 119, 0.28);
-  background: rgba(74, 124, 119, 0.08);
+  border-color: rgba(74, 124, 119, 0.35);
+  background: rgba(74, 124, 119, 0.1);
 }
 
+/* 金色调卡片 */
 .zs-card-gold {
-  border-color: rgba(184, 145, 80, 0.35);
-  background: rgba(184, 145, 80, 0.08);
+  border-color: rgba(201, 168, 76, 0.35);
+  background: rgba(201, 168, 76, 0.08);
 }
 
+/* ---- Section 标题 ---- */
 .section-title {
-  color: #1a2f4b;
-  font-size: 31rpx;
+  color: #E8EAF0;
+  font-size: 30rpx;
   font-weight: 800;
   line-height: 1.35;
   margin-bottom: 18rpx;
 }
 
+/* ---- 表单元素 ---- */
 .field {
-  margin-bottom: 22rpx;
+  margin-bottom: 24rpx;
 }
 
 .label {
   display: block;
-  color: #6b7280;
+  color: #7E8BAA;
   font-size: 24rpx;
   line-height: 1.5;
   margin-bottom: 12rpx;
@@ -116,13 +159,13 @@ page {
 .input,
 .textarea {
   width: 100%;
-  min-height: 78rpx;
-  border: 1rpx solid #e5e7eb;
-  border-radius: 12rpx;
+  min-height: 80rpx;
+  border: 1rpx solid rgba(201, 168, 76, 0.2);
+  border-radius: 14rpx;
   padding: 18rpx 20rpx;
   box-sizing: border-box;
-  color: #1a2f4b;
-  background: #f9fafb;
+  color: #E8EAF0;
+  background: #1A2140;
   font-size: 30rpx;
 }
 
@@ -132,12 +175,13 @@ page {
 }
 
 .form-help {
-  color: #6b7280;
+  color: #7E8BAA;
   font-size: 23rpx;
   line-height: 1.6;
   margin-top: 14rpx;
 }
 
+/* ---- Chips / Pills ---- */
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -149,76 +193,77 @@ page {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1rpx solid #e5e7eb;
+  border: 1rpx solid rgba(201, 168, 76, 0.25);
   border-radius: 999rpx;
-  color: #1a2f4b;
-  background: #ffffff;
+  color: #7E8BAA;
+  background: #1A2140;
   font-size: 24rpx;
   line-height: 1.4;
-  padding: 10rpx 20rpx;
+  padding: 10rpx 24rpx;
   box-sizing: border-box;
 }
 
 .chip.active,
 .pill-teal {
-  color: #ffffff;
-  background: #4a7c77;
-  border-color: #4a7c77;
+  color: #E8EAF0;
+  background: rgba(74, 124, 119, 0.25);
+  border-color: #4A7C77;
 }
 
 .pill-gold {
-  color: #1a2f4b;
-  background: rgba(184, 145, 80, 0.12);
-  border-color: rgba(184, 145, 80, 0.35);
+  color: #C9A84C;
+  background: rgba(201, 168, 76, 0.12);
+  border-color: rgba(201, 168, 76, 0.35);
 }
 
 .pill-red {
-  color: #c84b31;
-  background: rgba(200, 75, 49, 0.08);
-  border-color: rgba(200, 75, 49, 0.28);
+  color: #C84B31;
+  background: rgba(200, 75, 49, 0.1);
+  border-color: rgba(200, 75, 49, 0.3);
 }
 
+/* ---- 按钮 ---- */
 .primary-button,
 .teal-button,
 .secondary-button,
 .ghost-button {
-  min-height: 86rpx;
+  min-height: 88rpx;
   border-radius: 16rpx;
-  font-size: 29rpx;
+  font-size: 30rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
 }
 
-.primary-button,
+.primary-button {
+  width: 100%;
+  background: linear-gradient(135deg, #C9A84C, #8B6B2A);
+  color: #0C0F1A;
+  font-weight: 700;
+}
+
 .teal-button {
   width: 100%;
-  color: #ffffff;
+  background: #4A7C77;
+  color: #E8EAF0;
   font-weight: 600;
 }
 
-.primary-button {
-  background: #1a2f4b;
-}
-
-.teal-button {
-  background: #4a7c77;
-}
-
 .secondary-button {
-  border: 1rpx solid #e5e7eb;
-  color: #1a2f4b;
-  background: #ffffff;
+  border: 1rpx solid rgba(201, 168, 76, 0.3);
+  color: #C9A84C;
+  background: rgba(201, 168, 76, 0.06);
 }
 
 .ghost-button {
-  color: #4a7c77;
+  color: #4A7C77;
   background: transparent;
 }
 
+/* ---- 提示 / 通知 ---- */
 .notice {
-  color: #9ca3af;
+  color: #4A5470;
   font-size: 23rpx;
   line-height: 1.6;
   text-align: center;
@@ -226,17 +271,17 @@ page {
 }
 
 .empty {
-  color: #9ca3af;
+  color: #4A5470;
   font-size: 28rpx;
   padding: 80rpx 0;
   text-align: center;
 }
 
 .message {
-  border-radius: 12rpx;
-  background: rgba(74, 124, 119, 0.08);
-  border: 1rpx solid rgba(74, 124, 119, 0.24);
-  color: #4a7c77;
+  border-radius: 14rpx;
+  background: rgba(74, 124, 119, 0.12);
+  border: 1rpx solid rgba(74, 124, 119, 0.3);
+  color: #4A7C77;
   font-size: 24rpx;
   line-height: 1.6;
   padding: 18rpx 20rpx;

@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "甄算 · 合缘"
+  "navigationBarTitleText": "甄好算 · 合缘",
+  "usingComponents": {
+    "t-button": "tdesign-miniprogram/button/button"
+  }
 }

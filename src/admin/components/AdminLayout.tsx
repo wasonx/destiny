@@ -83,7 +83,7 @@ export default function AdminLayout({ activeView, onViewChange, children }: Prop
       <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-shadow-gray bg-white lg:block">
         <div className="h-16 border-b border-shadow-gray px-5 flex items-center">
           <div>
-            <h1 className="font-serif text-xl font-bold">甄算后台</h1>
+            <h1 className="font-serif text-xl font-bold">甄好算后台</h1>
             <p className="text-xs text-on-surface-variant">知识库与运营管理</p>
           </div>
         </div>
@@ -106,7 +106,7 @@ export default function AdminLayout({ activeView, onViewChange, children }: Prop
         <header className="sticky top-0 z-20 border-b border-shadow-gray bg-white/90 backdrop-blur px-4 lg:px-8 h-16 flex items-center justify-between">
           <div>
             <p className="text-xs text-wisdom-gold">ZHENSUAN ADMIN</p>
-            <h2 className="font-serif text-lg">甄算后台</h2>
+            <h2 className="font-serif text-lg">甄好算后台</h2>
           </div>
           <a href="/" className="rounded-md border border-shadow-gray px-3 py-2 text-sm hover:bg-surface">打开 H5</a>
         </header>

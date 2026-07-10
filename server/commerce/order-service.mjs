@@ -75,25 +75,26 @@ export async function createOrder(client, {
   return order.rows[0];
 }
 
-export async function createPaymentIntent(client, { orderId, amountCents, provider = 'manual' }) {
-  const providerResult = provider === 'wechat_placeholder'
+export async function createPaymentIntent(client, { orderId, amountCents, provider = 'manual', providerResult = null }) {
+  const resolvedProviderResult = providerResult || (provider === 'wechat_placeholder'
     ? createWechatPlaceholderPaymentIntent()
-    : createManualPaymentIntent();
+    : createManualPaymentIntent());
   const result = await client.query(
     `
       insert into app.payment_intents(order_id, provider, status, amount_cents, provider_payload)
       values ($1, $2, $3, $4, $5)
       returning *
     `,
-    [orderId, providerResult.provider, providerResult.status, amountCents, providerResult.providerPayload],
+    [orderId, resolvedProviderResult.provider, resolvedProviderResult.status, amountCents, resolvedProviderResult.providerPayload],
   );
   return result.rows[0];
 }
 
-export async function markPaymentPaid(client, { paymentIntentId, actorUserId }) {
+export async function markPaymentPaid(client, { paymentIntentId, actorUserId = null, providerPayloadPatch = {}, idempotent = false }) {
   const payment = await client.query('select * from app.payment_intents where id = $1 for update', [paymentIntentId]);
   const row = payment.rows[0];
   if (!row) throw new Error('PAYMENT_NOT_FOUND');
+  if (row.status === 'paid' && idempotent) return row;
   assertPaymentTransition(row.status, 'paid');
 
   const orderResult = await client.query('select * from app.commerce_orders where id = $1 for update', [row.order_id]);
@@ -124,11 +125,14 @@ export async function markPaymentPaid(client, { paymentIntentId, actorUserId }) 
   const result = await client.query(
     `
       update app.payment_intents
-      set status = 'paid', paid_at = now(), updated_at = now()
+      set status = 'paid',
+          paid_at = coalesce(paid_at, now()),
+          provider_payload = provider_payload || $2::jsonb,
+          updated_at = now()
       where id = $1
       returning *
     `,
-    [paymentIntentId],
+    [paymentIntentId, JSON.stringify(providerPayloadPatch || {})],
   );
   await client.query(
     `
@@ -145,10 +149,10 @@ export async function markPaymentPaid(client, { paymentIntentId, actorUserId }) 
   });
   await client.query(
     `
-      insert into app.audit_logs(actor_user_id, action, target_type, target_id)
-      values ($1, $2, $3, $4)
+      insert into app.audit_logs(actor_user_id, action, target_type, target_id, metadata)
+      values ($1, $2, $3, $4, $5)
     `,
-    [actorUserId, 'payment.mark_paid', 'payment_intent', paymentIntentId],
+    [actorUserId, 'payment.mark_paid', 'payment_intent', paymentIntentId, providerPayloadPatch || {}],
   );
   return result.rows[0];
 }

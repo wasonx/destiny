@@ -1,6 +1,6 @@
 <view class="page">
   <view class="hero">
-    <view class="brand">甄算 · 问时</view>
+    <view class="brand">甄好算 · 问时</view>
     <view class="title">一事一解参考</view>
     <view class="subtitle">尽量只问一件具体的事，系统会给出结构化分析与行动提醒。</view>
   </view>
@@ -33,9 +33,9 @@
       </view>
     </view>
 
-    <button class="primary-button" form-type="submit" loading="{{loading}}" disabled="{{loading}}">
+    <t-button theme="primary" block form-type="submit" loading="{{loading}}" disabled="{{loading}}">
       {{loading ? '正在生成' : '提交并生成分析'}}
-    </button>
+    </t-button>
   </form>
 
   <view class="notice">同一件事不宜频繁问。建议在事情出现新变化，或间隔 1-2 周后再问。</view>

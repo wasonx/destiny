@@ -1,6 +1,6 @@
 <view class="page">
   <view class="hero">
-    <view class="brand">甄算 · 收货地址</view>
+    <view class="brand">甄好算 · 收货地址</view>
     <view class="title">管理实物商品地址</view>
     <view class="subtitle">实物商品下单时会使用默认或第一条收货地址。</view>
   </view>
@@ -33,9 +33,9 @@
       <text class="label">详细地址</text>
       <textarea class="textarea" value="{{form.detail_address}}" data-field="detail_address" bindinput="updateField" placeholder="街道、门牌号" />
     </view>
-    <button class="primary-button" bindtap="submit" loading="{{saving}}" disabled="{{saving}}">
+    <t-button theme="primary" block bindtap="submit" loading="{{saving}}" disabled="{{saving}}">
       {{saving ? '保存中' : '保存收货地址'}}
-    </button>
+    </t-button>
   </view>
 
   <view class="section zs-card">

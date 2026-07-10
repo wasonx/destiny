@@ -1,13 +1,29 @@
 <view class="page report-page" wx:if="{{report}}">
   <view class="section report-header zs-card">
-    <view class="report-eyebrow">甄算参考报告</view>
+    <view class="report-eyebrow">甄好算参考报告</view>
     <view class="report-title">{{report.title}}</view>
     <view class="report-subtitle">{{report.subtitle}}</view>
     <view class="report-meta-row">
-      <view class="tier-badge pill pill-gold">{{report.tier === 'full' ? '完整版' : '免费体验版'}}</view>
+      <t-tag
+        variant="light-outline"
+        shape="round"
+        size="small"
+        color="{{report.tier === 'full' ? '#4A7C77' : '#B89150'}}"
+      >{{report.tier === 'full' ? '完整版' : '免费体验版'}}</t-tag>
       <view class="report-date">生成于 {{report.generatedAt}}</view>
     </view>
     <view class="source" wx:if="{{report.source === 'fallback'}}">离线示例结果</view>
+  </view>
+
+  <view class="section element-card zs-card" wx:if="{{elementList.length}}">
+    <view class="section-title">五行旺衰</view>
+    <view class="element-row" wx:for="{{elementList}}" wx:key="name" style="display:flex;align-items:center;margin:12rpx 0;">
+      <text class="element-name" style="width:48rpx;color:#4A7C77;font-size:26rpx;">{{item.name}}</text>
+      <view style="flex:1;height:14rpx;background:#eef0f0;border-radius:7rpx;overflow:hidden;margin:0 16rpx;">
+        <view style="height:100%;width:{{item.percent}}%;background:#4A7C77;border-radius:7rpx;"></view>
+      </view>
+      <text class="element-value" style="width:40rpx;text-align:right;color:#666;font-size:24rpx;">{{item.value}}</text>
+    </view>
   </view>
 
   <view class="section history-section zs-card" wx:if="{{loadingHistory || historyRuns.length}}">
@@ -35,7 +51,7 @@
     <view class="section-title">核心摘要</view>
     <view class="tags">
       <block wx:for="{{report.keywords}}" wx:key="*this">
-        <view class="tag">{{item}}</view>
+        <t-tag variant="outline" shape="round" size="small">{{item}}</t-tag>
       </block>
     </view>
     <view class="summary">{{report.summary}}</view>
@@ -95,5 +111,10 @@
     </view>
   </view>
 
-  <button class="primary-button" bindtap="goHome">返回首页</button>
+  <view class="action-row" style="display:flex;gap:20rpx;margin:24rpx 0;">
+    <button open-type="share" style="flex:1;background:#4A7C77;color:#fff;border-radius:8rpx;font-size:28rpx;line-height:80rpx;border:none;">分享给好友</button>
+    <t-button theme="default" variant="outline" bindtap="reTest" style="flex:1;">重新测算</t-button>
+  </view>
+
+  <t-button theme="primary" size="large" block bindtap="goHome">返回首页</t-button>
 </view>

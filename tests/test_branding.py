@@ -37,7 +37,7 @@ class BrandingTests(unittest.TestCase):
             ROOT / "src" / "components" / "Layout.tsx",
             ROOT / "src" / "components" / "Home.tsx",
         ]:
-            self.assertIn("甄算", read(path))
+            self.assertIn("甄好算", read(path))
 
 
 if __name__ == "__main__":

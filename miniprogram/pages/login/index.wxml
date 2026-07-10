@@ -1,6 +1,6 @@
 <view class="page login-page">
   <view class="hero">
-    <view class="brand">甄算</view>
+    <view class="brand">甄好算</view>
     <view class="title">客户登录</view>
     <view class="subtitle">登录后可保存报告、查看订单、权益和积分。</view>
   </view>
@@ -8,17 +8,17 @@
   <view class="section login-section zs-card-teal">
     <view class="section-title">微信登录</view>
     <view class="login-copy">适合微信内快速进入，登录后可同步报告、订单与权益。</view>
-    <button class="teal-button" loading="{{loggingIn}}" disabled="{{loggingIn}}" bindtap="loginWithWechatCode">
+    <t-button theme="primary" block loading="{{loggingIn}}" disabled="{{loggingIn}}" bindtap="loginWithWechatCode">
       {{loggingIn ? '登录中' : '微信登录'}}
-    </button>
+    </t-button>
   </view>
 
   <view class="section login-section zs-card">
     <view class="section-title">扫码登录</view>
     <view class="login-copy">用于确认电脑端二维码登录，扫码后会把当前微信小程序账号授权给 H5 端。</view>
-    <button class="secondary-button" loading="{{scanningQr}}" disabled="{{scanningQr}}" bindtap="scanQrLogin">
+    <t-button theme="default" variant="outline" block loading="{{scanningQr}}" disabled="{{scanningQr}}" bindtap="scanQrLogin">
       {{scanningQr ? '确认中' : '扫码登录'}}
-    </button>
+    </t-button>
   </view>
 
   <view class="section login-section zs-card">
@@ -33,15 +33,17 @@
         <text class="label">验证码</text>
         <input class="input" type="number" maxlength="6" value="{{code}}" bindinput="updateCode" placeholder="验证码" />
       </view>
-      <button class="secondary-button otp-button" loading="{{sending}}" disabled="{{sending}}" bindtap="sendPhoneOtp">
+      <t-button theme="default" variant="outline" size="medium" class="otp-button" loading="{{sending}}" disabled="{{sending}}" bindtap="sendPhoneOtp">
         {{sending ? '发送中' : '发送验证码'}}
-      </button>
+      </t-button>
     </view>
-    <button class="primary-button" loading="{{loggingIn}}" disabled="{{loggingIn}}" bindtap="verifyPhoneOtp">
+    <t-button theme="primary" block loading="{{loggingIn}}" disabled="{{loggingIn}}" bindtap="verifyPhoneOtp">
       手机验证码登录
-    </button>
+    </t-button>
   </view>
 
   <view wx:if="{{message}}" class="message login-message">{{message}}</view>
   <view class="notice">验证码登录为第一版模拟链路，用于验证账号、权益和订单流程，后续可切换腾讯云短信 provider。</view>
+
+  <view class="privacy-hint" bindtap="openLegal">登录即代表已阅读并同意《用户协议与隐私政策》</view>
 </view>

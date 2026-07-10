@@ -20,7 +20,7 @@ export const memory = {
     {
       id: 'compass-card',
       sku: 'CARD-001',
-      name: '甄算罗盘卡',
+      name: '甄好算罗盘卡',
       product_type: 'physical_goods',
       price_cents: 3900,
       currency: 'CNY',

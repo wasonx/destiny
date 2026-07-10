@@ -1,3 +1,5 @@
+import { getWechatPayConfigState } from '../commerce/payment-providers/wechat-jsapi-provider.mjs';
+
 function requirePlatformAdmin(req, res, pool) {
   if (!pool || req.session?.account_type === 'admin') {
     return true;
@@ -8,6 +10,7 @@ function requirePlatformAdmin(req, res, pool) {
 
 function buildIntegrationStatus(config) {
   const wechatConfigured = Boolean(config.wechatMiniProgramAppId && config.wechatMiniProgramSecret);
+  const wechatPayState = getWechatPayConfigState(config);
   return {
     integrations: {
       wechatLogin: {
@@ -22,16 +25,20 @@ function buildIntegrationStatus(config) {
         name: '短信',
         provider: 'mock',
         realProviderEnabled: false,
-        signName: config.tencentSmsSignName || '甄算',
+        signName: config.tencentSmsSignName || '甄好算',
         loginTemplateConfigured: Boolean(config.tencentSmsLoginTemplateId),
         bindTemplateConfigured: Boolean(config.tencentSmsBindTemplateId),
         note: '手机号验证码为模拟发送，腾讯云短信真实接口未接入',
       },
       payment: {
         name: '支付',
-        provider: 'manual',
-        realProviderEnabled: false,
-        note: '微信支付真实接口未接入，订单支付由后台人工确认',
+        provider: wechatPayState.enabled ? 'wechat_jsapi' : 'manual',
+        realProviderEnabled: wechatPayState.enabled && wechatPayState.configured,
+        configured: wechatPayState.configured,
+        missing: wechatPayState.missing,
+        note: wechatPayState.enabled && wechatPayState.configured
+          ? '微信支付 JSAPI 已开启，订单可由小程序拉起 wx.requestPayment'
+          : '微信支付 JSAPI 代码已接入但未开启或配置未完整，订单支付可降级为后台人工确认',
       },
       refund: {
         name: '退款',

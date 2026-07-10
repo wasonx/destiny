@@ -131,4 +131,21 @@ Page({
   openStore() {
     wx.switchTab({ url: '/pages/store/index' });
   },
+
+  logout() {
+    wx.showModal({
+      title: '退出登录',
+      content: '确定要退出登录吗？退出后需要重新登录才能查看报告和订单。',
+      confirmText: '退出',
+      cancelText: '取消',
+      confirmColor: '#C84B31',
+      success: (res) => {
+        if (res.confirm) {
+          auth.logout();
+          wx.showToast({ title: '已退出登录', icon: 'success' });
+          this.refresh();
+        }
+      },
+    });
+  },
 });
